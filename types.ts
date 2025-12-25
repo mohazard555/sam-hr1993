@@ -9,7 +9,7 @@ export interface User {
   password?: string;
   role: UserRole;
   name: string;
-  permissions: string[]; // ['read_payroll', 'edit_employees', etc]
+  permissions: string[];
 }
 
 export interface CompanySettings {
@@ -39,6 +39,8 @@ export interface Employee {
   phone: string;
   nationalId: string;
   vacationBalance: number;
+  customOvertimeRate?: number; // Optional per-employee OT rate multiplier
+  customDeductionRate?: number; // Optional per-employee late deduction rate per minute
 }
 
 export interface AttendanceRecord {
@@ -99,7 +101,9 @@ export interface PayrollRecord {
   transport: number;
   production: number;
   overtimePay: number;
+  overtimeMinutes: number;
   deductions: number; 
+  lateMinutes: number;
   netSalary: number;
   isPaid: boolean;
 }

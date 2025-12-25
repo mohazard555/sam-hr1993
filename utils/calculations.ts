@@ -33,20 +33,21 @@ export const generateMonthlyPayroll = (
     const totalProduction = empFinancials.filter(f => f.type === 'production_incentive').reduce((acc, f) => acc + f.amount, 0);
     const manualDeductions = empFinancials.filter(f => f.type === 'deduction').reduce((acc, f) => acc + f.amount, 0);
 
-    // Calculate Late Penalties (Late > grace period)
-    const lateDeduction = empAttendance.reduce((acc, record) => {
-      const late = Math.max(0, record.lateMinutes - settings.gracePeriodMinutes);
-      return acc + (late * settings.deductionPerLateMinute);
+    // Calculate Late Penalties
+    const lateDeductionRate = emp.customDeductionRate ?? settings.deductionPerLateMinute;
+    const totalLateMinutes = empAttendance.reduce((acc, record) => {
+      return acc + Math.max(0, record.lateMinutes - settings.gracePeriodMinutes);
     }, 0);
+    const lateDeductionValue = totalLateMinutes * lateDeductionRate;
 
     // Calculate Overtime Pay
-    // Formula: (Base Salary / 30 / 8) * OvertimeMinutes/60 * Rate
+    const overtimeRateMultiplier = emp.customOvertimeRate ?? settings.overtimeHourRate;
     const hourlyRate = (emp.baseSalary / 30 / 8);
     const totalOvertimeMinutes = empAttendance.reduce((acc, r) => acc + r.overtimeMinutes, 0);
-    const overtimePay = (totalOvertimeMinutes / 60) * hourlyRate * settings.overtimeHourRate;
+    const overtimePay = (totalOvertimeMinutes / 60) * hourlyRate * overtimeRateMultiplier;
 
     const loanInstallment = empLoan ? Math.min(empLoan.monthlyInstallment, empLoan.remainingAmount) : 0;
-    const totalDeductions = manualDeductions + lateDeduction + loanInstallment;
+    const totalDeductions = manualDeductions + lateDeductionValue + loanInstallment;
     
     const netSalary = emp.baseSalary + emp.transportAllowance + totalBonuses + totalProduction + overtimePay - totalDeductions;
 
@@ -60,7 +61,9 @@ export const generateMonthlyPayroll = (
       transport: emp.transportAllowance,
       production: totalProduction,
       overtimePay: Math.round(overtimePay),
+      overtimeMinutes: totalOvertimeMinutes,
       deductions: Math.round(totalDeductions),
+      lateMinutes: totalLateMinutes,
       netSalary: Math.round(Math.max(0, netSalary)),
       isPaid: false
     };
