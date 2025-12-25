@@ -30,7 +30,8 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
   const isRtl = lang === 'ar';
 
   const filteredItems = useMemo(() => {
-    return items.filter(item => {
+    return (items || []).filter(item => {
+      if (!item) return false;
       const emp = employees.find(e => e.id === item.employeeId);
       const nameMatch = emp?.name.toLowerCase().includes(searchTerm.toLowerCase());
       
@@ -53,12 +54,12 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
     exportToExcel(exportData, `SAM_${title}`);
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.employeeId) {
+        alert(isRtl ? 'يرجى اختيار موظف أولاً' : 'Please select an employee');
+        return;
+    }
     const item = {
       ...formData,
       id: formData.id || Math.random().toString(36).substr(2, 9)
@@ -80,8 +81,8 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
           <button onClick={handleExport} className="bg-emerald-600 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-emerald-700 shadow-lg transition-all">
             <FileDown size={20} /> Excel
           </button>
-          <button onClick={handlePrint} className="bg-slate-950 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-black transition shadow-lg">
-            <Printer size={20} /> {isRtl ? 'طباعة النتائج' : 'Print'}
+          <button onClick={() => window.print()} className="bg-slate-950 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-black transition shadow-lg">
+            <Printer size={20} /> {isRtl ? 'طباعة' : 'Print'}
           </button>
         </div>
       </div>
