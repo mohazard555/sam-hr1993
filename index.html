@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SAM - نظام إدارة شؤون الموظفين</title>
+    <title>SAM - نظام إدارة شؤون الموظفين Pro</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4f46e5">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -27,16 +27,19 @@
         body {
             font-family: 'Cairo', sans-serif;
             transition: background-color 0.3s ease;
+            color: #020617; /* ضمان تباين عالٍ للنصوص في الوضع المضيء */
         }
-        /* تحسين التباين في الوضع المضيء */
-        .light .text-content { color: #020617 !important; }
+        .dark body {
+            color: #f8fafc;
+        }
         
         @media print {
             .no-print { display: none !important; }
             .print-only { display: block !important; }
             body { background: white !important; color: black !important; }
-            .receipt-slip { break-inside: avoid; page-break-after: auto; border: 2px solid black !important; margin-bottom: 20px; }
-            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            table { width: 100% !important; border-collapse: collapse !important; }
+            th, td { border: 1px solid #000 !important; padding: 8px !important; }
+            .receipt-slip { break-inside: avoid; border: 3px solid #000 !important; margin-bottom: 30px; padding: 20px; }
         }
     </style>
 <script type="importmap">
@@ -51,7 +54,9 @@
 }
 </script>
 </head>
-<body class="bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-slate-100">
+<body class="bg-slate-50 dark:bg-slate-950">
     <div id="root"></div>
+    <!-- إضافة رابط الملف الرئيسي لضمان عمل Vite/Vercel بشكل صحيح -->
+    <script type="module" src="index.tsx"></script>
 </body>
 </html>
