@@ -28,26 +28,30 @@
             font-family: 'Cairo', sans-serif;
             transition: background-color 0.3s ease;
         }
+        /* تحسين التباين في الوضع المضيء */
+        .light .text-content { color: #020617 !important; }
+        
         @media print {
             .no-print { display: none !important; }
             .print-only { display: block !important; }
             body { background: white !important; color: black !important; }
-            .receipt-slip { break-inside: avoid; page-break-after: auto; }
+            .receipt-slip { break-inside: avoid; page-break-after: auto; border: 2px solid black !important; margin-bottom: 20px; }
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
     </style>
 <script type="importmap">
 {
   "imports": {
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "react": "https://esm.sh/react@^19.2.3",
-    "react/": "https://esm.sh/react@^19.2.3/"
+    "react-dom/": "https://esm.sh/react-dom@19.0.0/",
+    "lucide-react": "https://esm.sh/lucide-react@0.460.0",
+    "react": "https://esm.sh/react@19.0.0",
+    "react/": "https://esm.sh/react@19.0.0/",
+    "xlsx": "https://esm.sh/xlsx@0.18.5"
   }
 }
 </script>
 </head>
-<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+<body class="bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-slate-100">
     <div id="root"></div>
 </body>
 </html>

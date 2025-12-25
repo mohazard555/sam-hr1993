@@ -1,9 +1,9 @@
 
 import React from 'react';
 import { 
-  Users, Clock, CreditCard, Calendar, AlertTriangle, 
+  Users, Clock, CreditCard, Calendar, 
   BarChart3, Settings as SettingsIcon, LayoutDashboard,
-  Wallet, Zap, LogOut, Sun, Moon, FileText
+  Wallet, Zap, LogOut, Sun, Moon, FileText, Building
 } from 'lucide-react';
 import { useTranslation } from '../utils/translations';
 import { Language, User, Theme } from '../types';
@@ -26,6 +26,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang
   const menuItems = [
     { id: 'dashboard', label: t('dashboard'), icon: LayoutDashboard, roles: ['admin', 'manager', 'viewer'] },
     { id: 'employees', label: t('employees'), icon: Users, roles: ['admin', 'manager', 'viewer'] },
+    { id: 'departments', label: isRtl ? 'الأقسام' : 'Departments', icon: Building, roles: ['admin', 'manager'] },
     { id: 'attendance', label: t('attendance'), icon: Clock, roles: ['admin', 'manager', 'viewer'] },
     { id: 'leaves', label: t('leaves'), icon: Calendar, roles: ['admin', 'manager'] },
     { id: 'financials', label: t('financials'), icon: Wallet, roles: ['admin', 'manager'] },
@@ -85,17 +86,17 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang
       <main className="flex-1 flex flex-col min-w-0">
         <header className="h-16 bg-white dark:bg-slate-900 border-b dark:border-slate-800 flex items-center justify-between px-8 no-print shadow-sm">
           <div>
-            <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 uppercase tracking-wide">
+            <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 uppercase tracking-wide">
               {menuItems.find(m => m.id === activeTab)?.label}
             </h2>
           </div>
           <div className="flex items-center gap-4">
              <div className="hidden md:block">
-                <p className="text-xs text-slate-400 font-bold text-left">{currentUser?.name}</p>
-                <p className="text-[10px] text-indigo-500 font-black uppercase text-left">{currentUser?.role}</p>
+                <p className="text-xs text-slate-700 dark:text-slate-400 font-black text-left">{currentUser?.name}</p>
+                <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-black uppercase text-left">{currentUser?.role}</p>
              </div>
              <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center border dark:border-slate-700">
-                <Users size={20} className="text-indigo-500" />
+                <Users size={20} className="text-indigo-600 dark:text-indigo-500" />
              </div>
           </div>
         </header>

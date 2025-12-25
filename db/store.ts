@@ -11,7 +11,7 @@ import {
   PayrollRecord
 } from '../types';
 
-const STORAGE_KEY = 'SAM_HR_DB_V4';
+const STORAGE_KEY = 'SAM_HR_DB_V6_PRO';
 
 export interface DB {
   settings: CompanySettings;
@@ -22,7 +22,9 @@ export interface DB {
   leaves: LeaveRequest[];
   financials: FinancialEntry[];
   warnings: Warning[];
-  payrolls: PayrollRecord[];
+  payrolls: PayrollRecord[]; // Current month view
+  payrollHistory: PayrollRecord[]; // Archived payroll records
+  departments: string[];
 }
 
 const DEFAULT_SETTINGS: CompanySettings = {
@@ -62,17 +64,21 @@ export const loadDB = (): DB => {
       leaves: [],
       financials: [],
       warnings: [],
-      payrolls: []
+      payrolls: [],
+      payrollHistory: [],
+      departments: ['الإدارة العامة', 'المحاسبة', 'الموارد البشرية', 'الإنتاج', 'المبيعات']
     };
     saveDB(initialDB);
     return initialDB;
   }
-  return JSON.parse(data);
+  const parsed = JSON.parse(data);
+  if (!parsed.departments) parsed.departments = [];
+  if (!parsed.payrollHistory) parsed.payrollHistory = [];
+  return parsed;
 };
 
 export const saveDB = (db: DB) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
-  // Apply theme to HTML tag
   if (db.settings.theme === 'dark') {
     document.documentElement.classList.add('dark');
   } else {

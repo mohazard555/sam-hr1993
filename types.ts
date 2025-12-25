@@ -39,8 +39,10 @@ export interface Employee {
   phone: string;
   nationalId: string;
   vacationBalance: number;
-  customOvertimeRate?: number; // Optional per-employee OT rate multiplier
-  customDeductionRate?: number; // Optional per-employee late deduction rate per minute
+  customOvertimeRate?: number;
+  customDeductionRate?: number;
+  customCheckIn?: string;  // Individual start time
+  customCheckOut?: string; // Individual end time
 }
 
 export interface AttendanceRecord {
