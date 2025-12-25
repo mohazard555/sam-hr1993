@@ -1,9 +1,8 @@
 
 import React, { useState } from 'react';
 import { CompanySettings, User } from '../types';
-// DB is exported from store, not types
 import { DB } from '../db/store';
-import { Shield, Coins, Upload, Download, Database, Key, Layout } from 'lucide-react';
+import { Shield, Coins, Upload, Download, Database, Key, Layout, CalendarRange } from 'lucide-react';
 
 interface Props {
   settings: CompanySettings;
@@ -18,15 +17,6 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
   const [newCurrency, setNewCurrency] = useState('');
   const [adminForm, setAdminForm] = useState({ username: admin.username, password: admin.password || '' });
   const isRtl = settings.language === 'ar';
-
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => { onUpdateSettings({ logo: reader.result as string }); };
-      reader.readAsDataURL(file);
-    }
-  };
 
   const handleExport = () => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db, null, 2));
@@ -53,6 +43,30 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
            <div>
              <label className="text-sm font-bold block mb-1 text-slate-700 dark:text-slate-300">اسم البرنامج</label>
              <input className="w-full p-3 border dark:border-slate-800 dark:bg-slate-800 rounded-xl font-bold" value={settings.name} onChange={e => onUpdateSettings({name: e.target.value})} />
+           </div>
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-xl border dark:border-slate-800 space-y-6">
+        <h3 className="text-xl font-black text-emerald-600 flex items-center gap-2"><CalendarRange size={24} /> دورة العمل والرواتب</h3>
+        <div className="space-y-4">
+           <div>
+             <label className="text-sm font-bold block mb-1 text-slate-700 dark:text-slate-300">نظام احتساب الرواتب</label>
+             <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border dark:border-slate-700">
+                <button 
+                  onClick={() => onUpdateSettings({ salaryCycle: 'monthly' })}
+                  className={`flex-1 py-3 rounded-xl font-black transition-all ${settings.salaryCycle === 'monthly' ? 'bg-white dark:bg-slate-900 shadow-md text-indigo-600' : 'text-slate-500'}`}
+                >
+                  شهري (30 يوم)
+                </button>
+                <button 
+                  onClick={() => onUpdateSettings({ salaryCycle: 'weekly' })}
+                  className={`flex-1 py-3 rounded-xl font-black transition-all ${settings.salaryCycle === 'weekly' ? 'bg-white dark:bg-slate-900 shadow-md text-indigo-600' : 'text-slate-500'}`}
+                >
+                  أسبوعي (7 أيام)
+                </button>
+             </div>
+             <p className="text-[10px] text-slate-500 font-bold mt-2 pr-2">تأثير الخيار: يغير تقسيم الراتب الأساسي عند حساب سعر الساعة (الراتب ÷ الأيام ÷ الساعات).</p>
            </div>
         </div>
       </div>

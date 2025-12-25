@@ -27,7 +27,7 @@
         body {
             font-family: 'Cairo', sans-serif;
             transition: background-color 0.3s ease;
-            color: #020617; /* ضمان تباين عالٍ للنصوص في الوضع المضيء */
+            color: #020617;
         }
         .dark body {
             color: #f8fafc;
@@ -36,11 +36,46 @@
         @media print {
             .no-print { display: none !important; }
             .print-only { display: block !important; }
-            body { background: white !important; color: black !important; }
-            table { width: 100% !important; border-collapse: collapse !important; }
-            th, td { border: 1px solid #000 !important; padding: 8px !important; }
-            .receipt-slip { break-inside: avoid; border: 3px solid #000 !important; margin-bottom: 30px; padding: 20px; }
+            body { 
+              background: white !important; 
+              color: black !important; 
+              -webkit-print-color-adjust: exact !important; 
+              print-color-adjust: exact !important;
+            }
+            @page {
+              size: A4 landscape;
+              margin: 1cm;
+            }
+            .print-header {
+              display: flex !important;
+              justify-content: space-between;
+              align-items: center;
+              border-bottom: 4px solid #4f46e5;
+              padding-bottom: 20px;
+              margin-bottom: 30px;
+            }
+            table { 
+              width: 100% !important; 
+              border-collapse: collapse !important; 
+              font-size: 10pt !important;
+            }
+            th { 
+              background-color: #4f46e5 !important; 
+              color: white !important; 
+              padding: 10px !important;
+              border: 1px solid #ddd !important;
+            }
+            td { 
+              padding: 8px !important; 
+              border: 1px solid #ddd !important;
+              font-weight: bold !important;
+            }
+            .total-row {
+              background-color: #f1f5f9 !important;
+              font-weight: 900 !important;
+            }
         }
+        .print-only { display: none; }
     </style>
 <script type="importmap">
 {
@@ -56,7 +91,6 @@
 </head>
 <body class="bg-slate-50 dark:bg-slate-950">
     <div id="root"></div>
-    <!-- إضافة رابط الملف الرئيسي لضمان عمل Vite/Vercel بشكل صحيح -->
     <script type="module" src="index.tsx"></script>
 </body>
 </html>

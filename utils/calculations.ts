@@ -16,9 +16,12 @@ export const generateMonthlyPayroll = (
   financials: FinancialEntry[],
   settings: CompanySettings
 ): PayrollRecord[] => {
+  const daysInCycle = settings.salaryCycle === 'weekly' ? 7 : 30;
+
   return employees.map(emp => {
     const empAttendance = attendance.filter(a => {
       const d = new Date(a.date);
+      // في حالة الأسبوعي قد نحتاج منطق تصفية مختلف، ولكن حالياً نعتمد على تاريخ الشهر
       return d.getMonth() + 1 === month && d.getFullYear() === year && a.employeeId === emp.id;
     });
 
@@ -28,26 +31,29 @@ export const generateMonthlyPayroll = (
     });
 
     const empLoan = loans.find(l => l.employeeId === emp.id && l.remainingAmount > 0);
+    const loanInstallment = empLoan ? Math.min(empLoan.monthlyInstallment, empLoan.remainingAmount) : 0;
 
     const totalBonuses = empFinancials.filter(f => f.type === 'bonus').reduce((acc, f) => acc + f.amount, 0);
     const totalProduction = empFinancials.filter(f => f.type === 'production_incentive').reduce((acc, f) => acc + f.amount, 0);
     const manualDeductions = empFinancials.filter(f => f.type === 'deduction').reduce((acc, f) => acc + f.amount, 0);
 
-    // Calculate Late Penalties respecting custom shift
-    const lateDeductionRate = emp.customDeductionRate ?? settings.deductionPerLateMinute;
+    const totalWorkingMinutes = empAttendance.reduce((acc, r) => {
+      const duration = calculateTimeDiffMinutes(r.checkOut, r.checkIn);
+      return acc + (duration > 0 ? duration : 0);
+    }, 0);
+
+    const hourlyRate = (emp.baseSalary / daysInCycle / 8);
+    const lateDeductionRate = emp.customDeductionRate ? (hourlyRate * emp.customDeductionRate) : settings.deductionPerLateMinute;
     const shiftIn = emp.customCheckIn || settings.officialCheckIn;
     
     const totalLateMinutes = empAttendance.reduce((acc, record) => {
-      // Calculate diff against employee-specific or global shift
       const lateMins = Math.max(0, calculateTimeDiffMinutes(record.checkIn, shiftIn));
       return acc + Math.max(0, lateMins - settings.gracePeriodMinutes);
     }, 0);
-    const lateDeductionValue = totalLateMinutes * lateDeductionRate;
+    const lateDeductionValue = (totalLateMinutes / 60) * (emp.customDeductionRate ? (hourlyRate * emp.customDeductionRate) : (hourlyRate * 1));
 
-    // Calculate Overtime Pay respecting custom shift
     const overtimeRateMultiplier = emp.customOvertimeRate ?? settings.overtimeHourRate;
     const shiftOut = emp.customCheckOut || settings.officialCheckOut;
-    const hourlyRate = (emp.baseSalary / 30 / 8);
     
     const totalOvertimeMinutes = empAttendance.reduce((acc, r) => {
       const otMins = Math.max(0, calculateTimeDiffMinutes(r.checkOut, shiftOut));
@@ -55,9 +61,7 @@ export const generateMonthlyPayroll = (
     }, 0);
     const overtimePay = (totalOvertimeMinutes / 60) * hourlyRate * overtimeRateMultiplier;
 
-    const loanInstallment = empLoan ? Math.min(empLoan.monthlyInstallment, empLoan.remainingAmount) : 0;
     const totalDeductions = manualDeductions + lateDeductionValue + loanInstallment;
-    
     const netSalary = emp.baseSalary + emp.transportAllowance + totalBonuses + totalProduction + overtimePay - totalDeductions;
 
     return {
@@ -71,8 +75,10 @@ export const generateMonthlyPayroll = (
       production: totalProduction,
       overtimePay: Math.round(overtimePay),
       overtimeMinutes: totalOvertimeMinutes,
-      deductions: Math.round(totalDeductions),
+      loanInstallment: loanInstallment,
+      deductions: Math.round(manualDeductions + lateDeductionValue),
       lateMinutes: totalLateMinutes,
+      workingHours: Number((totalWorkingMinutes / 60).toFixed(1)),
       netSalary: Math.round(Math.max(0, netSalary)),
       isPaid: false
     };

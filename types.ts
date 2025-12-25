@@ -2,6 +2,7 @@
 export type Language = 'ar' | 'en';
 export type UserRole = 'admin' | 'manager' | 'viewer';
 export type Theme = 'light' | 'dark';
+export type SalaryCycle = 'monthly' | 'weekly';
 
 export interface User {
   id: string;
@@ -26,6 +27,7 @@ export interface CompanySettings {
   officialCheckOut: string;
   deductionPerLateMinute: number;
   overtimeHourRate: number;
+  salaryCycle: SalaryCycle; // الحقل الجديد
 }
 
 export interface Employee {
@@ -41,8 +43,8 @@ export interface Employee {
   vacationBalance: number;
   customOvertimeRate?: number;
   customDeductionRate?: number;
-  customCheckIn?: string;  // Individual start time
-  customCheckOut?: string; // Individual end time
+  customCheckIn?: string;
+  customCheckOut?: string;
 }
 
 export interface AttendanceRecord {
@@ -69,17 +71,18 @@ export interface Loan {
 export interface LeaveRequest {
   id: string;
   employeeId: string;
-  type: 'annual' | 'sick' | 'unpaid' | 'emergency';
+  type: 'annual' | 'sick' | 'unpaid' | 'emergency' | 'marriage' | 'death';
   startDate: string;
   endDate: string;
   status: 'pending' | 'approved' | 'rejected';
+  isPaid: boolean;
   reason?: string;
 }
 
 export interface FinancialEntry {
   id: string;
   employeeId: string;
-  type: 'bonus' | 'deduction' | 'production_incentive';
+  type: 'bonus' | 'deduction' | 'production_incentive' | 'payment';
   amount: number;
   date: string;
   reason: string;
@@ -104,8 +107,10 @@ export interface PayrollRecord {
   production: number;
   overtimePay: number;
   overtimeMinutes: number;
+  loanInstallment: number;
   deductions: number; 
   lateMinutes: number;
+  workingHours: number;
   netSalary: number;
   isPaid: boolean;
 }

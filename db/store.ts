@@ -22,8 +22,8 @@ export interface DB {
   leaves: LeaveRequest[];
   financials: FinancialEntry[];
   warnings: Warning[];
-  payrolls: PayrollRecord[]; // Current month view
-  payrollHistory: PayrollRecord[]; // Archived payroll records
+  payrolls: PayrollRecord[];
+  payrollHistory: PayrollRecord[];
   departments: string[];
 }
 
@@ -40,7 +40,8 @@ const DEFAULT_SETTINGS: CompanySettings = {
   officialCheckIn: '08:00',
   officialCheckOut: '16:00',
   deductionPerLateMinute: 1.0,
-  overtimeHourRate: 1.5
+  overtimeHourRate: 1.5,
+  salaryCycle: 'monthly'
 };
 
 const INITIAL_USER: User = {
@@ -74,6 +75,7 @@ export const loadDB = (): DB => {
   const parsed = JSON.parse(data);
   if (!parsed.departments) parsed.departments = [];
   if (!parsed.payrollHistory) parsed.payrollHistory = [];
+  if (!parsed.settings.salaryCycle) parsed.settings.salaryCycle = 'monthly';
   return parsed;
 };
 
