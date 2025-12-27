@@ -64,6 +64,7 @@ export interface Loan {
   amount: number;
   monthlyInstallment: number;
   date: string;
+  collectionDate?: string; // تاريخ التحصيل النهائي
   remainingAmount: number;
   reason?: string;
 }
@@ -121,7 +122,7 @@ export interface PayrollRecord {
   deductions: number; 
   lateMinutes: number;
   workingHours: number;
-  workingDays: number; // حقل جديد
+  workingDays: number;
   netSalary: number;
   isPaid: boolean;
 }

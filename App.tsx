@@ -13,7 +13,7 @@ import { loadDB, saveDB, DB } from './db/store';
 import { Employee, PayrollRecord, Language, Theme, FinancialEntry, Loan, LeaveRequest, ProductionEntry } from './types';
 import { generateMonthlyPayroll } from './utils/calculations';
 import { useTranslation } from './utils/translations';
-import { Printer, Save, Search, History, Trash2, FileDown, Calendar, Archive, Building, Briefcase, CheckCircle2, XCircle, DollarSign, ReceiptText } from 'lucide-react';
+import { Printer, Search, History, Trash2, FileDown, Calendar, Archive, Building, Briefcase, CheckCircle2, XCircle, DollarSign, ReceiptText, UserCheck, LayoutList } from 'lucide-react';
 import { exportToExcel } from './utils/export';
 
 const App: React.FC = () => {
@@ -23,6 +23,7 @@ const App: React.FC = () => {
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   
   const [showVoucher, setShowVoucher] = useState<FinancialEntry | null>(null);
+  const [payrollPrintMode, setPayrollPrintMode] = useState<'table' | 'vouchers' | 'signatures'>('table');
 
   useEffect(() => saveDB(db), [db]);
 
@@ -37,7 +38,7 @@ const App: React.FC = () => {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     const user = db.users.find(u => u.username === loginForm.username && u.password === loginForm.password);
-    if (user) setCurrentUser(user); else alert('خطأ دخول');
+    if (user) setCurrentUser(user); else alert('خطأ دخول: يرجى التأكد من البيانات');
   };
 
   const currentMonth = new Date().getMonth() + 1;
@@ -61,18 +62,30 @@ const App: React.FC = () => {
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 font-['Cairo']" dir={isRtl ? 'rtl' : 'ltr'}>
-        <div className="bg-white dark:bg-slate-900 rounded-[3.5rem] shadow-2xl w-full max-md overflow-hidden flex flex-col border dark:border-slate-800">
-          <div className="bg-gradient-to-br from-indigo-700 to-indigo-950 p-16 text-white text-center">
-            <div className="w-28 h-28 bg-white/10 backdrop-blur-3xl rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 shadow-2xl border border-white/20">
-              <span className="text-7xl font-black">S</span>
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 font-['Cairo'] relative overflow-hidden" dir={isRtl ? 'rtl' : 'ltr'}>
+        <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+           <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-600 rounded-full blur-[120px]"></div>
+           <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600 rounded-full blur-[120px]"></div>
+        </div>
+        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-[3rem] shadow-2xl w-full max-w-md overflow-hidden flex flex-col border dark:border-slate-800 animate-in fade-in zoom-in-95 duration-700">
+          <div className="bg-gradient-to-br from-indigo-600 to-indigo-900 p-12 text-white text-center">
+            <div className="w-24 h-24 bg-white/20 backdrop-blur-2xl rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-2xl border border-white/30">
+              <span className="text-6xl font-black">S</span>
             </div>
-            <h1 className="text-4xl font-black uppercase tracking-widest">SAM HRMS</h1>
+            <h1 className="text-3xl font-black tracking-widest">SAM HRMS PRO</h1>
+            <p className="text-[10px] font-bold opacity-70 mt-2 uppercase">Personnel Management Solution</p>
           </div>
-          <form onSubmit={handleLogin} className="p-14 space-y-8">
-            <input className="w-full py-5 px-8 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-[2rem] font-black outline-none" placeholder={t('username')} value={loginForm.username} onChange={e => setLoginForm({...loginForm, username: e.target.value})} required />
-            <input type="password" className="w-full py-5 px-8 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-[2rem] font-black outline-none" placeholder={t('password')} value={loginForm.password} onChange={e => setLoginForm({...loginForm, password: e.target.value})} required />
-            <button className="w-full bg-indigo-700 text-white py-6 rounded-[2rem] font-black text-xl hover:bg-indigo-800 transition-all">دخول النظام</button>
+          <form onSubmit={handleLogin} className="p-10 space-y-6">
+            <div className="space-y-2">
+               <label className="text-[10px] font-black text-slate-500 uppercase px-2 tracking-widest">Username</label>
+               <input className="w-full py-4 px-6 bg-slate-100 dark:bg-slate-800/50 border-2 border-transparent focus:border-indigo-600 dark:border-slate-700 rounded-2xl font-black outline-none transition-all" placeholder="اسم المستخدم" value={loginForm.username} onChange={e => setLoginForm({...loginForm, username: e.target.value})} required />
+            </div>
+            <div className="space-y-2">
+               <label className="text-[10px] font-black text-slate-500 uppercase px-2 tracking-widest">Password</label>
+               <input type="password" className="w-full py-4 px-6 bg-slate-100 dark:bg-slate-800/50 border-2 border-transparent focus:border-indigo-600 dark:border-slate-700 rounded-2xl font-black outline-none transition-all" placeholder="كلمة المرور" value={loginForm.password} onChange={e => setLoginForm({...loginForm, password: e.target.value})} required />
+            </div>
+            <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-5 rounded-2xl font-black text-lg transition-all shadow-xl shadow-indigo-500/30">دخول النظام</button>
+            <p className="text-[10px] text-center text-slate-400 font-bold pt-4">© 2025 SAM HRMS - All Rights Reserved</p>
           </form>
         </div>
       </div>
@@ -95,58 +108,151 @@ const App: React.FC = () => {
         const dataToDisplay = currentPayrolls;
         const totals = dataToDisplay.reduce((acc, p) => ({ base: acc.base + p.baseSalary, net: acc.net + p.netSalary }), { base: 0, net: 0 });
         const cycleText = db.settings.salaryCycle === 'weekly' ? 'الأسبوعي' : 'الشهري';
-        return (
-          <div className="space-y-6">
-            <div className="print-only print-header">
-                <div><h1 className="text-3xl font-black text-indigo-700">{db.settings.name}</h1><p className="text-sm font-bold">{db.settings.address}</p></div>
-                <div className="text-right"><h2 className="text-2xl font-black">مسير الرواتب {cycleText}</h2><p className="text-sm font-bold">{currentMonth}/{currentYear}</p></div>
+
+        // View 1: Default Table
+        if (payrollPrintMode === 'table') {
+          return (
+            <div className="space-y-6">
+              <div className="print-only print-header">
+                  <div><h1 className="text-3xl font-black text-indigo-700">{db.settings.name}</h1><p className="text-sm font-bold">{db.settings.address}</p></div>
+                  <div className="text-right"><h2 className="text-2xl font-black">مسير الرواتب {cycleText}</h2><p className="text-sm font-bold">{currentMonth}/{currentYear}</p></div>
+              </div>
+              <div className="flex flex-col md:flex-row justify-between items-center no-print bg-white dark:bg-slate-900 p-8 rounded-[2rem] border shadow-xl gap-4">
+                 <h3 className="text-2xl font-black text-indigo-700">مسير الرواتب {cycleText}</h3>
+                 <div className="flex flex-wrap gap-2">
+                    <button onClick={() => { setPayrollPrintMode('vouchers'); setTimeout(() => window.print(), 200); }} className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2"><ReceiptText size={18}/> طباعة الإيصالات</button>
+                    <button onClick={() => { setPayrollPrintMode('signatures'); setTimeout(() => window.print(), 200); }} className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2"><UserCheck size={18}/> كشف التوقيعات</button>
+                    <button className="bg-slate-900 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2" onClick={() => window.print()}><Printer size={18}/> طباعة الجدول</button>
+                 </div>
+              </div>
+              <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl border overflow-hidden overflow-x-auto">
+                 <table className="w-full text-right text-sm">
+                   <thead className="bg-indigo-600 text-white font-black">
+                     <tr>
+                       <th className="px-6 py-5 min-w-[150px]">الموظف / القسم</th>
+                       <th className="text-center">الأيام</th>
+                       <th className="text-center">الأساسي</th>
+                       <th className="text-center">الإنتاج</th>
+                       <th className="text-center">مكافآت</th>
+                       <th className="text-center">مواصلات</th>
+                       <th className="text-center">إضافي</th>
+                       <th className="text-center">سلفة</th>
+                       <th className="text-center">خصم</th>
+                       <th className="text-center font-black bg-indigo-800">الصافي</th>
+                     </tr>
+                   </thead>
+                   <tbody className="divide-y">
+                     {dataToDisplay.map(p => {
+                       const emp = db.employees.find(e => e.id === p.employeeId);
+                       return (
+                         <tr key={p.id} className="font-bold hover:bg-slate-50 transition">
+                           <td className="px-6 py-5"><div><p>{emp?.name}</p><p className="text-[10px] text-slate-500 uppercase">{emp?.department}</p></div></td>
+                           <td className="text-center"><span className="bg-indigo-50 px-2 py-1 rounded text-indigo-700">{p.workingDays}</span></td>
+                           <td className="text-center">{p.baseSalary.toLocaleString()}</td>
+                           <td className="text-center text-indigo-600">+{p.production.toLocaleString()}</td>
+                           <td className="text-center text-emerald-600">+{p.bonuses.toLocaleString()}</td>
+                           <td className="text-center text-slate-500">+{p.transport.toLocaleString()}</td>
+                           <td className="text-center text-emerald-600">+{p.overtimePay.toLocaleString()}</td>
+                           <td className="text-center text-orange-600">-{p.loanInstallment.toLocaleString()}</td>
+                           <td className="text-center text-rose-600">-{p.deductions.toLocaleString()}</td>
+                           <td className="text-center font-black text-indigo-900 bg-indigo-50">{p.netSalary.toLocaleString()}</td>
+                         </tr>
+                       );
+                     })}
+                   </tbody>
+                   <tfoot className="bg-slate-100 font-black">
+                      <tr><td className="px-6 py-6" colSpan={9}>إجمالي الرواتب الصافية</td><td className="text-center text-xl text-indigo-900">{totals.net.toLocaleString()} {db.settings.currency}</td></tr>
+                   </tfoot>
+                 </table>
+              </div>
             </div>
-            <div className="flex justify-between items-center no-print bg-white dark:bg-slate-900 p-8 rounded-[2rem] border shadow-xl">
-               <h3 className="text-2xl font-black text-indigo-700">مسير الرواتب {cycleText} الجاري</h3>
-               <button className="bg-indigo-700 text-white px-8 py-3 rounded-xl font-black" onClick={() => window.print()}><Printer size={20}/> طباعة الكشف</button>
-            </div>
-            <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl border overflow-hidden overflow-x-auto">
-               <table className="w-full text-right text-sm">
-                 <thead className="bg-indigo-600 text-white font-black">
-                   <tr>
-                     <th className="px-6 py-5 min-w-[150px]">الموظف / القسم</th>
-                     <th className="text-center">الأيام</th>
-                     <th className="text-center">الأساسي</th>
-                     <th className="text-center">الإنتاج</th>
-                     <th className="text-center">مكافآت</th>
-                     <th className="text-center">مواصلات</th>
-                     <th className="text-center">إضافي</th>
-                     <th className="text-center">سلفة</th>
-                     <th className="text-center">خصم</th>
-                     <th className="text-center font-black bg-indigo-800">الصافي</th>
-                   </tr>
-                 </thead>
-                 <tbody className="divide-y">
-                   {dataToDisplay.map(p => {
-                     const emp = db.employees.find(e => e.id === p.employeeId);
-                     return (
-                       <tr key={p.id} className="font-bold hover:bg-slate-50 transition">
-                         <td className="px-6 py-5"><div><p>{emp?.name}</p><p className="text-[10px] text-slate-500 uppercase">{emp?.department}</p></div></td>
-                         <td className="text-center"><span className="bg-indigo-50 px-2 py-1 rounded text-indigo-700">{p.workingDays}</span></td>
-                         <td className="text-center">{p.baseSalary.toLocaleString()}</td>
-                         <td className="text-center text-indigo-600">+{p.production.toLocaleString()}</td>
-                         <td className="text-center text-emerald-600">+{p.bonuses.toLocaleString()}</td>
-                         <td className="text-center text-slate-500">+{p.transport.toLocaleString()}</td>
-                         <td className="text-center text-emerald-600">+{p.overtimePay.toLocaleString()}</td>
-                         <td className="text-center text-orange-600">-{p.loanInstallment.toLocaleString()}</td>
-                         <td className="text-center text-rose-600">-{p.deductions.toLocaleString()}</td>
-                         <td className="text-center font-black text-indigo-900 bg-indigo-50">{p.netSalary.toLocaleString()}</td>
-                       </tr>
-                     );
-                   })}
-                 </tbody>
-                 <tfoot className="bg-slate-100 font-black">
-                    <tr><td className="px-6 py-6" colSpan={9}>إجمالي الرواتب الصافية المستحقة للتحويل</td><td className="text-center text-xl text-indigo-900">{totals.net.toLocaleString()} {db.settings.currency}</td></tr>
-                 </tfoot>
+          );
+        }
+
+        // View 2: Collective Vouchers (Print Friendly)
+        if (payrollPrintMode === 'vouchers') {
+           return (
+             <div className="space-y-10 font-black">
+                <button onClick={() => setPayrollPrintMode('table')} className="no-print bg-slate-900 text-white px-6 py-2 rounded-xl mb-4">العودة للجدول</button>
+                {dataToDisplay.map((p, idx) => {
+                   const emp = db.employees.find(e => e.id === p.employeeId);
+                   return (
+                     <div key={p.id} className={`voucher-container bg-white p-10 border-4 border-double border-slate-900 ${(idx + 1) % 2 === 0 ? 'page-break' : ''}`}>
+                        <div className="flex justify-between items-center border-b-2 pb-6 mb-6">
+                           <div><h2 className="text-2xl font-black text-indigo-700">{db.settings.name}</h2><p className="text-sm font-bold">قسيمة راتب {cycleText}</p></div>
+                           <div className="text-right"><p className="text-sm font-black">الفترة: {currentMonth}/{currentYear}</p><p className="text-sm font-bold">التاريخ: {new Date().toLocaleDateString()}</p></div>
+                        </div>
+                        <div className="mb-6"><p className="text-lg">يصرف للسيد/ة: <span className="underline">{emp?.name}</span> - المنصب: <span className="underline">{emp?.position}</span></p></div>
+                        <table className="mb-8">
+                           <thead>
+                              <tr>
+                                 <th>الوصف</th><th>مستحقات (+)</th><th>استقطاعات (-)</th>
+                              </tr>
+                           </thead>
+                           <tbody>
+                              <tr><td>الراتب الأساسي</td><td>{p.baseSalary.toLocaleString()}</td><td>-</td></tr>
+                              <tr><td>بدل مواصلات</td><td>{p.transport.toLocaleString()}</td><td>-</td></tr>
+                              <tr><td>حوافز إنتاج</td><td>{p.production.toLocaleString()}</td><td>-</td></tr>
+                              <tr><td>إضافي ({Math.round(p.overtimeMinutes/60)} س)</td><td>{p.overtimePay.toLocaleString()}</td><td>-</td></tr>
+                              <tr><td>مكافآت</td><td>{p.bonuses.toLocaleString()}</td><td>-</td></tr>
+                              <tr><td>قسط سلفة</td><td>-</td><td>{p.loanInstallment.toLocaleString()}</td></tr>
+                              <tr><td>خصم تأخير / غياب</td><td>-</td><td>{p.deductions.toLocaleString()}</td></tr>
+                              <tr className="bg-slate-100 font-black"><td>إجمالي الصافي المستحق</td><td colSpan={2} className="text-center text-xl underline">{p.netSalary.toLocaleString()} {db.settings.currency}</td></tr>
+                           </tbody>
+                        </table>
+                        <div className="grid grid-cols-2 gap-20 pt-10 text-center">
+                           <div><p className="text-xs mb-10 underline">توقيع المحاسب</p><div className="h-1 bg-slate-400"></div></div>
+                           <div><p className="text-xs mb-10 underline">توقيع الموظف بالمستلم</p><div className="h-1 bg-slate-400"></div></div>
+                        </div>
+                     </div>
+                   );
+                })}
+             </div>
+           );
+        }
+
+        // View 3: Accountant Summary Signature Sheet
+        if (payrollPrintMode === 'signatures') {
+          return (
+            <div className="p-8 font-black">
+               <button onClick={() => setPayrollPrintMode('table')} className="no-print bg-slate-900 text-white px-6 py-2 rounded-xl mb-6">العودة للجدول</button>
+               <div className="text-center mb-10 border-b-4 border-indigo-700 pb-6">
+                  <h1 className="text-3xl font-black mb-2">{db.settings.name}</h1>
+                  <h2 className="text-xl font-bold uppercase tracking-widest">كشف توقيع استلام الرواتب {cycleText} - لشهر {currentMonth} / {currentYear}</h2>
+               </div>
+               <table className="w-full text-center border-2 border-black">
+                  <thead className="bg-slate-200">
+                     <tr>
+                        <th className="p-4 border border-black">م</th>
+                        <th className="p-4 border border-black">اسم الموظف</th>
+                        <th className="p-4 border border-black">القسم</th>
+                        <th className="p-4 border border-black">الصافي</th>
+                        <th className="p-4 border border-black w-1/4">التوقيع</th>
+                        <th className="p-4 border border-black w-1/6">ملاحظات</th>
+                     </tr>
+                  </thead>
+                  <tbody>
+                     {dataToDisplay.map((p, i) => (
+                        <tr key={p.id} className="h-16">
+                           <td className="border border-black">{i+1}</td>
+                           <td className="border border-black text-right pr-4">{db.employees.find(e => e.id === p.employeeId)?.name}</td>
+                           <td className="border border-black">{db.employees.find(e => e.id === p.employeeId)?.department}</td>
+                           <td className="border border-black font-black">{p.netSalary.toLocaleString()}</td>
+                           <td className="border border-black"></td>
+                           <td className="border border-black"></td>
+                        </tr>
+                     ))}
+                  </tbody>
                </table>
+               <div className="mt-12 flex justify-between px-10">
+                  <p>إعتماد المدير المالي: ...............................</p>
+                  <p>إعتماد المدير العام: ...............................</p>
+               </div>
             </div>
-          </div>
-        );
+          );
+        }
+        return null;
+
       case 'leaves':
         return (
           <GenericModule<LeaveRequest> 
@@ -179,39 +285,70 @@ const App: React.FC = () => {
           />
         );
       case 'loans':
+        const [loanSearch, setLoanSearch] = useState('');
+        const [loanEmpId, setLoanEmpId] = useState('');
+        const [loanShowArchive, setLoanShowArchive] = useState(false);
+
+        const activeLoans = db.loans.filter(l => l.remainingAmount > 0);
+        const archivedLoans = db.loans.filter(l => l.remainingAmount <= 0);
+        const loansToDisplay = loanShowArchive ? archivedLoans : activeLoans;
+
+        const filteredLoans = loansToDisplay.filter(l => {
+           const emp = db.employees.find(e => e.id === l.employeeId);
+           const nameMatch = emp?.name.toLowerCase().includes(loanSearch.toLowerCase());
+           const empMatch = !loanEmpId || l.employeeId === loanEmpId;
+           return nameMatch && empMatch;
+        });
+
         return (
-          <GenericModule<Loan> 
-            title="سجلات السلف" 
-            lang={db.settings.language} 
-            employees={db.employees} 
-            items={db.loans} 
-            onSave={i => updateList('loans', i)} 
-            onDelete={id => deleteFromList('loans', id)} 
-            initialData={{ amount: 0, monthlyInstallment: 0, remainingAmount: 0 }} 
-            tableHeaders={['الموظف', 'المبلغ', 'القسط', 'المتبقي', 'الحالة']}
-            renderForm={(data, set) => (
-               <div className="grid grid-cols-2 gap-4">
-                  <div><label className="text-xs font-black uppercase">مبلغ السلفة</label><input type="number" className="w-full p-3 border rounded-xl font-bold" value={data.amount} onChange={e => set({...data, amount: Number(e.target.value), remainingAmount: Number(e.target.value)})} /></div>
-                  <div><label className="text-xs font-black uppercase">القسط الشهري</label><input type="number" className="w-full p-3 border rounded-xl font-bold" value={data.monthlyInstallment} onChange={e => set({...data, monthlyInstallment: Number(e.target.value)})} /></div>
-                  <div className="col-span-2"><label className="text-xs font-black uppercase">التاريخ</label><input type="date" className="w-full p-3 border rounded-xl font-bold" value={data.date} onChange={e => set({...data, date: e.target.value})} /></div>
-               </div>
-            )}
-            renderRow={(i, name) => (
-              <>
-                <td className="px-6 py-4 font-black">{name}</td>
-                <td className="px-6 py-4 font-black">{(i.amount || 0).toLocaleString()}</td>
-                <td className="px-6 py-4 font-bold text-slate-500">{(i.monthlyInstallment || 0).toLocaleString()}</td>
-                <td className="px-6 py-4 font-black text-rose-600">{(i.remainingAmount || 0).toLocaleString()}</td>
-                <td className="px-6 py-4 text-center">
-                  {(i.remainingAmount || 0) <= 0 ? (
-                    <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-black flex items-center gap-1 justify-center"><CheckCircle2 size={12}/> مستوفاة</span>
-                  ) : (
-                    <span className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-[10px] font-black flex items-center gap-1 justify-center">قيد التسديد</span>
-                  )}
-                </td>
-              </>
-            )}
-          />
+          <div className="space-y-6">
+             <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-8 rounded-[2rem] border shadow-xl no-print">
+                <h3 className="text-2xl font-black text-indigo-700">{loanShowArchive ? 'أرشيف السلف المسددة' : 'السلف القائمة'}</h3>
+                <div className="flex gap-2">
+                   <button onClick={() => updateList('loans', { id: Math.random().toString(36).substr(2, 9), employeeId: '', amount: 0, monthlyInstallment: 0, remainingAmount: 0, date: new Date().toISOString().split('T')[0] })} className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-black">إضافة سلفة</button>
+                   <button onClick={() => setLoanShowArchive(!loanShowArchive)} className={`px-6 py-3 rounded-xl font-black flex items-center gap-2 ${loanShowArchive ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-900 text-white'}`}>
+                      {loanShowArchive ? <LayoutList size={20}/> : <History size={20}/>}
+                      {loanShowArchive ? 'عرض الحالية' : 'عرض الأرشيف'}
+                   </button>
+                </div>
+             </div>
+             
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 no-print bg-white dark:bg-slate-900 p-6 rounded-[2rem] border shadow-lg">
+                <div className="relative"><Search className="absolute right-4 top-3 text-slate-400" size={18}/><input className="w-full pr-12 pl-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-xl font-black" placeholder="بحث باسم الموظف..." value={loanSearch} onChange={e => setLoanSearch(e.target.value)} /></div>
+                <div><select className="w-full p-3 bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold" value={loanEmpId} onChange={e => setLoanEmpId(e.target.value)}><option value="">كل الموظفين</option>{db.employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}</select></div>
+             </div>
+
+             <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border shadow-2xl overflow-hidden overflow-x-auto">
+                <table className="w-full text-right text-sm">
+                   <thead className="bg-slate-100 dark:bg-slate-800 border-b">
+                      <tr>
+                         <th className="px-6 py-5">الموظف</th>
+                         <th className="px-6 py-5">تاريخ البداية</th>
+                         <th className="px-6 py-5 text-center">المبلغ الكلي</th>
+                         <th className="px-6 py-5 text-center">القسط</th>
+                         <th className="px-6 py-5 text-center">المتبقي</th>
+                         <th className="px-6 py-5 text-center">تاريخ التحصيل</th>
+                         <th className="px-6 py-5 text-center no-print">إجراءات</th>
+                      </tr>
+                   </thead>
+                   <tbody className="divide-y">
+                      {filteredLoans.map(l => (
+                        <tr key={l.id} className="font-bold hover:bg-slate-50 transition">
+                           <td className="px-6 py-5">{db.employees.find(e => e.id === l.employeeId)?.name}</td>
+                           <td className="px-6 py-5 text-slate-500">{l.date}</td>
+                           <td className="px-6 py-5 text-center">{l.amount.toLocaleString()}</td>
+                           <td className="px-6 py-5 text-center">{l.monthlyInstallment.toLocaleString()}</td>
+                           <td className="px-6 py-5 text-center text-rose-600">{l.remainingAmount.toLocaleString()}</td>
+                           <td className="px-6 py-5 text-center text-emerald-600">{l.collectionDate || '-'}</td>
+                           <td className="px-6 py-5 text-center no-print">
+                              <button onClick={() => deleteFromList('loans', l.id)} className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg"><Trash2 size={16}/></button>
+                           </td>
+                        </tr>
+                      ))}
+                   </tbody>
+                </table>
+             </div>
+          </div>
         );
       case 'financials':
         return (
@@ -228,7 +365,6 @@ const App: React.FC = () => {
                <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2"><label className="text-xs font-black uppercase">نوع المعاملة</label><select className="w-full p-4 border rounded-xl font-bold" value={data.type} onChange={e => set({...data, type: e.target.value as any})}><option value="bonus">مكافأة</option><option value="deduction">خصم</option><option value="payment">صرف مالي / عهدة</option></select></div>
                   <div><label className="text-xs font-black uppercase">المبلغ</label><input type="number" className="w-full p-3 border rounded-xl font-bold" value={data.amount} onChange={e => set({...data, amount: Number(e.target.value)})} /></div>
-                  {/* Fixed missing 'e' and incorrect invocation in onChange handler below */}
                   <div><label className="text-xs font-black uppercase">التاريخ</label><input type="date" className="w-full p-3 border rounded-xl font-bold" value={data.date} onChange={e => set({...data, date: e.target.value})} /></div>
                   <div className="col-span-2"><label className="text-xs font-black uppercase">البيان / السبب</label><textarea className="w-full p-3 border rounded-xl font-bold" rows={2} value={data.reason} onChange={e => set({...data, reason: e.target.value})} /></div>
                </div>
