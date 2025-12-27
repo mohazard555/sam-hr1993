@@ -14,7 +14,6 @@ import { Employee, PayrollRecord, Language, Theme, FinancialEntry, Loan, LeaveRe
 import { generateMonthlyPayroll } from './utils/calculations';
 import { useTranslation } from './utils/translations';
 import { Printer, Search, History, Trash2, FileDown, Calendar, Archive, Building, Briefcase, CheckCircle2, XCircle, DollarSign, ReceiptText, UserCheck, LayoutList, Plus, ArchiveRestore, HelpCircle, Info, Monitor, Smartphone, RefreshCw, X } from 'lucide-react';
-import { exportToExcel } from './utils/export';
 
 const App: React.FC = () => {
   const [db, setDb] = useState<DB>(loadDB());
@@ -25,32 +24,35 @@ const App: React.FC = () => {
   const [printOrientation, setPrintOrientation] = useState<'portrait' | 'landscape'>('portrait');
   const [showPrintModal, setShowPrintModal] = useState(false);
   
-  // Shared States for Archives
+  // Archive States
   const [showVoucher, setShowVoucher] = useState<FinancialEntry | null>(null);
-  const [payrollPrintMode, setPayrollPrintMode] = useState<'table' | 'vouchers' | 'signatures'>('table');
-  const [loanShowArchive, setLoanShowArchive] = useState(false);
-  const [leavesArchiveMode, setLeavesArchiveMode] = useState(false);
-  const [financialsArchiveMode, setFinancialsArchiveMode] = useState(false);
-  const [productionArchiveMode, setProductionArchiveMode] = useState(false);
+  const [payrollPrintMode, setPayrollPrintMode] = useState<'table' | 'vouchers' | 'signatures' | 'history'>('table');
+  const [loanArchive, setLoanArchive] = useState(false);
+  const [leaveArchive, setLeaveArchive] = useState(false);
+  const [financialArchive, setFinancialArchive] = useState(false);
+  const [productionArchive, setProductionArchive] = useState(false);
 
   useEffect(() => {
     saveDB(db);
+    // تحديث كلاس الـ body فور تغير الإعدادات
     document.body.className = `${db.settings.theme === 'dark' ? 'dark' : ''} bg-slate-50 dark:bg-slate-950 print-${printOrientation}`;
   }, [db, printOrientation]);
-
-  const t = useTranslation(db.settings.language);
-  const isRtl = db.settings.language === 'ar';
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     const user = db.users.find(u => u.username === loginForm.username && u.password === loginForm.password);
-    if (user) setCurrentUser(user); else alert('خطأ دخول: يرجى التأكد من البيانات');
+    if (user) setCurrentUser(user); else alert('خطأ دخول: يرجى التأكد من اسم المستخدم وكلمة المرور');
   };
 
   const handlePrintRequest = (orientation: 'portrait' | 'landscape') => {
+    // 1. تحديث الحالة
     setPrintOrientation(orientation);
     setShowPrintModal(false);
-    setTimeout(() => window.print(), 300);
+    
+    // 2. إجبار المتصفح على قراءة الكلاس الجديد قبل نافذة الطباعة
+    setTimeout(() => {
+        window.print();
+    }, 500);
   };
 
   const currentMonth = new Date().getMonth() + 1;
@@ -80,17 +82,31 @@ const App: React.FC = () => {
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 relative overflow-hidden" dir={isRtl ? 'rtl' : 'ltr'}>
-        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-[3rem] shadow-2xl w-full max-w-md border dark:border-slate-800">
-          <div className="bg-indigo-600 p-12 text-white text-center rounded-t-[3rem]">
-            <h1 className="text-3xl font-black">SAM HRMS PRO</h1>
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 relative overflow-hidden" dir="rtl">
+        <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl w-full max-w-md border dark:border-slate-800 overflow-hidden">
+          <div className="bg-indigo-600 p-12 text-white text-center font-black">
+            <h1 className="text-3xl tracking-tighter">SAM HRMS PRO</h1>
+            <p className="text-indigo-200 text-xs mt-2 opacity-80 uppercase">Management Systems</p>
           </div>
           <form onSubmit={handleLogin} className="p-10 space-y-6">
-            <input className="w-full py-4 px-6 bg-slate-100 rounded-2xl font-black outline-none border-2 border-transparent focus:border-indigo-600" placeholder="اسم المستخدم" value={loginForm.username} onChange={e => setLoginForm({...loginForm, username: e.target.value})} required />
-            <input type="password" className="w-full py-4 px-6 bg-slate-100 rounded-2xl font-black outline-none border-2 border-transparent focus:border-indigo-600" placeholder="كلمة المرور" value={loginForm.password} onChange={e => setLoginForm({...loginForm, password: e.target.value})} required />
-            <button className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black">دخول</button>
-            {showForgotHint && <p className="text-center text-xs font-bold text-slate-500 mt-2">{db.settings.passwordHint}</p>}
-            <button type="button" onClick={() => setShowForgotHint(!showForgotHint)} className="w-full text-xs text-indigo-500 font-bold">نسيت كلمة السر؟</button>
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-slate-500 mr-2 uppercase">اسم المستخدم</label>
+              <input className="w-full py-4 px-6 bg-slate-100 rounded-2xl font-black outline-none border-2 border-transparent focus:border-indigo-600 dark:bg-slate-800 dark:text-white" value={loginForm.username} onChange={e => setLoginForm({...loginForm, username: e.target.value})} required />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-slate-500 mr-2 uppercase">كلمة المرور</label>
+              <input type="password" className="w-full py-4 px-6 bg-slate-100 rounded-2xl font-black outline-none border-2 border-transparent focus:border-indigo-600 dark:bg-slate-800 dark:text-white" value={loginForm.password} onChange={e => setLoginForm({...loginForm, password: e.target.value})} required />
+            </div>
+            <button className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black text-lg shadow-xl hover:bg-indigo-700 transition-all">دخول النظام</button>
+            
+            <div className="text-center">
+               <button type="button" onClick={() => setShowForgotHint(!showForgotHint)} className="text-xs font-black text-indigo-500 hover:underline">نسيت كلمة السر؟</button>
+               {showForgotHint && (
+                 <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-100 dark:border-amber-900/50 text-xs font-bold text-amber-700 dark:text-amber-400">
+                    تلميح: {db.settings.passwordHint || "لم يتم ضبط تلميح"}
+                 </div>
+               )}
+            </div>
           </form>
         </div>
       </div>
@@ -109,94 +125,153 @@ const App: React.FC = () => {
       case 'attendance':
         return <Attendance employees={db.employees} records={db.attendance} settings={db.settings} onSaveRecord={r => updateList('attendance', r)} onDeleteRecord={id => deleteFromList('attendance', id)} lang={db.settings.language} />;
       case 'production':
-        return <Production employees={db.employees} items={db.production || []} onSave={i => updateList('production', i)} onDelete={id => deleteFromList('production', id)} />;
+        return <Production employees={db.employees} items={db.production || []} onSave={i => updateList('production', i)} onDelete={id => deleteFromList('production', id)} archiveMode={productionArchive} onToggleArchive={() => setProductionArchive(!productionArchive)} onPrint={() => setShowPrintModal(true)} />;
       
       case 'loans':
         return (
-          <GenericModule<Loan> 
-            title={loanShowArchive ? 'أرشيف السلف المسددة' : 'السلف والقروض القائمة'}
-            lang={db.settings.language} employees={db.employees} 
-            items={loanShowArchive ? db.loans.filter(l => l.remainingAmount <= 0) : db.loans.filter(l => l.remainingAmount > 0)}
-            onSave={i => updateList('loans', i)} onDelete={id => deleteFromList('loans', id)} 
-            initialData={{ amount: 0, installmentsCount: 1, monthlyInstallment: 0, remainingAmount: 0, date: new Date().toISOString().split('T')[0] }} 
-            tableHeaders={['الموظف', 'البداية', 'المبلغ', 'الأقساط', 'القسط', 'المتبقي']}
-            renderForm={(data, set) => (
-              <div className="grid grid-cols-2 gap-4">
-                 <div className="col-span-2"><label className="text-xs font-black">إجمالي السلفة</label><input type="number" className="w-full p-3 border rounded-xl font-black" value={data.amount} onChange={e => { const v = Number(e.target.value); set({...data, amount: v, remainingAmount: v, monthlyInstallment: Math.round(v / (data.installmentsCount || 1))}); }} /></div>
-                 <div><label className="text-xs font-black">عدد الأقساط</label><input type="number" className="w-full p-3 border rounded-xl font-black" value={data.installmentsCount} onChange={e => { const v = Math.max(1, Number(e.target.value)); set({...data, installmentsCount: v, monthlyInstallment: Math.round((data.amount || 0) / v)}); }} /></div>
-                 <div><label className="text-xs font-black">قيمة القسط</label><input type="number" className="w-full p-3 border bg-slate-50 rounded-xl font-black" value={data.monthlyInstallment} readOnly /></div>
-                 <div className="col-span-2"><label className="text-xs font-black">تاريخ البدء</label><input type="date" className="w-full p-3 border rounded-xl font-black" value={data.date} onChange={e => set({...data, date: e.target.value})} /></div>
-              </div>
-            )}
-            renderRow={(i, name) => (
-              <>
-                <td className="px-6 py-4 font-black">{name}</td>
-                <td className="px-6 py-4">{i.date}</td>
-                <td className="px-6 py-4 text-indigo-600 font-black">{i.amount.toLocaleString()}</td>
-                <td className="px-6 py-4 text-center">{i.installmentsCount}</td>
-                <td className="px-6 py-4 font-bold">{i.monthlyInstallment.toLocaleString()}</td>
-                <td className="px-6 py-4 text-rose-600 font-black">{i.remainingAmount.toLocaleString()}</td>
-              </>
-            )}
-          />
+          <div className="space-y-4">
+            <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow border dark:border-slate-800 no-print">
+               <h2 className="text-xl font-black text-indigo-700">{loanArchive ? 'أرشيف السلف المسددة' : 'إدارة السلف الجارية'}</h2>
+               <button onClick={() => setLoanArchive(!loanArchive)} className="bg-slate-900 text-white px-6 py-2 rounded-xl font-black flex items-center gap-2">
+                 {loanArchive ? <Calendar size={18}/> : <Archive size={18}/>} {loanArchive ? 'العودة للقائمة' : 'عرض الأرشيف'}
+               </button>
+            </div>
+            <GenericModule<Loan> 
+              title={loanArchive ? "أرشيف السلف" : "السلف القائمة"} lang={db.settings.language} employees={db.employees} 
+              items={loanArchive ? db.loans.filter(l => (l.remainingAmount || 0) <= 0) : db.loans.filter(l => (l.remainingAmount || 0) > 0)}
+              onSave={i => updateList('loans', i)} onDelete={id => deleteFromList('loans', id)} onPrint={() => setShowPrintModal(true)}
+              initialData={{ amount: 0, installmentsCount: 1, monthlyInstallment: 0, remainingAmount: 0, date: new Date().toISOString().split('T')[0] }} 
+              tableHeaders={['الموظف', 'البداية', 'المبلغ', 'الأقساط', 'القسط', 'المتبقي']}
+              renderForm={(data, set) => (
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="col-span-2"><label className="text-xs font-black">إجمالي السلفة</label><input type="number" className="w-full p-3 border rounded-xl font-black" value={data.amount} onChange={e => { const v = Number(e.target.value); set({...data, amount: v, remainingAmount: v, monthlyInstallment: Math.round(v / (data.installmentsCount || 1))}); }} /></div>
+                   <div><label className="text-xs font-black">عدد الأقساط</label><input type="number" className="w-full p-3 border rounded-xl font-black" value={data.installmentsCount} onChange={e => { const v = Math.max(1, Number(e.target.value)); set({...data, installmentsCount: v, monthlyInstallment: Math.round((data.amount || 0) / v)}); }} /></div>
+                   <div><label className="text-xs font-black">قيمة القسط</label><input type="number" className="w-full p-3 border bg-slate-50 rounded-xl font-black" value={data.monthlyInstallment} readOnly /></div>
+                   <div className="col-span-2"><label className="text-xs font-black">تاريخ البدء</label><input type="date" className="w-full p-3 border rounded-xl font-black" value={data.date} onChange={e => set({...data, date: e.target.value})} /></div>
+                </div>
+              )}
+              renderRow={(i, name) => (
+                <>
+                  <td className="px-6 py-4 font-black">{name}</td>
+                  <td className="px-6 py-4">{i.date}</td>
+                  <td className="px-6 py-4 text-indigo-600 font-black">{(i.amount || 0).toLocaleString()}</td>
+                  <td className="px-6 py-4 text-center">{i.installmentsCount}</td>
+                  <td className="px-6 py-4 font-bold">{(i.monthlyInstallment || 0).toLocaleString()}</td>
+                  <td className="px-6 py-4 text-rose-600 font-black">{(i.remainingAmount || 0).toLocaleString()}</td>
+                </>
+              )}
+            />
+          </div>
         );
 
       case 'leaves':
         return (
-          <GenericModule<LeaveRequest> 
-            title="نظام الإجازات" lang={db.settings.language} employees={db.employees} items={db.leaves} 
-            onSave={i => updateList('leaves', i)} onDelete={id => deleteFromList('leaves', id)} 
-            initialData={{ type: 'annual', status: 'pending', isPaid: true, startDate: new Date().toISOString().split('T')[0], endDate: new Date().toISOString().split('T')[0] }} 
-            tableHeaders={['الموظف', 'النوع', 'الحالة', 'من', 'إلى', 'مدفوعة']}
-            renderForm={(data, set) => (
-              <div className="grid grid-cols-2 gap-4">
-                 <div className="col-span-2"><label className="text-xs font-black">نوع الإجازة</label><select className="w-full p-3 border rounded-xl font-black" value={data.type} onChange={e => set({...data, type: e.target.value as any})}><option value="annual">سنوية</option><option value="sick">مرضية</option><option value="unpaid">بدون راتب</option><option value="emergency">اضطرارية</option></select></div>
-                 <div><label className="text-xs font-black">من تاريخ</label><input type="date" className="w-full p-3 border rounded-xl font-black" value={data.startDate} onChange={e => set({...data, startDate: e.target.value})} /></div>
-                 <div><label className="text-xs font-black">إلى تاريخ</label><input type="date" className="w-full p-3 border rounded-xl font-black" value={data.endDate} onChange={e => set({...data, endDate: e.target.value})} /></div>
-                 <div className="col-span-2 flex items-center gap-2"><input type="checkbox" checked={data.isPaid} onChange={e => set({...data, isPaid: e.target.checked})} /><label className="text-xs font-black">إجازة مأجورة</label></div>
-              </div>
-            )}
-            renderRow={(i, name) => (
-              <>
-                <td className="px-6 py-4 font-black">{name}</td>
-                <td className="px-6 py-4 uppercase font-bold">{i.type}</td>
-                <td className="px-6 py-4"><span className={`px-2 py-1 rounded-full text-[10px] font-black ${i.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{i.status}</span></td>
-                <td className="px-6 py-4">{i.startDate}</td>
-                <td className="px-6 py-4">{i.endDate}</td>
-                <td className="px-6 py-4 text-center">{i.isPaid ? <CheckCircle2 size={16} className="text-emerald-500 inline"/> : <XCircle size={16} className="text-rose-500 inline"/>}</td>
-              </>
-            )}
-          />
+          <div className="space-y-4">
+            <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow border dark:border-slate-800 no-print">
+               <h2 className="text-xl font-black text-indigo-700">{leaveArchive ? 'سجل كافة الإجازات' : 'طلبات الإجازات الجديدة'}</h2>
+               <button onClick={() => setLeaveArchive(!leaveArchive)} className="bg-slate-900 text-white px-6 py-2 rounded-xl font-black flex items-center gap-2">
+                 {leaveArchive ? <Calendar size={18}/> : <Archive size={18}/>} {leaveArchive ? 'العودة للقائمة' : 'عرض الأرشيف'}
+               </button>
+            </div>
+            <GenericModule<LeaveRequest> 
+              title="نظام الإجازات" lang={db.settings.language} employees={db.employees} 
+              items={leaveArchive ? db.leaves : db.leaves.filter(l => l.status === 'pending')} 
+              onSave={i => updateList('leaves', i)} onDelete={id => deleteFromList('leaves', id)} onPrint={() => setShowPrintModal(true)}
+              initialData={{ type: 'annual', status: 'pending', isPaid: true, startDate: new Date().toISOString().split('T')[0], endDate: new Date().toISOString().split('T')[0] }} 
+              tableHeaders={['الموظف', 'النوع', 'الحالة', 'من', 'إلى', 'مدفوعة']}
+              renderForm={(data, set) => (
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="col-span-2"><label className="text-xs font-black">نوع الإجازة</label><select className="w-full p-3 border rounded-xl font-black" value={data.type} onChange={e => set({...data, type: e.target.value as any})}><option value="annual">سنوية</option><option value="sick">مرضية</option><option value="unpaid">بدون راتب</option></select></div>
+                   <div><label className="text-xs font-black">من تاريخ</label><input type="date" className="w-full p-3 border rounded-xl font-black" value={data.startDate} onChange={e => set({...data, startDate: e.target.value})} /></div>
+                   <div><label className="text-xs font-black">إلى تاريخ</label><input type="date" className="w-full p-3 border rounded-xl font-black" value={data.endDate} onChange={e => set({...data, endDate: e.target.value})} /></div>
+                   <div className="col-span-2 flex items-center gap-2"><input type="checkbox" checked={data.isPaid} onChange={e => set({...data, isPaid: e.target.checked})} /><label className="text-xs font-black">إجازة مأجورة</label></div>
+                </div>
+              )}
+              renderRow={(i, name) => (
+                <>
+                  <td className="px-6 py-4 font-black">{name}</td>
+                  <td className="px-6 py-4 uppercase font-bold">{i.type}</td>
+                  <td className="px-6 py-4"><span className={`px-2 py-1 rounded-full text-[10px] font-black ${i.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{i.status}</span></td>
+                  <td className="px-6 py-4">{i.startDate}</td>
+                  <td className="px-6 py-4">{i.endDate}</td>
+                  <td className="px-6 py-4 text-center">{i.isPaid ? <CheckCircle2 size={16} className="text-emerald-500 inline"/> : <XCircle size={16} className="text-rose-500 inline"/>}</td>
+                </>
+              )}
+            />
+          </div>
         );
 
       case 'financials':
         return (
-          <GenericModule<FinancialEntry> 
-            title="الماليات والسندات" lang={db.settings.language} employees={db.employees} items={db.financials} 
-            onSave={i => updateList('financials', i)} onDelete={id => deleteFromList('financials', id)} 
-            initialData={{ type: 'bonus', amount: 0, date: new Date().toISOString().split('T')[0], reason: '' }} 
-            tableHeaders={['الموظف', 'النوع', 'المبلغ', 'التاريخ', 'السبب']}
-            renderForm={(data, set) => (
-              <div className="grid grid-cols-2 gap-4">
-                 <div className="col-span-2"><label className="text-xs font-black">نوع السند</label><select className="w-full p-3 border rounded-xl font-black" value={data.type} onChange={e => set({...data, type: e.target.value as any})}><option value="bonus">مكافأة</option><option value="deduction">خصم</option><option value="payment">عهدة / صرف</option></select></div>
-                 <div><label className="text-xs font-black">المبلغ</label><input type="number" className="w-full p-3 border rounded-xl font-black" value={data.amount} onChange={e => set({...data, amount: Number(e.target.value)})} /></div>
-                 <div><label className="text-xs font-black">التاريخ</label><input type="date" className="w-full p-3 border rounded-xl font-black" value={data.date} onChange={e => set({...data, date: e.target.value})} /></div>
-                 <div className="col-span-2"><label className="text-xs font-black">ملاحظات / السبب</label><input className="w-full p-3 border rounded-xl font-black" value={data.reason} onChange={e => set({...data, reason: e.target.value})} /></div>
-              </div>
-            )}
-            renderRow={(i, name) => (
-              <>
-                <td className="px-6 py-4 font-black">{name}</td>
-                <td className={`px-6 py-4 font-bold ${i.type === 'deduction' ? 'text-rose-600' : 'text-emerald-600'}`}>{i.type}</td>
-                <td className="px-6 py-4 font-black">{i.amount.toLocaleString()}</td>
-                <td className="px-6 py-4">{i.date}</td>
-                <td className="px-6 py-4 text-xs font-bold truncate max-w-[150px]">{i.reason}</td>
-              </>
-            )}
-          />
+          <div className="space-y-4">
+            <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow border dark:border-slate-800 no-print">
+               <h2 className="text-xl font-black text-indigo-700">{financialArchive ? 'أرشيف السجلات المالية' : 'السندات والماليات الجارية'}</h2>
+               <button onClick={() => setFinancialArchive(!financialArchive)} className="bg-slate-900 text-white px-6 py-2 rounded-xl font-black flex items-center gap-2">
+                 {financialArchive ? <Calendar size={18}/> : <Archive size={18}/>} {financialArchive ? 'العودة للقائمة' : 'عرض الأرشيف'}
+               </button>
+            </div>
+            <GenericModule<FinancialEntry> 
+              title="الماليات والسندات" lang={db.settings.language} employees={db.employees} 
+              items={financialArchive ? db.financials : db.financials.filter(f => {
+                const d = new Date(f.date);
+                return d.getMonth() + 1 === currentMonth && d.getFullYear() === currentYear;
+              })} 
+              onSave={i => updateList('financials', i)} onDelete={id => deleteFromList('financials', id)} onPrint={() => setShowPrintModal(true)}
+              initialData={{ type: 'bonus', amount: 0, date: new Date().toISOString().split('T')[0], reason: '' }} 
+              tableHeaders={['الموظف', 'النوع', 'المبلغ', 'التاريخ', 'سند']}
+              renderForm={(data, set) => (
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="col-span-2"><label className="text-xs font-black">نوع السند</label><select className="w-full p-3 border rounded-xl font-black" value={data.type} onChange={e => set({...data, type: e.target.value as any})}><option value="bonus">مكافأة</option><option value="deduction">خصم</option><option value="payment">صرف</option></select></div>
+                   <div><label className="text-xs font-black">المبلغ</label><input type="number" className="w-full p-3 border rounded-xl font-black" value={data.amount} onChange={e => set({...data, amount: Number(e.target.value)})} /></div>
+                   <div><label className="text-xs font-black">التاريخ</label><input type="date" className="w-full p-3 border rounded-xl font-black" value={data.date} onChange={e => set({...data, date: e.target.value})} /></div>
+                   <div className="col-span-2"><label className="text-xs font-black">السبب</label><input className="w-full p-3 border rounded-xl font-black" value={data.reason} onChange={e => set({...data, reason: e.target.value})} /></div>
+                </div>
+              )}
+              renderRow={(i, name) => (
+                <>
+                  <td className="px-6 py-4 font-black">{name}</td>
+                  <td className={`px-6 py-4 font-bold ${i.type === 'deduction' ? 'text-rose-600' : 'text-emerald-600'}`}>{i.type}</td>
+                  <td className="px-6 py-4 font-black">{i.amount.toLocaleString()}</td>
+                  <td className="px-6 py-4">{i.date}</td>
+                  <td className="px-6 py-4 text-center">
+                    <button onClick={() => setShowVoucher(i)} className="p-1 bg-indigo-50 text-indigo-700 rounded hover:bg-indigo-100 transition"><ReceiptText size={16}/></button>
+                  </td>
+                </>
+              )}
+            />
+          </div>
         );
 
       case 'payroll':
+        if (payrollPrintMode === 'history') {
+           return (
+             <div className="space-y-6">
+               <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow border dark:border-slate-800 no-print">
+                 <h2 className="text-xl font-black text-indigo-700">سجل الرواتب المؤرشفة</h2>
+                 <button onClick={() => setPayrollPrintMode('table')} className="bg-slate-900 text-white px-6 py-2 rounded-xl font-black flex items-center gap-2"><LayoutList size={18}/> العودة لمسير الشهر الحالي</button>
+               </div>
+               <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border overflow-x-auto">
+                 <table className="w-full text-right text-sm">
+                   <thead className="bg-slate-900 text-white font-black">
+                     <tr><th className="px-6 py-5">الموظف</th><th className="text-center">الفترة</th><th className="text-center">الأساسي</th><th className="text-center">الإجمالي</th><th className="text-center">الصافي</th></tr>
+                   </thead>
+                   <tbody className="divide-y">
+                     {db.payrollHistory.map(p => (
+                       <tr key={p.id} className="font-bold hover:bg-slate-50 transition">
+                         <td className="px-6 py-5">{db.employees.find(e => e.id === p.employeeId)?.name}</td>
+                         <td className="text-center">{p.month} / {p.year}</td>
+                         <td className="text-center">{p.baseSalary.toLocaleString()}</td>
+                         <td className="text-center">{(p.baseSalary + p.bonuses + p.overtimePay + p.production).toLocaleString()}</td>
+                         <td className="text-center font-black text-indigo-900 bg-indigo-50">{p.netSalary.toLocaleString()}</td>
+                       </tr>
+                     ))}
+                   </tbody>
+                 </table>
+               </div>
+             </div>
+           );
+        }
+
         if (payrollPrintMode === 'table') {
           return (
             <div className="space-y-6">
@@ -210,9 +285,10 @@ const App: React.FC = () => {
               <div className="flex flex-col md:flex-row justify-between items-center no-print bg-white dark:bg-slate-900 p-8 rounded-[2rem] border shadow-xl gap-4">
                  <div><h3 className="text-2xl font-black text-indigo-700">مسير الرواتب {cycleText}</h3><p className="text-xs font-bold text-slate-500">فترة: {currentMonth} / {currentYear}</p></div>
                  <div className="flex flex-wrap gap-2">
-                    <button onClick={() => setPayrollPrintMode('vouchers')} className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2 shadow-lg"><ReceiptText size={18}/> طباعة القسائم</button>
-                    <button onClick={() => setPayrollPrintMode('signatures')} className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2 shadow-lg"><UserCheck size={18}/> كشف التوقيعات</button>
-                    <button onClick={() => setShowPrintModal(true)} className="bg-slate-900 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2 shadow-lg"><Printer size={18}/> طباعة الجدول</button>
+                    <button onClick={() => setPayrollPrintMode('history')} className="bg-amber-600 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2 shadow-lg"><History size={18}/> السجلات</button>
+                    <button onClick={() => setPayrollPrintMode('vouchers')} className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2 shadow-lg"><ReceiptText size={18}/> القسائم</button>
+                    <button onClick={() => setPayrollPrintMode('signatures')} className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2 shadow-lg"><UserCheck size={18}/> كشف التوقيع</button>
+                    <button onClick={() => setShowPrintModal(true)} className="bg-slate-900 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2 shadow-lg"><Printer size={18}/> طباعة</button>
                  </div>
               </div>
               <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border overflow-x-auto">
@@ -226,7 +302,6 @@ const App: React.FC = () => {
                        <th className="text-center">الإنتاج</th>
                        <th className="text-center">مكافآت</th>
                        <th className="text-center">سلفة</th>
-                       <th className="text-center">تأخير</th>
                        <th className="text-center font-black bg-indigo-800">الصافي</th>
                      </tr>
                    </thead>
@@ -240,7 +315,6 @@ const App: React.FC = () => {
                          <td className="text-center text-indigo-600">+{p.production.toLocaleString()}</td>
                          <td className="text-center text-emerald-600">+{p.bonuses.toLocaleString()}</td>
                          <td className="text-center text-orange-600">-{p.loanInstallment.toLocaleString()}</td>
-                         <td className="text-center text-rose-600">-{p.lateDeduction.toLocaleString()}</td>
                          <td className="text-center font-black text-indigo-900 bg-indigo-50">{p.netSalary.toLocaleString()}</td>
                        </tr>
                      ))}
@@ -256,7 +330,7 @@ const App: React.FC = () => {
           return (
             <div className="space-y-4">
               <div className="no-print flex justify-between items-center p-6 bg-white dark:bg-slate-900 rounded-2xl shadow-lg">
-                  <button onClick={() => setPayrollPrintMode('table')} className="bg-slate-950 text-white px-8 py-3 rounded-2xl flex items-center gap-2"><LayoutList size={20}/> العودة للجدول</button>
+                  <button onClick={() => setPayrollPrintMode('table')} className="bg-slate-950 text-white px-8 py-3 rounded-2xl flex items-center gap-2"><LayoutList size={20}/> العودة</button>
                   <button onClick={() => setShowPrintModal(true)} className="bg-indigo-600 text-white px-10 py-3 rounded-2xl font-black shadow-xl"><Printer size={20}/> طباعة كافة القسائم</button>
               </div>
               {payrollChunks.map((chunk, pageIdx) => (
@@ -268,7 +342,7 @@ const App: React.FC = () => {
                         <div className="flex justify-between items-center border-b border-black pb-2 mb-2">
                            <div className="flex items-center gap-2">
                               {db.settings.logo && <img src={db.settings.logo} className="h-10 w-auto" />}
-                              <div><h2 className="text-[10px] font-black">{db.settings.name}</h2><p className="text-[7px] font-bold">قسيمة راتب {cycleText}</p></div>
+                              <div><h2 className="text-[10px] font-black">{db.settings.name}</h2><p className="text-[7px] font-bold">قسيمة راتب</p></div>
                            </div>
                            <div className="text-left text-[7px] font-bold">
                               <p>الفترة: {currentMonth}/{currentYear}</p>
@@ -277,41 +351,31 @@ const App: React.FC = () => {
                         </div>
                         <div className="text-[9px] mb-1 font-black flex justify-between uppercase">
                            <span>{emp?.name}</span>
-                           <span>ID: {emp?.nationalId}</span>
                         </div>
                         <table className="mb-2">
-                           <thead className="bg-slate-50">
-                              <tr>
-                                 <th className="text-[7px]">مفردات الاستحقاق</th><th className="text-[7px]">(+)</th>
-                                 <th className="text-[7px]">مفردات الخصم</th><th className="text-[7px]">(-)</th>
+                           <thead>
+                              <tr className="bg-slate-50">
+                                 <th className="text-[7px]">الاستحقاق</th><th className="text-[7px]">(+)</th>
+                                 <th className="text-[7px]">الخصم</th><th className="text-[7px]">(-)</th>
                               </tr>
                            </thead>
                            <tbody className="text-[7px]">
                               <tr>
-                                 <td className="text-right">الأساسي + المواصلات</td><td>{(p.baseSalary + p.transport).toLocaleString()}</td>
-                                 <td className="text-right">قسط السلفة</td><td>{p.loanInstallment > 0 ? p.loanInstallment.toLocaleString() : '-'}</td>
+                                 <td>الأساسي</td><td>{p.baseSalary.toLocaleString()}</td>
+                                 <td>سلفة</td><td>{p.loanInstallment > 0 ? p.loanInstallment.toLocaleString() : '-'}</td>
                               </tr>
                               <tr>
-                                 <td className="text-right">الإضافي ({Math.round(p.overtimeMinutes/60)} س)</td><td>{p.overtimePay.toLocaleString()}</td>
-                                 <td className="text-right">تأخير ({p.lateMinutes} د)</td><td>{p.lateDeduction > 0 ? p.lateDeduction.toLocaleString() : '-'}</td>
+                                 <td>إضافي</td><td>{p.overtimePay.toLocaleString()}</td>
+                                 <td>تأخير</td><td>{p.lateDeduction > 0 ? p.lateDeduction.toLocaleString() : '-'}</td>
                               </tr>
                               <tr>
-                                 <td className="text-right">حوافز الإنتاج</td><td>{p.production.toLocaleString()}</td>
-                                 <td className="text-right">خصومات أخرى</td><td>{p.manualDeductions > 0 ? p.manualDeductions.toLocaleString() : '-'}</td>
-                              </tr>
-                              <tr>
-                                 <td className="text-right">المكافآت</td><td>{p.bonuses.toLocaleString()}</td>
+                                 <td colSpan={2}></td>
                                  <td colSpan={2} className="bg-slate-100 font-black">
-                                    <div className="text-[8px] text-indigo-700">الصافي</div>
-                                    <div className="text-xs">{p.netSalary.toLocaleString()}</div>
+                                    <div className="text-xs text-center">{p.netSalary.toLocaleString()}</div>
                                  </td>
                               </tr>
                            </tbody>
                         </table>
-                        <div className="grid grid-cols-2 gap-4 text-center text-[7px]">
-                           <div><p className="mb-2">المحاسب</p><div className="h-px bg-black"></div></div>
-                           <div><p className="mb-2">المستلم</p><div className="h-px bg-black"></div></div>
-                        </div>
                       </div>
                     );
                   })}
@@ -366,19 +430,64 @@ const App: React.FC = () => {
 
       {showPrintModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[200] flex items-center justify-center p-4 no-print">
-           <div className="bg-white rounded-[2.5rem] p-10 w-full max-w-md shadow-2xl">
+           <div className="bg-white rounded-[2.5rem] p-10 w-full max-w-md shadow-2xl border dark:border-slate-800">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-black text-indigo-700">تأكيد الطباعة</h3>
+                <h3 className="text-xl font-black text-indigo-700">خيارات الطباعة</h3>
                 <button onClick={() => setShowPrintModal(false)}><X size={24}/></button>
               </div>
-              <p className="text-sm font-bold text-slate-500 mb-8 text-center">اختر اتجاه الورقة المفضل للطباعة</p>
+              <p className="text-xs font-bold text-slate-500 mb-8 text-center uppercase tracking-widest">اختر الاتجاه المناسب للورقة</p>
               <div className="grid grid-cols-2 gap-4">
-                 <button onClick={() => handlePrintRequest('portrait')} className="p-6 border-2 border-slate-100 rounded-3xl hover:border-indigo-600 flex flex-col items-center gap-2">
-                    <Monitor size={40} className="text-slate-300"/> <span className="font-black">طولي</span>
+                 <button onClick={() => handlePrintRequest('portrait')} className="p-8 border-2 border-slate-100 rounded-[2rem] hover:border-indigo-600 hover:bg-indigo-50/30 transition-all flex flex-col items-center gap-3">
+                    <Monitor size={48} className="text-slate-300"/> 
+                    <span className="font-black text-sm">طولي (Portrait)</span>
                  </button>
-                 <button onClick={() => handlePrintRequest('landscape')} className="p-6 border-2 border-slate-100 rounded-3xl hover:border-indigo-600 flex flex-col items-center gap-2">
-                    <Monitor size={40} className="text-slate-300 rotate-90"/> <span className="font-black">عرضي</span>
+                 <button onClick={() => handlePrintRequest('landscape')} className="p-8 border-2 border-slate-100 rounded-[2rem] hover:border-indigo-600 hover:bg-indigo-50/30 transition-all flex flex-col items-center gap-3">
+                    <Monitor size={48} className="text-slate-300 rotate-90"/> 
+                    <span className="font-black text-sm">عرضي (Landscape)</span>
                  </button>
+              </div>
+              <button onClick={() => setShowPrintModal(false)} className="w-full mt-6 bg-slate-100 py-4 rounded-2xl font-black text-slate-500 hover:bg-slate-200 transition">إلغاء</button>
+           </div>
+        </div>
+      )}
+
+      {showVoucher && (
+        <div className="fixed inset-0 bg-slate-950/90 z-[100] flex items-center justify-center p-6 no-print">
+           <div className="bg-white rounded-[2rem] p-12 w-full max-w-2xl text-slate-900 border-4 border-double border-slate-300 relative">
+              <button onClick={() => setShowVoucher(null)} className="absolute top-6 left-6 text-slate-400 hover:text-rose-600"><X size={28}/></button>
+              <div className="flex justify-between items-center border-b-2 pb-6 mb-8 border-slate-900">
+                 <div className="flex items-center gap-4">
+                    {db.settings.logo && <img src={db.settings.logo} className="h-14 w-auto object-contain" />}
+                    <div><h2 className="text-2xl font-black text-indigo-700 uppercase tracking-tighter">{db.settings.name}</h2><p className="font-bold text-slate-500 text-xs">سند مالي رسمي</p></div>
+                 </div>
+                 <div className="text-right">
+                    <p className="font-black text-[10px] text-slate-400">REFERENCE: {showVoucher.id.substr(0,8).toUpperCase()}</p>
+                    <p className="font-bold text-sm">{showVoucher.date}</p>
+                 </div>
+              </div>
+              <div className="space-y-8 text-xl">
+                 <p className="flex justify-between items-center border-b border-dashed pb-3">
+                    <span className="text-slate-500 font-bold">يصرف للسيد/ة:</span> 
+                    <span className="font-black text-slate-900">{db.employees.find(e => e.id === showVoucher.employeeId)?.name}</span>
+                 </p>
+                 <p className="flex justify-between items-center border-b border-dashed pb-3">
+                    <span className="text-slate-500 font-bold">المبلغ المستحق:</span> 
+                    <span className="font-black text-2xl text-indigo-700">{showVoucher.amount.toLocaleString()} {db.settings.currency}</span>
+                 </p>
+                 <div className="bg-slate-50 p-6 rounded-2xl border-2 border-dashed">
+                    <span className="text-xs font-black text-slate-400 uppercase block mb-1">بيان الصرف / السبب:</span>
+                    <span className="font-bold text-lg text-slate-700">{showVoucher.reason || "لا يوجد ملاحظات إضافية"}</span>
+                 </div>
+              </div>
+              <div className="grid grid-cols-2 gap-20 mt-16 text-center">
+                 <div><p className="font-black underline mb-12 text-xs">توقيع المحاسب</p> <div className="h-0.5 bg-slate-400"></div></div>
+                 <div><p className="font-black underline mb-12 text-xs">توقيع المستلم</p> <div className="h-0.5 bg-slate-400"></div></div>
+              </div>
+              <div className="mt-12 flex gap-4 no-print">
+                 <button onClick={() => setShowPrintModal(true)} className="flex-1 bg-indigo-700 text-white py-4 rounded-2xl font-black text-lg shadow-xl hover:bg-indigo-800 flex items-center justify-center gap-2">
+                    <Printer size={20}/> طباعة السند
+                 </button>
+                 <button onClick={() => setShowVoucher(null)} className="flex-1 bg-slate-100 py-4 rounded-2xl font-black text-slate-600">إغلاق المعاينة</button>
               </div>
            </div>
         </div>
