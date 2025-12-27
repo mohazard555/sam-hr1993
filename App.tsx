@@ -7,9 +7,10 @@ import Departments from './views/Departments';
 import Attendance from './views/Attendance';
 import SettingsView from './views/Settings';
 import ReportsView from './views/Reports';
+import Production from './views/Production';
 import { GenericModule } from './views/GenericModule';
 import { loadDB, saveDB, DB } from './db/store';
-import { Employee, PayrollRecord, Language, Theme, FinancialEntry, Loan, LeaveRequest } from './types';
+import { Employee, PayrollRecord, Language, Theme, FinancialEntry, Loan, LeaveRequest, ProductionEntry } from './types';
 import { generateMonthlyPayroll } from './utils/calculations';
 import { useTranslation } from './utils/translations';
 import { Printer, Save, Search, History, Trash2, FileDown, Calendar, Archive, Building, Briefcase, CheckCircle2, XCircle, DollarSign, ReceiptText } from 'lucide-react';
@@ -43,7 +44,7 @@ const App: React.FC = () => {
   const currentYear = new Date().getFullYear();
 
   const currentPayrolls = useMemo(() => generateMonthlyPayroll(
-    currentMonth, currentYear, db.employees, db.attendance, db.loans, db.financials, db.settings
+    currentMonth, currentYear, db.employees, db.attendance, db.loans, db.financials, db.production || [], db.settings
   ), [currentMonth, currentYear, db]);
 
   const updateList = <K extends keyof DB>(key: K, item: any) => {
@@ -61,7 +62,7 @@ const App: React.FC = () => {
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 font-['Cairo']" dir={isRtl ? 'rtl' : 'ltr'}>
-        <div className="bg-white dark:bg-slate-900 rounded-[3.5rem] shadow-2xl w-full max-w-md overflow-hidden flex flex-col border dark:border-slate-800">
+        <div className="bg-white dark:bg-slate-900 rounded-[3.5rem] shadow-2xl w-full max-md overflow-hidden flex flex-col border dark:border-slate-800">
           <div className="bg-gradient-to-br from-indigo-700 to-indigo-950 p-16 text-white text-center">
             <div className="w-28 h-28 bg-white/10 backdrop-blur-3xl rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 shadow-2xl border border-white/20">
               <span className="text-7xl font-black">S</span>
@@ -88,6 +89,8 @@ const App: React.FC = () => {
         return <Departments departments={db.departments} employees={db.employees} onUpdate={depts => setDb({...db, departments: depts})} onUpdateEmployee={emp => updateList('employees', emp)} />;
       case 'attendance':
         return <Attendance employees={db.employees} records={db.attendance} settings={db.settings} onSaveRecord={r => updateList('attendance', r)} onDeleteRecord={id => deleteFromList('attendance', id)} lang={db.settings.language} />;
+      case 'production':
+        return <Production employees={db.employees} items={db.production || []} onSave={i => updateList('production', i)} onDelete={id => deleteFromList('production', id)} />;
       case 'payroll':
         const dataToDisplay = currentPayrolls;
         const totals = dataToDisplay.reduce((acc, p) => ({ base: acc.base + p.baseSalary, net: acc.net + p.netSalary }), { base: 0, net: 0 });
@@ -102,35 +105,43 @@ const App: React.FC = () => {
                <h3 className="text-2xl font-black text-indigo-700">مسير الرواتب {cycleText} الجاري</h3>
                <button className="bg-indigo-700 text-white px-8 py-3 rounded-xl font-black" onClick={() => window.print()}><Printer size={20}/> طباعة الكشف</button>
             </div>
-            <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl border overflow-hidden">
-               <table className="w-full text-right">
+            <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl border overflow-hidden overflow-x-auto">
+               <table className="w-full text-right text-sm">
                  <thead className="bg-indigo-600 text-white font-black">
                    <tr>
-                     <th className="px-6 py-5">الموظف / القسم</th>
-                     <th className="text-center">ساعات</th>
+                     <th className="px-6 py-5 min-w-[150px]">الموظف / القسم</th>
+                     <th className="text-center">الأيام</th>
                      <th className="text-center">الأساسي</th>
+                     <th className="text-center">الإنتاج</th>
+                     <th className="text-center">مكافآت</th>
+                     <th className="text-center">مواصلات</th>
                      <th className="text-center">إضافي</th>
+                     <th className="text-center">سلفة</th>
                      <th className="text-center">خصم</th>
-                     <th className="text-center">صافي الراتب</th>
+                     <th className="text-center font-black bg-indigo-800">الصافي</th>
                    </tr>
                  </thead>
                  <tbody className="divide-y">
                    {dataToDisplay.map(p => {
                      const emp = db.employees.find(e => e.id === p.employeeId);
                      return (
-                       <tr key={p.id} className="font-black">
+                       <tr key={p.id} className="font-bold hover:bg-slate-50 transition">
                          <td className="px-6 py-5"><div><p>{emp?.name}</p><p className="text-[10px] text-slate-500 uppercase">{emp?.department}</p></div></td>
-                         <td className="text-center">{p.workingHours}</td>
+                         <td className="text-center"><span className="bg-indigo-50 px-2 py-1 rounded text-indigo-700">{p.workingDays}</span></td>
                          <td className="text-center">{p.baseSalary.toLocaleString()}</td>
+                         <td className="text-center text-indigo-600">+{p.production.toLocaleString()}</td>
+                         <td className="text-center text-emerald-600">+{p.bonuses.toLocaleString()}</td>
+                         <td className="text-center text-slate-500">+{p.transport.toLocaleString()}</td>
                          <td className="text-center text-emerald-600">+{p.overtimePay.toLocaleString()}</td>
+                         <td className="text-center text-orange-600">-{p.loanInstallment.toLocaleString()}</td>
                          <td className="text-center text-rose-600">-{p.deductions.toLocaleString()}</td>
-                         <td className="text-center font-black text-indigo-700">{p.netSalary.toLocaleString()}</td>
+                         <td className="text-center font-black text-indigo-900 bg-indigo-50">{p.netSalary.toLocaleString()}</td>
                        </tr>
                      );
                    })}
                  </tbody>
                  <tfoot className="bg-slate-100 font-black">
-                    <tr><td className="px-6 py-6" colSpan={5}>إجمالي الرواتب الصافية</td><td className="text-center text-xl text-indigo-900">{totals.net.toLocaleString()} {db.settings.currency}</td></tr>
+                    <tr><td className="px-6 py-6" colSpan={9}>إجمالي الرواتب الصافية المستحقة للتحويل</td><td className="text-center text-xl text-indigo-900">{totals.net.toLocaleString()} {db.settings.currency}</td></tr>
                  </tfoot>
                </table>
             </div>
@@ -217,6 +228,7 @@ const App: React.FC = () => {
                <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2"><label className="text-xs font-black uppercase">نوع المعاملة</label><select className="w-full p-4 border rounded-xl font-bold" value={data.type} onChange={e => set({...data, type: e.target.value as any})}><option value="bonus">مكافأة</option><option value="deduction">خصم</option><option value="payment">صرف مالي / عهدة</option></select></div>
                   <div><label className="text-xs font-black uppercase">المبلغ</label><input type="number" className="w-full p-3 border rounded-xl font-bold" value={data.amount} onChange={e => set({...data, amount: Number(e.target.value)})} /></div>
+                  {/* Fixed missing 'e' and incorrect invocation in onChange handler below */}
                   <div><label className="text-xs font-black uppercase">التاريخ</label><input type="date" className="w-full p-3 border rounded-xl font-bold" value={data.date} onChange={e => set({...data, date: e.target.value})} /></div>
                   <div className="col-span-2"><label className="text-xs font-black uppercase">البيان / السبب</label><textarea className="w-full p-3 border rounded-xl font-bold" rows={2} value={data.reason} onChange={e => set({...data, reason: e.target.value})} /></div>
                </div>

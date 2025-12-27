@@ -27,7 +27,7 @@ export interface CompanySettings {
   officialCheckOut: string;
   deductionPerLateMinute: number;
   overtimeHourRate: number;
-  salaryCycle: SalaryCycle; // الحقل الجديد
+  salaryCycle: SalaryCycle;
 }
 
 export interface Employee {
@@ -79,6 +79,16 @@ export interface LeaveRequest {
   reason?: string;
 }
 
+export interface ProductionEntry {
+  id: string;
+  employeeId: string;
+  date: string;
+  piecesCount: number;
+  specifications: string;
+  valuePerPiece: number;
+  totalValue: number;
+}
+
 export interface FinancialEntry {
   id: string;
   employeeId: string;
@@ -111,6 +121,7 @@ export interface PayrollRecord {
   deductions: number; 
   lateMinutes: number;
   workingHours: number;
+  workingDays: number; // حقل جديد
   netSalary: number;
   isPaid: boolean;
 }

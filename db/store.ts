@@ -8,7 +8,8 @@ import {
   LeaveRequest,
   FinancialEntry,
   Warning,
-  PayrollRecord
+  PayrollRecord,
+  ProductionEntry
 } from '../types';
 
 const STORAGE_KEY = 'SAM_HR_DB_V6_PRO';
@@ -21,6 +22,7 @@ export interface DB {
   loans: Loan[];
   leaves: LeaveRequest[];
   financials: FinancialEntry[];
+  production: ProductionEntry[]; // حقل الإنتاج
   warnings: Warning[];
   payrolls: PayrollRecord[];
   payrollHistory: PayrollRecord[];
@@ -64,6 +66,7 @@ export const loadDB = (): DB => {
       loans: [],
       leaves: [],
       financials: [],
+      production: [],
       warnings: [],
       payrolls: [],
       payrollHistory: [],
@@ -75,6 +78,7 @@ export const loadDB = (): DB => {
   const parsed = JSON.parse(data);
   if (!parsed.departments) parsed.departments = [];
   if (!parsed.payrollHistory) parsed.payrollHistory = [];
+  if (!parsed.production) parsed.production = [];
   if (!parsed.settings.salaryCycle) parsed.settings.salaryCycle = 'monthly';
   return parsed;
 };
