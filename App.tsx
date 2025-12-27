@@ -13,7 +13,7 @@ import { loadDB, saveDB, DB } from './db/store';
 import { Employee, PayrollRecord, Language, Theme, FinancialEntry, Loan, LeaveRequest, ProductionEntry } from './types';
 import { generateMonthlyPayroll } from './utils/calculations';
 import { useTranslation } from './utils/translations';
-import { Printer, Search, History, Trash2, FileDown, Calendar, Archive, Building, Briefcase, CheckCircle2, XCircle, DollarSign, ReceiptText, UserCheck, LayoutList, Plus, ArchiveRestore, HelpCircle, Info, Monitor, Smartphone, RefreshCw, X } from 'lucide-react';
+import { Printer, Search, History, Trash2, FileDown, Calendar, Archive, Building, Briefcase, CheckCircle2, XCircle, DollarSign, ReceiptText, UserCheck, LayoutList, Plus, ArchiveRestore, HelpCircle, Info, Monitor, Smartphone, RefreshCw, X, Box } from 'lucide-react';
 
 const App: React.FC = () => {
   const [db, setDb] = useState<DB>(loadDB());
@@ -21,38 +21,27 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [showForgotHint, setShowForgotHint] = useState(false);
-  const [printOrientation, setPrintOrientation] = useState<'portrait' | 'landscape'>('portrait');
-  const [showPrintModal, setShowPrintModal] = useState(false);
   
-  // Archive States
+  // States
   const [showVoucher, setShowVoucher] = useState<FinancialEntry | null>(null);
   const [payrollPrintMode, setPayrollPrintMode] = useState<'table' | 'vouchers' | 'signatures' | 'history'>('table');
-  const [loanArchive, setLoanArchive] = useState(false);
-  const [leaveArchive, setLeaveArchive] = useState(false);
-  const [financialArchive, setFinancialArchive] = useState(false);
-  const [productionArchive, setProductionArchive] = useState(false);
+  const [loanArchiveMode, setLoanArchiveMode] = useState(false);
+  const [leaveArchiveMode, setLeaveArchiveMode] = useState(false);
+  const [financialArchiveMode, setFinancialArchiveMode] = useState(false);
+  const [productionArchiveMode, setProductionArchiveMode] = useState(false);
 
   useEffect(() => {
     saveDB(db);
-    // تحديث كلاس الـ body فور تغير الإعدادات
-    document.body.className = `${db.settings.theme === 'dark' ? 'dark' : ''} bg-slate-50 dark:bg-slate-950 print-${printOrientation}`;
-  }, [db, printOrientation]);
+  }, [db]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     const user = db.users.find(u => u.username === loginForm.username && u.password === loginForm.password);
-    if (user) setCurrentUser(user); else alert('خطأ دخول: يرجى التأكد من اسم المستخدم وكلمة المرور');
+    if (user) setCurrentUser(user); else alert('خطأ دخول');
   };
 
-  const handlePrintRequest = (orientation: 'portrait' | 'landscape') => {
-    // 1. تحديث الحالة
-    setPrintOrientation(orientation);
-    setShowPrintModal(false);
-    
-    // 2. إجبار المتصفح على قراءة الكلاس الجديد قبل نافذة الطباعة
-    setTimeout(() => {
-        window.print();
-    }, 500);
+  const handlePrint = () => {
+    window.print();
   };
 
   const currentMonth = new Date().getMonth() + 1;
@@ -82,30 +71,18 @@ const App: React.FC = () => {
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 relative overflow-hidden" dir="rtl">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6" dir="rtl">
         <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl w-full max-w-md border dark:border-slate-800 overflow-hidden">
           <div className="bg-indigo-600 p-12 text-white text-center font-black">
-            <h1 className="text-3xl tracking-tighter">SAM HRMS PRO</h1>
-            <p className="text-indigo-200 text-xs mt-2 opacity-80 uppercase">Management Systems</p>
+            <h1 className="text-3xl">SAM HRMS PRO</h1>
           </div>
           <form onSubmit={handleLogin} className="p-10 space-y-6">
-            <div className="space-y-1">
-              <label className="text-[10px] font-black text-slate-500 mr-2 uppercase">اسم المستخدم</label>
-              <input className="w-full py-4 px-6 bg-slate-100 rounded-2xl font-black outline-none border-2 border-transparent focus:border-indigo-600 dark:bg-slate-800 dark:text-white" value={loginForm.username} onChange={e => setLoginForm({...loginForm, username: e.target.value})} required />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-black text-slate-500 mr-2 uppercase">كلمة المرور</label>
-              <input type="password" className="w-full py-4 px-6 bg-slate-100 rounded-2xl font-black outline-none border-2 border-transparent focus:border-indigo-600 dark:bg-slate-800 dark:text-white" value={loginForm.password} onChange={e => setLoginForm({...loginForm, password: e.target.value})} required />
-            </div>
-            <button className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black text-lg shadow-xl hover:bg-indigo-700 transition-all">دخول النظام</button>
-            
+            <input className="w-full py-4 px-6 bg-slate-100 rounded-2xl font-black outline-none dark:bg-slate-800 dark:text-white" placeholder="اسم المستخدم" value={loginForm.username} onChange={e => setLoginForm({...loginForm, username: e.target.value})} required />
+            <input type="password" className="w-full py-4 px-6 bg-slate-100 rounded-2xl font-black outline-none dark:bg-slate-800 dark:text-white" placeholder="كلمة المرور" value={loginForm.password} onChange={e => setLoginForm({...loginForm, password: e.target.value})} required />
+            <button className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black text-lg">دخول</button>
             <div className="text-center">
-               <button type="button" onClick={() => setShowForgotHint(!showForgotHint)} className="text-xs font-black text-indigo-500 hover:underline">نسيت كلمة السر؟</button>
-               {showForgotHint && (
-                 <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-100 dark:border-amber-900/50 text-xs font-bold text-amber-700 dark:text-amber-400">
-                    تلميح: {db.settings.passwordHint || "لم يتم ضبط تلميح"}
-                 </div>
-               )}
+               <button type="button" onClick={() => setShowForgotHint(!showForgotHint)} className="text-xs font-black text-indigo-500">نسيت كلمة السر؟</button>
+               {showForgotHint && <p className="mt-2 p-3 bg-amber-50 text-amber-700 rounded-xl text-xs font-bold">{db.settings.passwordHint}</p>}
             </div>
           </form>
         </div>
@@ -125,128 +102,101 @@ const App: React.FC = () => {
       case 'attendance':
         return <Attendance employees={db.employees} records={db.attendance} settings={db.settings} onSaveRecord={r => updateList('attendance', r)} onDeleteRecord={id => deleteFromList('attendance', id)} lang={db.settings.language} />;
       case 'production':
-        return <Production employees={db.employees} items={db.production || []} onSave={i => updateList('production', i)} onDelete={id => deleteFromList('production', id)} archiveMode={productionArchive} onToggleArchive={() => setProductionArchive(!productionArchive)} onPrint={() => setShowPrintModal(true)} />;
+        return <Production employees={db.employees} items={db.production || []} onSave={i => updateList('production', i)} onDelete={id => deleteFromList('production', id)} archiveMode={productionArchiveMode} onToggleArchive={() => setProductionArchiveMode(!productionArchiveMode)} />;
       
       case 'loans':
         return (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow border dark:border-slate-800 no-print">
-               <h2 className="text-xl font-black text-indigo-700">{loanArchive ? 'أرشيف السلف المسددة' : 'إدارة السلف الجارية'}</h2>
-               <button onClick={() => setLoanArchive(!loanArchive)} className="bg-slate-900 text-white px-6 py-2 rounded-xl font-black flex items-center gap-2">
-                 {loanArchive ? <Calendar size={18}/> : <Archive size={18}/>} {loanArchive ? 'العودة للقائمة' : 'عرض الأرشيف'}
-               </button>
-            </div>
-            <GenericModule<Loan> 
-              title={loanArchive ? "أرشيف السلف" : "السلف القائمة"} lang={db.settings.language} employees={db.employees} 
-              items={loanArchive ? db.loans.filter(l => (l.remainingAmount || 0) <= 0) : db.loans.filter(l => (l.remainingAmount || 0) > 0)}
-              onSave={i => updateList('loans', i)} onDelete={id => deleteFromList('loans', id)} onPrint={() => setShowPrintModal(true)}
-              initialData={{ amount: 0, installmentsCount: 1, monthlyInstallment: 0, remainingAmount: 0, date: new Date().toISOString().split('T')[0] }} 
-              tableHeaders={['الموظف', 'البداية', 'المبلغ', 'الأقساط', 'القسط', 'المتبقي']}
-              renderForm={(data, set) => (
-                <div className="grid grid-cols-2 gap-4">
-                   <div className="col-span-2"><label className="text-xs font-black">إجمالي السلفة</label><input type="number" className="w-full p-3 border rounded-xl font-black" value={data.amount} onChange={e => { const v = Number(e.target.value); set({...data, amount: v, remainingAmount: v, monthlyInstallment: Math.round(v / (data.installmentsCount || 1))}); }} /></div>
-                   <div><label className="text-xs font-black">عدد الأقساط</label><input type="number" className="w-full p-3 border rounded-xl font-black" value={data.installmentsCount} onChange={e => { const v = Math.max(1, Number(e.target.value)); set({...data, installmentsCount: v, monthlyInstallment: Math.round((data.amount || 0) / v)}); }} /></div>
-                   <div><label className="text-xs font-black">قيمة القسط</label><input type="number" className="w-full p-3 border bg-slate-50 rounded-xl font-black" value={data.monthlyInstallment} readOnly /></div>
-                   <div className="col-span-2"><label className="text-xs font-black">تاريخ البدء</label><input type="date" className="w-full p-3 border rounded-xl font-black" value={data.date} onChange={e => set({...data, date: e.target.value})} /></div>
-                </div>
-              )}
-              renderRow={(i, name) => (
-                <>
-                  <td className="px-6 py-4 font-black">{name}</td>
-                  <td className="px-6 py-4">{i.date}</td>
-                  <td className="px-6 py-4 text-indigo-600 font-black">{(i.amount || 0).toLocaleString()}</td>
-                  <td className="px-6 py-4 text-center">{i.installmentsCount}</td>
-                  <td className="px-6 py-4 font-bold">{(i.monthlyInstallment || 0).toLocaleString()}</td>
-                  <td className="px-6 py-4 text-rose-600 font-black">{(i.remainingAmount || 0).toLocaleString()}</td>
-                </>
-              )}
-            />
-          </div>
+          <GenericModule<Loan> 
+            title={loanArchiveMode ? "أرشيف السلف" : "السلف والقروض"} lang={db.settings.language} employees={db.employees} 
+            items={db.loans} archiveMode={loanArchiveMode} onToggleArchive={() => setLoanArchiveMode(!loanArchiveMode)}
+            onSave={i => updateList('loans', i)} onDelete={id => deleteFromList('loans', id)} onPrint={handlePrint}
+            initialData={{ amount: 0, installmentsCount: 1, monthlyInstallment: 0, remainingAmount: 0, date: new Date().toISOString().split('T')[0] }} 
+            tableHeaders={['الموظف', 'البداية', 'المبلغ', 'الأقساط', 'القسط', 'المتبقي']}
+            renderForm={(data, set) => (
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="col-span-2"><label className="text-xs font-black">إجمالي السلفة</label><input type="number" className="w-full p-3 border rounded-xl font-black" value={data.amount} onChange={e => { const v = Number(e.target.value); set({...data, amount: v, remainingAmount: v, monthlyInstallment: Math.round(v / (data.installmentsCount || 1))}); }} /></div>
+                 <div><label className="text-xs font-black">عدد الأقساط</label><input type="number" className="w-full p-3 border rounded-xl font-black" value={data.installmentsCount} onChange={e => { const v = Math.max(1, Number(e.target.value)); set({...data, installmentsCount: v, monthlyInstallment: Math.round((data.amount || 0) / v)}); }} /></div>
+                 <div><label className="text-xs font-black">قيمة القسط</label><input type="number" className="w-full p-3 border bg-slate-50 rounded-xl font-black" value={data.monthlyInstallment} readOnly /></div>
+                 <div className="col-span-2"><label className="text-xs font-black">تاريخ البدء</label><input type="date" className="w-full p-3 border rounded-xl font-black" value={data.date} onChange={e => set({...data, date: e.target.value})} /></div>
+              </div>
+            )}
+            renderRow={(i, name) => (
+              <>
+                <td className="px-6 py-4 font-black">{name}</td>
+                <td className="px-6 py-4">{i.date}</td>
+                <td className="px-6 py-4 text-indigo-600 font-black">{(i.amount || 0).toLocaleString()}</td>
+                <td className="px-6 py-4 text-center">{i.installmentsCount}</td>
+                <td className="px-6 py-4 font-bold">{(i.monthlyInstallment || 0).toLocaleString()}</td>
+                <td className="px-6 py-4 text-rose-600 font-black">{(i.remainingAmount || 0).toLocaleString()}</td>
+              </>
+            )}
+          />
         );
 
       case 'leaves':
         return (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow border dark:border-slate-800 no-print">
-               <h2 className="text-xl font-black text-indigo-700">{leaveArchive ? 'سجل كافة الإجازات' : 'طلبات الإجازات الجديدة'}</h2>
-               <button onClick={() => setLeaveArchive(!leaveArchive)} className="bg-slate-900 text-white px-6 py-2 rounded-xl font-black flex items-center gap-2">
-                 {leaveArchive ? <Calendar size={18}/> : <Archive size={18}/>} {leaveArchive ? 'العودة للقائمة' : 'عرض الأرشيف'}
-               </button>
-            </div>
-            <GenericModule<LeaveRequest> 
-              title="نظام الإجازات" lang={db.settings.language} employees={db.employees} 
-              items={leaveArchive ? db.leaves : db.leaves.filter(l => l.status === 'pending')} 
-              onSave={i => updateList('leaves', i)} onDelete={id => deleteFromList('leaves', id)} onPrint={() => setShowPrintModal(true)}
-              initialData={{ type: 'annual', status: 'pending', isPaid: true, startDate: new Date().toISOString().split('T')[0], endDate: new Date().toISOString().split('T')[0] }} 
-              tableHeaders={['الموظف', 'النوع', 'الحالة', 'من', 'إلى', 'مدفوعة']}
-              renderForm={(data, set) => (
-                <div className="grid grid-cols-2 gap-4">
-                   <div className="col-span-2"><label className="text-xs font-black">نوع الإجازة</label><select className="w-full p-3 border rounded-xl font-black" value={data.type} onChange={e => set({...data, type: e.target.value as any})}><option value="annual">سنوية</option><option value="sick">مرضية</option><option value="unpaid">بدون راتب</option></select></div>
-                   <div><label className="text-xs font-black">من تاريخ</label><input type="date" className="w-full p-3 border rounded-xl font-black" value={data.startDate} onChange={e => set({...data, startDate: e.target.value})} /></div>
-                   <div><label className="text-xs font-black">إلى تاريخ</label><input type="date" className="w-full p-3 border rounded-xl font-black" value={data.endDate} onChange={e => set({...data, endDate: e.target.value})} /></div>
-                   <div className="col-span-2 flex items-center gap-2"><input type="checkbox" checked={data.isPaid} onChange={e => set({...data, isPaid: e.target.checked})} /><label className="text-xs font-black">إجازة مأجورة</label></div>
-                </div>
-              )}
-              renderRow={(i, name) => (
-                <>
-                  <td className="px-6 py-4 font-black">{name}</td>
-                  <td className="px-6 py-4 uppercase font-bold">{i.type}</td>
-                  <td className="px-6 py-4"><span className={`px-2 py-1 rounded-full text-[10px] font-black ${i.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{i.status}</span></td>
-                  <td className="px-6 py-4">{i.startDate}</td>
-                  <td className="px-6 py-4">{i.endDate}</td>
-                  <td className="px-6 py-4 text-center">{i.isPaid ? <CheckCircle2 size={16} className="text-emerald-500 inline"/> : <XCircle size={16} className="text-rose-500 inline"/>}</td>
-                </>
-              )}
-            />
-          </div>
+          <GenericModule<LeaveRequest> 
+            title={leaveArchiveMode ? "أرشيف الإجازات" : "طلبات الإجازات"} lang={db.settings.language} employees={db.employees} 
+            items={db.leaves} archiveMode={leaveArchiveMode} onToggleArchive={() => setLeaveArchiveMode(!leaveArchiveMode)}
+            onSave={i => updateList('leaves', i)} onDelete={id => deleteFromList('leaves', id)} onPrint={handlePrint}
+            initialData={{ type: 'annual', status: 'pending', isPaid: true, startDate: new Date().toISOString().split('T')[0], endDate: new Date().toISOString().split('T')[0] }} 
+            tableHeaders={['الموظف', 'النوع', 'الحالة', 'من', 'إلى', 'مدفوعة']}
+            renderForm={(data, set) => (
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="col-span-2"><label className="text-xs font-black">نوع الإجازة</label><select className="w-full p-3 border rounded-xl font-black" value={data.type} onChange={e => set({...data, type: e.target.value as any})}><option value="annual">سنوية</option><option value="sick">مرضية</option><option value="unpaid">بدون راتب</option></select></div>
+                 <div><label className="text-xs font-black">من تاريخ</label><input type="date" className="w-full p-3 border rounded-xl font-black" value={data.startDate} onChange={e => set({...data, startDate: e.target.value})} /></div>
+                 <div><label className="text-xs font-black">إلى تاريخ</label><input type="date" className="w-full p-3 border rounded-xl font-black" value={data.endDate} onChange={e => set({...data, endDate: e.target.value})} /></div>
+                 <div className="col-span-2 flex items-center gap-2"><input type="checkbox" checked={data.isPaid} onChange={e => set({...data, isPaid: e.target.checked})} /><label className="text-xs font-black">إجازة مأجورة</label></div>
+              </div>
+            )}
+            renderRow={(i, name) => (
+              <>
+                <td className="px-6 py-4 font-black">{name}</td>
+                <td className="px-6 py-4 uppercase font-bold">{i.type}</td>
+                <td className="px-6 py-4"><span className={`px-2 py-1 rounded-full text-[10px] font-black ${i.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{i.status}</span></td>
+                <td className="px-6 py-4">{i.startDate}</td>
+                <td className="px-6 py-4">{i.endDate}</td>
+                <td className="px-6 py-4 text-center">{i.isPaid ? <CheckCircle2 size={16} className="text-emerald-500 inline"/> : <XCircle size={16} className="text-rose-500 inline"/>}</td>
+              </>
+            )}
+          />
         );
 
       case 'financials':
         return (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow border dark:border-slate-800 no-print">
-               <h2 className="text-xl font-black text-indigo-700">{financialArchive ? 'أرشيف السجلات المالية' : 'السندات والماليات الجارية'}</h2>
-               <button onClick={() => setFinancialArchive(!financialArchive)} className="bg-slate-900 text-white px-6 py-2 rounded-xl font-black flex items-center gap-2">
-                 {financialArchive ? <Calendar size={18}/> : <Archive size={18}/>} {financialArchive ? 'العودة للقائمة' : 'عرض الأرشيف'}
-               </button>
-            </div>
-            <GenericModule<FinancialEntry> 
-              title="الماليات والسندات" lang={db.settings.language} employees={db.employees} 
-              items={financialArchive ? db.financials : db.financials.filter(f => {
-                const d = new Date(f.date);
-                return d.getMonth() + 1 === currentMonth && d.getFullYear() === currentYear;
-              })} 
-              onSave={i => updateList('financials', i)} onDelete={id => deleteFromList('financials', id)} onPrint={() => setShowPrintModal(true)}
-              initialData={{ type: 'bonus', amount: 0, date: new Date().toISOString().split('T')[0], reason: '' }} 
-              tableHeaders={['الموظف', 'النوع', 'المبلغ', 'التاريخ', 'سند']}
-              renderForm={(data, set) => (
-                <div className="grid grid-cols-2 gap-4">
-                   <div className="col-span-2"><label className="text-xs font-black">نوع السند</label><select className="w-full p-3 border rounded-xl font-black" value={data.type} onChange={e => set({...data, type: e.target.value as any})}><option value="bonus">مكافأة</option><option value="deduction">خصم</option><option value="payment">صرف</option></select></div>
-                   <div><label className="text-xs font-black">المبلغ</label><input type="number" className="w-full p-3 border rounded-xl font-black" value={data.amount} onChange={e => set({...data, amount: Number(e.target.value)})} /></div>
-                   <div><label className="text-xs font-black">التاريخ</label><input type="date" className="w-full p-3 border rounded-xl font-black" value={data.date} onChange={e => set({...data, date: e.target.value})} /></div>
-                   <div className="col-span-2"><label className="text-xs font-black">السبب</label><input className="w-full p-3 border rounded-xl font-black" value={data.reason} onChange={e => set({...data, reason: e.target.value})} /></div>
-                </div>
-              )}
-              renderRow={(i, name) => (
-                <>
-                  <td className="px-6 py-4 font-black">{name}</td>
-                  <td className={`px-6 py-4 font-bold ${i.type === 'deduction' ? 'text-rose-600' : 'text-emerald-600'}`}>{i.type}</td>
-                  <td className="px-6 py-4 font-black">{i.amount.toLocaleString()}</td>
-                  <td className="px-6 py-4">{i.date}</td>
-                  <td className="px-6 py-4 text-center">
-                    <button onClick={() => setShowVoucher(i)} className="p-1 bg-indigo-50 text-indigo-700 rounded hover:bg-indigo-100 transition"><ReceiptText size={16}/></button>
-                  </td>
-                </>
-              )}
-            />
-          </div>
+          <GenericModule<FinancialEntry> 
+            title={financialArchiveMode ? "أرشيف الماليات" : "السندات المالية"} lang={db.settings.language} employees={db.employees} 
+            items={db.financials} archiveMode={financialArchiveMode} onToggleArchive={() => setFinancialArchiveMode(!financialArchiveMode)}
+            onSave={i => updateList('financials', i)} onDelete={id => deleteFromList('financials', id)} onPrint={handlePrint}
+            initialData={{ type: 'bonus', amount: 0, date: new Date().toISOString().split('T')[0], reason: '' }} 
+            tableHeaders={['الموظف', 'النوع', 'المبلغ', 'التاريخ', 'سند']}
+            renderForm={(data, set) => (
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="col-span-2"><label className="text-xs font-black">نوع السند</label><select className="w-full p-3 border rounded-xl font-black" value={data.type} onChange={e => set({...data, type: e.target.value as any})}><option value="bonus">مكافأة</option><option value="deduction">خصم</option><option value="payment">صرف</option></select></div>
+                 <div><label className="text-xs font-black">المبلغ</label><input type="number" className="w-full p-3 border rounded-xl font-black" value={data.amount} onChange={e => set({...data, amount: Number(e.target.value)})} /></div>
+                 <div><label className="text-xs font-black">التاريخ</label><input type="date" className="w-full p-3 border rounded-xl font-black" value={data.date} onChange={e => set({...data, date: e.target.value})} /></div>
+                 <div className="col-span-2"><label className="text-xs font-black">السبب</label><input className="w-full p-3 border rounded-xl font-black" value={data.reason} onChange={e => set({...data, reason: e.target.value})} /></div>
+              </div>
+            )}
+            renderRow={(i, name) => (
+              <>
+                <td className="px-6 py-4 font-black">{name}</td>
+                <td className={`px-6 py-4 font-bold ${i.type === 'deduction' ? 'text-rose-600' : 'text-emerald-600'}`}>{i.type}</td>
+                <td className="px-6 py-4 font-black">{i.amount.toLocaleString()}</td>
+                <td className="px-6 py-4">{i.date}</td>
+                <td className="px-6 py-4 text-center">
+                  <button onClick={() => setShowVoucher(i)} className="p-1 bg-indigo-50 text-indigo-700 rounded hover:bg-indigo-100 transition"><ReceiptText size={16}/></button>
+                </td>
+              </>
+            )}
+          />
         );
 
       case 'payroll':
         if (payrollPrintMode === 'history') {
            return (
              <div className="space-y-6">
-               <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow border dark:border-slate-800 no-print">
+               <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow border no-print">
                  <h2 className="text-xl font-black text-indigo-700">سجل الرواتب المؤرشفة</h2>
                  <button onClick={() => setPayrollPrintMode('table')} className="bg-slate-900 text-white px-6 py-2 rounded-xl font-black flex items-center gap-2"><LayoutList size={18}/> العودة لمسير الشهر الحالي</button>
                </div>
@@ -275,12 +225,14 @@ const App: React.FC = () => {
         if (payrollPrintMode === 'table') {
           return (
             <div className="space-y-6">
-              <div className="print-only flex justify-between items-center border-b-4 border-black pb-4 mb-8">
-                  <div className="flex items-center gap-4">
-                     {db.settings.logo && <img src={db.settings.logo} className="h-16 w-auto object-contain" />}
-                     <div><h1 className="text-2xl font-black">{db.settings.name}</h1><p className="text-xs font-bold">{db.settings.address}</p></div>
+              <div className="print-only">
+                  <div className="flex justify-between items-center border-b-4 border-black pb-4 mb-8">
+                    <div className="flex items-center gap-4">
+                       {db.settings.logo && <img src={db.settings.logo} className="h-10 w-auto object-contain" />}
+                       <div><h1 className="text-xl font-black">{db.settings.name}</h1><p className="text-[10px] font-bold">{db.settings.address}</p></div>
+                    </div>
+                    <div className="text-right"><h2 className="text-lg font-black">مسير الرواتب - {currentMonth}/{currentYear}</h2></div>
                   </div>
-                  <div className="text-right"><h2 className="text-xl font-black">مسير الرواتب - {currentMonth}/{currentYear}</h2></div>
               </div>
               <div className="flex flex-col md:flex-row justify-between items-center no-print bg-white dark:bg-slate-900 p-8 rounded-[2rem] border shadow-xl gap-4">
                  <div><h3 className="text-2xl font-black text-indigo-700">مسير الرواتب {cycleText}</h3><p className="text-xs font-bold text-slate-500">فترة: {currentMonth} / {currentYear}</p></div>
@@ -288,7 +240,7 @@ const App: React.FC = () => {
                     <button onClick={() => setPayrollPrintMode('history')} className="bg-amber-600 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2 shadow-lg"><History size={18}/> السجلات</button>
                     <button onClick={() => setPayrollPrintMode('vouchers')} className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2 shadow-lg"><ReceiptText size={18}/> القسائم</button>
                     <button onClick={() => setPayrollPrintMode('signatures')} className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2 shadow-lg"><UserCheck size={18}/> كشف التوقيع</button>
-                    <button onClick={() => setShowPrintModal(true)} className="bg-slate-900 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2 shadow-lg"><Printer size={18}/> طباعة</button>
+                    <button onClick={handlePrint} className="bg-slate-900 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2 shadow-lg"><Printer size={18}/> طباعة</button>
                  </div>
               </div>
               <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border overflow-x-auto">
@@ -331,7 +283,7 @@ const App: React.FC = () => {
             <div className="space-y-4">
               <div className="no-print flex justify-between items-center p-6 bg-white dark:bg-slate-900 rounded-2xl shadow-lg">
                   <button onClick={() => setPayrollPrintMode('table')} className="bg-slate-950 text-white px-8 py-3 rounded-2xl flex items-center gap-2"><LayoutList size={20}/> العودة</button>
-                  <button onClick={() => setShowPrintModal(true)} className="bg-indigo-600 text-white px-10 py-3 rounded-2xl font-black shadow-xl"><Printer size={20}/> طباعة كافة القسائم</button>
+                  <button onClick={handlePrint} className="bg-indigo-600 text-white px-10 py-3 rounded-2xl font-black shadow-xl"><Printer size={20}/> طباعة القسائم</button>
               </div>
               {payrollChunks.map((chunk, pageIdx) => (
                 <div key={pageIdx} className="vouchers-grid page-break">
@@ -341,12 +293,11 @@ const App: React.FC = () => {
                       <div key={p.id} className="voucher-container">
                         <div className="flex justify-between items-center border-b border-black pb-2 mb-2">
                            <div className="flex items-center gap-2">
-                              {db.settings.logo && <img src={db.settings.logo} className="h-10 w-auto" />}
-                              <div><h2 className="text-[10px] font-black">{db.settings.name}</h2><p className="text-[7px] font-bold">قسيمة راتب</p></div>
+                              {db.settings.logo && <img src={db.settings.logo} className="h-8 w-auto object-contain" />}
+                              <div><h2 className="text-[9px] font-black">{db.settings.name}</h2><p className="text-[7px] font-bold">قسيمة راتب</p></div>
                            </div>
                            <div className="text-left text-[7px] font-bold">
-                              <p>الفترة: {currentMonth}/{currentYear}</p>
-                              <p>تاريخ: {new Date().toLocaleDateString()}</p>
+                              <p>شهر: {currentMonth}/{currentYear}</p>
                            </div>
                         </div>
                         <div className="text-[9px] mb-1 font-black flex justify-between uppercase">
@@ -371,7 +322,7 @@ const App: React.FC = () => {
                               <tr>
                                  <td colSpan={2}></td>
                                  <td colSpan={2} className="bg-slate-100 font-black">
-                                    <div className="text-xs text-center">{p.netSalary.toLocaleString()}</div>
+                                    <div className="text-[10px] text-center">{p.netSalary.toLocaleString()}</div>
                                  </td>
                               </tr>
                            </tbody>
@@ -389,24 +340,24 @@ const App: React.FC = () => {
           return (
             <div className="p-8 bg-white text-black min-h-screen">
               <button onClick={() => setPayrollPrintMode('table')} className="no-print bg-slate-900 text-white px-8 py-3 rounded-2xl mb-8 flex items-center gap-2"><LayoutList size={20}/> العودة</button>
-              <div className="flex justify-between items-center border-b-4 border-black pb-4 mb-8">
+              <div className="print-header">
                 <div className="flex items-center gap-4">
-                  {db.settings.logo && <img src={db.settings.logo} className="h-20 w-auto" />}
-                  <div><h1 className="text-3xl font-black">{db.settings.name}</h1><p className="font-bold">{db.settings.address}</p></div>
+                  {db.settings.logo && <img src={db.settings.logo} className="h-10 w-auto object-contain" />}
+                  <div><h1 className="text-2xl font-black">{db.settings.name}</h1><p className="text-xs font-bold">{db.settings.address}</p></div>
                 </div>
-                <div className="text-right"><h2 className="text-2xl font-black">كشف توقيعات صرف الرواتب</h2><p className="font-bold">شهر {currentMonth} / {currentYear}</p></div>
+                <div className="text-right"><h2 className="text-xl font-black">كشف توقيعات صرف الرواتب</h2><p className="text-xs font-bold">شهر {currentMonth} / {currentYear}</p></div>
               </div>
-              <table className="w-full border-4 border-black text-center text-lg">
+              <table className="w-full border-2 border-black text-center">
                 <thead className="bg-slate-200">
-                  <tr><th className="border-2 border-black p-4 w-12">#</th><th className="border-2 border-black p-4">اسم الموظف</th><th className="border-2 border-black p-4">الصافي</th><th className="border-2 border-black p-4 w-1/3">التوقيع</th></tr>
+                  <tr className="h-12"><th className="border border-black w-12">#</th><th className="border border-black">اسم الموظف</th><th className="border border-black">الصافي</th><th className="border border-black w-1/3">التوقيع</th></tr>
                 </thead>
                 <tbody>
                   {currentPayrolls.map((p, i) => (
-                    <tr key={p.id} className="h-16">
-                      <td className="border-2 border-black">{i+1}</td>
-                      <td className="border-2 border-black text-right pr-6 font-black">{db.employees.find(e => e.id === p.employeeId)?.name}</td>
-                      <td className="border-2 border-black font-black">{p.netSalary.toLocaleString()}</td>
-                      <td className="border-2 border-black"></td>
+                    <tr key={p.id} className="h-14">
+                      <td className="border border-black">{i+1}</td>
+                      <td className="border border-black text-right pr-6 font-black">{db.employees.find(e => e.id === p.employeeId)?.name}</td>
+                      <td className="border border-black font-black">{p.netSalary.toLocaleString()}</td>
+                      <td className="border border-black"></td>
                     </tr>
                   ))}
                 </tbody>
@@ -417,7 +368,7 @@ const App: React.FC = () => {
         return null;
 
       case 'reports':
-        return <ReportsView db={db} payrolls={currentPayrolls} lang={db.settings.language} onPrint={() => setShowPrintModal(true)} />;
+        return <ReportsView db={db} payrolls={currentPayrolls} lang={db.settings.language} onPrint={handlePrint} />;
       case 'settings':
         return <SettingsView settings={db.settings} admin={db.users[0]} db={db} onUpdateSettings={s => setDb(p => ({...p, settings: {...p.settings, ...s}}))} onUpdateAdmin={u => setDb(p => ({...p, users: [ {...p.users[0], ...u}, ...p.users.slice(1) ]}))} onImport={json => setDb(json)} />;
       default: return null;
@@ -428,66 +379,31 @@ const App: React.FC = () => {
     <Layout activeTab={activeTab} setActiveTab={setActiveTab} lang={db.settings.language} theme={db.settings.theme} toggleTheme={() => setDb(p => ({...p, settings: {...p.settings, theme: p.settings.theme === 'light' ? 'dark' : 'light'}}))} currentUser={currentUser} onLogout={() => setCurrentUser(null)}>
       {renderContent()}
 
-      {showPrintModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[200] flex items-center justify-center p-4 no-print">
-           <div className="bg-white rounded-[2.5rem] p-10 w-full max-w-md shadow-2xl border dark:border-slate-800">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-black text-indigo-700">خيارات الطباعة</h3>
-                <button onClick={() => setShowPrintModal(false)}><X size={24}/></button>
-              </div>
-              <p className="text-xs font-bold text-slate-500 mb-8 text-center uppercase tracking-widest">اختر الاتجاه المناسب للورقة</p>
-              <div className="grid grid-cols-2 gap-4">
-                 <button onClick={() => handlePrintRequest('portrait')} className="p-8 border-2 border-slate-100 rounded-[2rem] hover:border-indigo-600 hover:bg-indigo-50/30 transition-all flex flex-col items-center gap-3">
-                    <Monitor size={48} className="text-slate-300"/> 
-                    <span className="font-black text-sm">طولي (Portrait)</span>
-                 </button>
-                 <button onClick={() => handlePrintRequest('landscape')} className="p-8 border-2 border-slate-100 rounded-[2rem] hover:border-indigo-600 hover:bg-indigo-50/30 transition-all flex flex-col items-center gap-3">
-                    <Monitor size={48} className="text-slate-300 rotate-90"/> 
-                    <span className="font-black text-sm">عرضي (Landscape)</span>
-                 </button>
-              </div>
-              <button onClick={() => setShowPrintModal(false)} className="w-full mt-6 bg-slate-100 py-4 rounded-2xl font-black text-slate-500 hover:bg-slate-200 transition">إلغاء</button>
-           </div>
-        </div>
-      )}
-
       {showVoucher && (
         <div className="fixed inset-0 bg-slate-950/90 z-[100] flex items-center justify-center p-6 no-print">
            <div className="bg-white rounded-[2rem] p-12 w-full max-w-2xl text-slate-900 border-4 border-double border-slate-300 relative">
               <button onClick={() => setShowVoucher(null)} className="absolute top-6 left-6 text-slate-400 hover:text-rose-600"><X size={28}/></button>
               <div className="flex justify-between items-center border-b-2 pb-6 mb-8 border-slate-900">
                  <div className="flex items-center gap-4">
-                    {db.settings.logo && <img src={db.settings.logo} className="h-14 w-auto object-contain" />}
-                    <div><h2 className="text-2xl font-black text-indigo-700 uppercase tracking-tighter">{db.settings.name}</h2><p className="font-bold text-slate-500 text-xs">سند مالي رسمي</p></div>
+                    {db.settings.logo && <img src={db.settings.logo} className="h-10 w-auto object-contain" />}
+                    <div><h2 className="text-xl font-black text-indigo-700">{db.settings.name}</h2><p className="font-bold text-slate-500 text-[10px]">سند مالي رسمي</p></div>
                  </div>
                  <div className="text-right">
-                    <p className="font-black text-[10px] text-slate-400">REFERENCE: {showVoucher.id.substr(0,8).toUpperCase()}</p>
-                    <p className="font-bold text-sm">{showVoucher.date}</p>
+                    <p className="font-black text-[8px] text-slate-400">REF: {showVoucher.id.substr(0,8).toUpperCase()}</p>
+                    <p className="font-bold text-xs">{showVoucher.date}</p>
                  </div>
               </div>
               <div className="space-y-8 text-xl">
-                 <p className="flex justify-between items-center border-b border-dashed pb-3">
-                    <span className="text-slate-500 font-bold">يصرف للسيد/ة:</span> 
-                    <span className="font-black text-slate-900">{db.employees.find(e => e.id === showVoucher.employeeId)?.name}</span>
-                 </p>
-                 <p className="flex justify-between items-center border-b border-dashed pb-3">
-                    <span className="text-slate-500 font-bold">المبلغ المستحق:</span> 
-                    <span className="font-black text-2xl text-indigo-700">{showVoucher.amount.toLocaleString()} {db.settings.currency}</span>
-                 </p>
+                 <p className="flex justify-between border-b border-dashed pb-3"><span className="text-slate-500 font-bold">يصرف للسيد/ة:</span> <span className="font-black">{db.employees.find(e => e.id === showVoucher.employeeId)?.name}</span></p>
+                 <p className="flex justify-between border-b border-dashed pb-3"><span className="text-slate-500 font-bold">المبلغ:</span> <span className="font-black text-2xl text-indigo-700">{showVoucher.amount.toLocaleString()} {db.settings.currency}</span></p>
                  <div className="bg-slate-50 p-6 rounded-2xl border-2 border-dashed">
-                    <span className="text-xs font-black text-slate-400 uppercase block mb-1">بيان الصرف / السبب:</span>
-                    <span className="font-bold text-lg text-slate-700">{showVoucher.reason || "لا يوجد ملاحظات إضافية"}</span>
+                    <span className="text-xs font-black text-slate-400 uppercase block mb-1">بيان الصرف:</span>
+                    <span className="font-bold text-lg text-slate-700">{showVoucher.reason || "لا يوجد ملاحظات"}</span>
                  </div>
               </div>
-              <div className="grid grid-cols-2 gap-20 mt-16 text-center">
-                 <div><p className="font-black underline mb-12 text-xs">توقيع المحاسب</p> <div className="h-0.5 bg-slate-400"></div></div>
-                 <div><p className="font-black underline mb-12 text-xs">توقيع المستلم</p> <div className="h-0.5 bg-slate-400"></div></div>
-              </div>
               <div className="mt-12 flex gap-4 no-print">
-                 <button onClick={() => setShowPrintModal(true)} className="flex-1 bg-indigo-700 text-white py-4 rounded-2xl font-black text-lg shadow-xl hover:bg-indigo-800 flex items-center justify-center gap-2">
-                    <Printer size={20}/> طباعة السند
-                 </button>
-                 <button onClick={() => setShowVoucher(null)} className="flex-1 bg-slate-100 py-4 rounded-2xl font-black text-slate-600">إغلاق المعاينة</button>
+                 <button onClick={handlePrint} className="flex-1 bg-indigo-700 text-white py-4 rounded-2xl font-black text-lg">طباعة السند</button>
+                 <button onClick={() => setShowVoucher(null)} className="flex-1 bg-slate-100 py-4 rounded-2xl font-black text-slate-600">إغلاق</button>
               </div>
            </div>
         </div>

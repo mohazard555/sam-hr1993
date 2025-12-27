@@ -40,46 +40,56 @@
             body {
                 background: white !important;
                 color: black !important;
-            }
-
-            /* إجبار الاتجاه بناءً على الكلاس */
-            body.print-portrait {
-                width: 210mm;
-            }
-            body.print-landscape {
-                width: 297mm;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
 
             @page {
-                margin: 1cm;
+                size: A4;
+                margin: 1.5cm;
             }
 
             .vouchers-grid {
                 display: grid !important;
                 grid-template-columns: repeat(2, 1fr) !important;
-                gap: 10px !important;
+                gap: 15px !important;
             }
 
             .voucher-container {
-                border: 1px solid black !important;
-                padding: 10px !important;
-                height: 9.2cm !important;
+                border: 1px solid #ccc !important;
+                padding: 15px !important;
                 page-break-inside: avoid;
-                margin-bottom: 5px;
+                margin-bottom: 10px;
+                border-radius: 8px !important;
             }
 
-            table { width: 100% !important; border-collapse: collapse !important; }
-            th, td { border: 1px solid black !important; padding: 4px !important; font-size: 10pt !important; }
+            table { 
+                width: 100% !important; 
+                border-collapse: collapse !important; 
+                margin-top: 10px !important;
+            }
+            th, td { 
+                border: 1px solid #ddd !important; 
+                padding: 8px !important; 
+                font-size: 10pt !important;
+                text-align: right !important; /* ضمان محاذاة اليمين */
+            }
+            th {
+                background-color: #f8fafc !important;
+                font-weight: bold !important;
+            }
+            
+            .print-header {
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                border-bottom: 3px solid #000 !important;
+                padding-bottom: 10px !important;
+                margin-bottom: 20px !important;
+            }
         }
         
-        /* تعريف أحجام الصفحات للطباعة */
-        @style {
-            @media print {
-                .print-portrait { @page { size: A4 portrait; } }
-                .print-landscape { @page { size: A4 landscape; } }
-            }
-        }
-
         .print-only { display: none; }
     </style>
 <script type="importmap">
@@ -94,7 +104,7 @@
 }
 </script>
 </head>
-<body class="bg-slate-50 dark:bg-slate-950 print-portrait">
+<body class="bg-slate-50 dark:bg-slate-950">
     <div id="root"></div>
     <script type="module" src="index.tsx"></script>
 </body>

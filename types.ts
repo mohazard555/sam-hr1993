@@ -63,12 +63,13 @@ export interface Loan {
   id: string;
   employeeId: string;
   amount: number;
-  installmentsCount: number; // عدد الأقساط
+  installmentsCount: number;
   monthlyInstallment: number;
   date: string;
   collectionDate?: string; 
   remainingAmount: number;
   reason?: string;
+  isArchived?: boolean;
 }
 
 export interface LeaveRequest {
@@ -80,6 +81,7 @@ export interface LeaveRequest {
   status: 'pending' | 'approved' | 'rejected';
   isPaid: boolean;
   reason?: string;
+  isArchived?: boolean;
 }
 
 export interface ProductionEntry {
@@ -90,6 +92,7 @@ export interface ProductionEntry {
   specifications: string;
   valuePerPiece: number;
   totalValue: number;
+  isArchived?: boolean;
 }
 
 export interface FinancialEntry {
@@ -99,6 +102,7 @@ export interface FinancialEntry {
   amount: number;
   date: string;
   reason: string;
+  isArchived?: boolean;
 }
 
 export interface Warning {
