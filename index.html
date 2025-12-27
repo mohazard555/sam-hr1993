@@ -33,6 +33,20 @@
             color: #f8fafc;
         }
         
+        /* اتجاه الطباعة الطولي */
+        .print-portrait {
+            @media print {
+                @page { size: A4 portrait; margin: 0.5cm; }
+            }
+        }
+
+        /* اتجاه الطباعة العرضي */
+        .print-landscape {
+            @media print {
+                @page { size: A4 landscape; margin: 0.5cm; }
+            }
+        }
+
         @media print {
             .no-print { display: none !important; }
             .print-only { display: block !important; }
@@ -44,17 +58,11 @@
                 color: black !important;
             }
 
-            @page {
-                size: A4 portrait;
-                margin: 0.5cm;
-            }
-
             .page-break {
                 page-break-after: always;
                 clear: both;
             }
 
-            /* شبكة الإيصالات: 2 أعمدة و 3 صفوف */
             .vouchers-grid {
                 display: grid !important;
                 grid-template-columns: repeat(2, 1fr) !important;
@@ -91,12 +99,12 @@
 
             th, td {
                 border: 1px solid #000 !important;
-                padding: 3px 5px !important;
+                padding: 2px 4px !important;
                 text-align: center !important;
             }
 
-            .font-black { font-weight: 900 !important; }
             .text-indigo-700 { color: #4338ca !important; }
+            .font-black { font-weight: 900 !important; }
         }
         .print-only { display: none; }
     </style>
@@ -112,7 +120,7 @@
 }
 </script>
 </head>
-<body class="bg-slate-50 dark:bg-slate-950">
+<body class="bg-slate-50 dark:bg-slate-950 print-portrait">
     <div id="root"></div>
     <script type="module" src="index.tsx"></script>
 </body>

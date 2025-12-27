@@ -28,7 +28,7 @@ export interface CompanySettings {
   deductionPerLateMinute: number;
   overtimeHourRate: number;
   salaryCycle: SalaryCycle;
-  passwordHint?: string; // تلميح كلمة المرور
+  passwordHint?: string;
 }
 
 export interface Employee {
@@ -120,7 +120,9 @@ export interface PayrollRecord {
   overtimePay: number;
   overtimeMinutes: number;
   loanInstallment: number;
-  deductions: number; 
+  lateDeduction: number; // خصم التأخير منفصل
+  manualDeductions: number; // الخصومات الأخرى
+  deductions: number; // الإجمالي
   lateMinutes: number;
   workingHours: number;
   workingDays: number;

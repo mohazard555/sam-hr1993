@@ -13,7 +13,7 @@ import { loadDB, saveDB, DB } from './db/store';
 import { Employee, PayrollRecord, Language, Theme, FinancialEntry, Loan, LeaveRequest, ProductionEntry } from './types';
 import { generateMonthlyPayroll } from './utils/calculations';
 import { useTranslation } from './utils/translations';
-import { Printer, Search, History, Trash2, FileDown, Calendar, Archive, Building, Briefcase, CheckCircle2, XCircle, DollarSign, ReceiptText, UserCheck, LayoutList, Plus, ArchiveRestore, HelpCircle, Info } from 'lucide-react';
+import { Printer, Search, History, Trash2, FileDown, Calendar, Archive, Building, Briefcase, CheckCircle2, XCircle, DollarSign, ReceiptText, UserCheck, LayoutList, Plus, ArchiveRestore, HelpCircle, Info, Monitor, Smartphone, RefreshCw } from 'lucide-react';
 import { exportToExcel } from './utils/export';
 
 const App: React.FC = () => {
@@ -22,6 +22,7 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [showForgotHint, setShowForgotHint] = useState(false);
+  const [printOrientation, setPrintOrientation] = useState<'portrait' | 'landscape'>('portrait');
   
   // Shared States for Archives
   const [showVoucher, setShowVoucher] = useState<FinancialEntry | null>(null);
@@ -35,7 +36,11 @@ const App: React.FC = () => {
   const [financialsArchiveMode, setFinancialsArchiveMode] = useState(false);
   const [productionArchiveMode, setProductionArchiveMode] = useState(false);
 
-  useEffect(() => saveDB(db), [db]);
+  useEffect(() => {
+    saveDB(db);
+    // تحديث فئة الجسم للطباعة
+    document.body.className = `${db.settings.theme === 'dark' ? 'dark' : ''} bg-slate-50 dark:bg-slate-950 print-${printOrientation}`;
+  }, [db, printOrientation]);
 
   const t = useTranslation(db.settings.language);
   const isRtl = db.settings.language === 'ar';
@@ -120,7 +125,6 @@ const App: React.FC = () => {
                <input type="password" className="w-full py-4 px-6 bg-slate-100 dark:bg-slate-800/50 border-2 border-transparent focus:border-indigo-600 dark:border-slate-700 rounded-2xl font-black outline-none transition-all" placeholder="كلمة المرور" value={loginForm.password} onChange={e => setLoginForm({...loginForm, password: e.target.value})} required />
             </div>
             <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-5 rounded-2xl font-black text-lg transition-all shadow-xl shadow-indigo-500/30">دخول النظام</button>
-            
             <div className="text-center">
               <button type="button" onClick={() => setShowForgotHint(!showForgotHint)} className="text-[10px] font-black text-indigo-500 hover:underline uppercase tracking-tighter">نسيت كلمة السر؟</button>
               {showForgotHint && (
@@ -152,10 +156,16 @@ const App: React.FC = () => {
           <div className="space-y-6">
              <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 no-print">
                <h2 className="text-2xl font-black text-indigo-700">{productionArchiveMode ? 'سجل أرشيف الإنتاج التاريخي' : 'نظام تتبع الإنتاج بالقطعة'}</h2>
-               <button onClick={() => setProductionArchiveMode(!productionArchiveMode)} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black transition-all ${productionArchiveMode ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-900 text-white'}`}>
-                 {productionArchiveMode ? <Calendar size={18}/> : <Archive size={18}/>}
-                 {productionArchiveMode ? 'العودة للتسجيل' : 'عرض أرشيف الإنتاج'}
-               </button>
+               <div className="flex gap-2">
+                  <div className="flex bg-slate-100 p-1 rounded-xl no-print items-center mr-4">
+                    <button onClick={() => setPrintOrientation('portrait')} className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${printOrientation === 'portrait' ? 'bg-white shadow text-indigo-600' : 'text-slate-400'}`}>طولي</button>
+                    <button onClick={() => setPrintOrientation('landscape')} className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${printOrientation === 'landscape' ? 'bg-white shadow text-indigo-600' : 'text-slate-400'}`}>عرضي</button>
+                  </div>
+                  <button onClick={() => setProductionArchiveMode(!productionArchiveMode)} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black transition-all ${productionArchiveMode ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-900 text-white'}`}>
+                    {productionArchiveMode ? <Calendar size={18}/> : <Archive size={18}/>}
+                    {productionArchiveMode ? 'العودة للتسجيل' : 'عرض أرشيف الإنتاج'}
+                  </button>
+               </div>
              </div>
              <Production employees={db.employees} items={db.production || []} onSave={i => updateList('production', i)} onDelete={id => deleteFromList('production', id)} />
           </div>
@@ -174,10 +184,14 @@ const App: React.FC = () => {
                    <h3 className="text-2xl font-black text-indigo-700">مسير الرواتب {cycleText}</h3>
                    <p className="text-xs font-bold text-slate-500">فترة: {currentMonth} / {currentYear}</p>
                  </div>
-                 <div className="flex flex-wrap gap-2">
-                    <button onClick={archiveCurrentMonth} className="bg-amber-600 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2 shadow-lg hover:bg-amber-700"><ArchiveRestore size={18}/> أرشفة الشهر وإغلاق الدورة</button>
-                    <button onClick={() => { setPayrollPrintMode('vouchers'); setTimeout(() => window.print(), 500); }} className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2 shadow-lg hover:scale-105 transition-transform"><ReceiptText size={18}/> طباعة الإيصالات (6 بالصفحة)</button>
-                    <button onClick={() => { setPayrollPrintMode('signatures'); setTimeout(() => window.print(), 500); }} className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2 shadow-lg hover:scale-105 transition-transform"><UserCheck size={18}/> كشف توقيعات المحاسب</button>
+                 <div className="flex flex-wrap gap-2 items-center">
+                    <div className="flex bg-slate-100 p-1 rounded-xl no-print items-center mr-4">
+                        <button onClick={() => setPrintOrientation('portrait')} className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${printOrientation === 'portrait' ? 'bg-white shadow text-indigo-600' : 'text-slate-400'}`}>طولي</button>
+                        <button onClick={() => setPrintOrientation('landscape')} className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${printOrientation === 'landscape' ? 'bg-white shadow text-indigo-600' : 'text-slate-400'}`}>عرضي</button>
+                    </div>
+                    <button onClick={archiveCurrentMonth} className="bg-amber-600 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2 shadow-lg hover:bg-amber-700"><ArchiveRestore size={18}/> أرشفة الشهر</button>
+                    <button onClick={() => { setPayrollPrintMode('vouchers'); setTimeout(() => window.print(), 500); }} className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2 shadow-lg hover:scale-105 transition-transform"><ReceiptText size={18}/> طباعة الإيصالات</button>
+                    <button onClick={() => { setPayrollPrintMode('signatures'); setTimeout(() => window.print(), 500); }} className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2 shadow-lg hover:scale-105 transition-transform"><UserCheck size={18}/> كشف توقيعات</button>
                     <button className="bg-slate-900 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2 shadow-lg" onClick={() => window.print()}><Printer size={18}/> طباعة الجدول</button>
                  </div>
               </div>
@@ -193,7 +207,7 @@ const App: React.FC = () => {
                        <th className="text-center">مواصلات</th>
                        <th className="text-center">إضافي</th>
                        <th className="text-center">سلفة</th>
-                       <th className="text-center">خصم</th>
+                       <th className="text-center">تأخير</th>
                        <th className="text-center font-black bg-indigo-800">الصافي</th>
                      </tr>
                    </thead>
@@ -210,15 +224,12 @@ const App: React.FC = () => {
                            <td className="text-center text-slate-500">+{p.transport.toLocaleString()}</td>
                            <td className="text-center text-emerald-600">+{p.overtimePay.toLocaleString()}</td>
                            <td className="text-center text-orange-600">-{p.loanInstallment.toLocaleString()}</td>
-                           <td className="text-center text-rose-600">-{p.deductions.toLocaleString()}</td>
+                           <td className="text-center text-rose-600">-{p.lateDeduction.toLocaleString()}</td>
                            <td className="text-center font-black text-indigo-900 bg-indigo-50">{p.netSalary.toLocaleString()}</td>
                          </tr>
                        );
                      })}
                    </tbody>
-                   <tfoot className="bg-slate-100 font-black">
-                      <tr><td className="px-6 py-6" colSpan={9}>إجمالي الرواتب الصافية</td><td className="text-center text-xl text-indigo-900">{currentPayrolls.reduce((a,c)=>a+c.netSalary, 0).toLocaleString()} {db.settings.currency}</td></tr>
-                   </tfoot>
                  </table>
               </div>
             </div>
@@ -238,39 +249,55 @@ const App: React.FC = () => {
                       <div key={p.id} className="voucher-container">
                         <div className="voucher-header">
                            <div className="text-right">
-                              <h2 className="text-xs font-black text-indigo-700">{db.settings.name}</h2>
+                              <h2 className="text-[10px] font-black text-indigo-700">{db.settings.name}</h2>
                               <p className="text-[8px] font-bold">قسيمة راتب {cycleText}</p>
                            </div>
-                           <div className="text-left text-[8px] font-bold">
+                           <div className="text-left text-[7px] font-bold opacity-70">
                               <p>الفترة: {currentMonth}/{currentYear}</p>
-                              <p>{new Date().toLocaleDateString()}</p>
+                              <p>تاريخ: {new Date().toLocaleDateString()}</p>
                            </div>
                         </div>
-                        <div className="text-[10px] mb-2 font-black border-b border-slate-200 pb-1">
-                           {emp?.name} <span className="font-normal opacity-70 text-[8px]">({emp?.position})</span>
+                        <div className="text-[9px] mb-1 font-black border-b border-slate-200 pb-0.5 flex justify-between">
+                           <span>الموظف: {emp?.name}</span>
+                           <span className="text-[7px] opacity-60">ID: {emp?.nationalId}</span>
                         </div>
                         <table>
                            <thead>
                               <tr className="bg-slate-50">
-                                 <th className="text-[8px]">البند</th>
-                                 <th className="text-[8px]">مستحق (+)</th>
-                                 <th className="text-[8px]">خصم (-)</th>
+                                 <th className="text-[7px]">بند الاستحقاق</th>
+                                 <th className="text-[7px] w-12">(+) مبلغ</th>
+                                 <th className="text-[7px]">بند الخصم</th>
+                                 <th className="text-[7px] w-12">(-) مبلغ</th>
                               </tr>
                            </thead>
-                           <tbody className="text-[9px]">
-                              <tr><td>أساسي + مواصلات</td><td>{(p.baseSalary + p.transport).toLocaleString()}</td><td>-</td></tr>
-                              <tr><td>إنتاج + إضافي</td><td>{(p.production + p.overtimePay).toLocaleString()}</td><td>-</td></tr>
-                              <tr><td>مكافآت</td><td>{p.bonuses.toLocaleString()}</td><td>-</td></tr>
-                              <tr><td>سلفة + خصومات</td><td>-</td><td>{(p.loanInstallment + p.deductions).toLocaleString()}</td></tr>
-                              <tr className="bg-slate-100 font-black">
-                                 <td className="text-indigo-700">الصافي المستلم</td>
-                                 <td colSpan={2} className="text-sm underline">{p.netSalary.toLocaleString()} {db.settings.currency}</td>
+                           <tbody className="text-[7px]">
+                              <tr>
+                                 <td className="text-right">الراتب الأساسي</td><td>{p.baseSalary.toLocaleString()}</td>
+                                 <td className="text-right">سلفة / قرض</td><td>{p.loanInstallment > 0 ? p.loanInstallment.toLocaleString() : '-'}</td>
+                              </tr>
+                              <tr>
+                                 <td className="text-right">بدل مواصلات</td><td>{p.transport.toLocaleString()}</td>
+                                 <td className="text-right">تأخير ({p.lateMinutes} د)</td><td>{p.lateDeduction > 0 ? p.lateDeduction.toLocaleString() : '-'}</td>
+                              </tr>
+                              <tr>
+                                 <td className="text-right">إضافي ({Math.round(p.overtimeMinutes/60)} س)</td><td>{p.overtimePay.toLocaleString()}</td>
+                                 <td className="text-right">خصومات أخرى</td><td>{p.manualDeductions > 0 ? p.manualDeductions.toLocaleString() : '-'}</td>
+                              </tr>
+                              <tr>
+                                 <td className="text-right">حوافز إنتاج</td><td>{p.production.toLocaleString()}</td>
+                                 <td colSpan={2} rowSpan={2} className="bg-slate-100 font-black">
+                                    <div className="text-[8px] text-indigo-700 mb-1">الصافي المستلم</div>
+                                    <div className="text-xs">{p.netSalary.toLocaleString()}</div>
+                                 </td>
+                              </tr>
+                              <tr>
+                                 <td className="text-right">مكافآت متنوعة</td><td>{p.bonuses.toLocaleString()}</td>
                               </tr>
                            </tbody>
                         </table>
-                        <div className="grid grid-cols-2 gap-4 mt-2 text-center text-[8px]">
-                           <div><p className="mb-4 opacity-70">المحاسب</p><div className="h-px bg-slate-300"></div></div>
-                           <div><p className="mb-4 opacity-70">توقيع المستلم</p><div className="h-px bg-slate-300"></div></div>
+                        <div className="grid grid-cols-2 gap-4 mt-2 text-center text-[7px]">
+                           <div><p className="mb-2 opacity-70">المحاسب</p><div className="h-px bg-slate-400"></div></div>
+                           <div><p className="mb-2 opacity-70">توقيع الموظف</p><div className="h-px bg-slate-400"></div></div>
                         </div>
                       </div>
                     );
@@ -296,7 +323,7 @@ const App: React.FC = () => {
                         <th className="p-4 border-2 border-black">اسم الموظف الرباعي</th>
                         <th className="p-4 border-2 border-black">القسم</th>
                         <th className="p-4 border-2 border-black">صافي المستحق</th>
-                        <th className="p-4 border-2 border-black w-1/4">توقيع الاستلام النقدي</th>
+                        <th className="p-4 border-2 border-black w-1/4 text-xs">توقيع الاستلام</th>
                         <th className="p-4 border-2 border-black">ملاحظات</th>
                      </tr>
                   </thead>
@@ -313,11 +340,6 @@ const App: React.FC = () => {
                      ))}
                   </tbody>
                </table>
-               <div className="mt-20 flex justify-between px-16 text-xl">
-                  <div className="text-center"><p className="mb-16 underline">توقيع المحاسب</p><div className="w-64 h-0.5 bg-black"></div></div>
-                  <div className="text-center"><p className="mb-16 underline">توقيع المدير المالي</p><div className="w-64 h-0.5 bg-black"></div></div>
-                  <div className="text-center"><p className="mb-16 underline">المصادقة العامة</p><div className="w-64 h-0.5 bg-black"></div></div>
-               </div>
             </div>
           );
         }
@@ -328,13 +350,19 @@ const App: React.FC = () => {
           <div className="space-y-6">
              <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 no-print">
                <h2 className="text-2xl font-black text-indigo-700">{loanShowArchive ? 'سجل أرشيف السلف المسددة' : 'إدارة السلف والقروض القائمة'}</h2>
-               <button onClick={() => setLoanShowArchive(!loanShowArchive)} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black transition-all ${loanShowArchive ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-900 text-white'}`}>
-                 {loanShowArchive ? <Calendar size={18}/> : <Archive size={18}/>}
-                 {loanShowArchive ? 'العودة للقائمة' : 'عرض أرشيف السلف'}
-               </button>
+               <div className="flex gap-2">
+                  <div className="flex bg-slate-100 p-1 rounded-xl no-print items-center mr-4">
+                    <button onClick={() => setPrintOrientation('portrait')} className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${printOrientation === 'portrait' ? 'bg-white shadow text-indigo-600' : 'text-slate-400'}`}>طولي</button>
+                    <button onClick={() => setPrintOrientation('landscape')} className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${printOrientation === 'landscape' ? 'bg-white shadow text-indigo-600' : 'text-slate-400'}`}>عرضي</button>
+                  </div>
+                  <button onClick={() => setLoanShowArchive(!loanShowArchive)} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black transition-all ${loanShowArchive ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-900 text-white'}`}>
+                    {loanShowArchive ? <Calendar size={18}/> : <Archive size={18}/>}
+                    {loanShowArchive ? 'العودة للقائمة' : 'عرض أرشيف السلف'}
+                  </button>
+               </div>
              </div>
              <GenericModule<Loan> 
-               title={loanShowArchive ? 'أرشيف السلف المسددة' : 'إدارة السلف القائمة'}
+               title={loanShowArchive ? 'أرشيف السلف' : 'إدارة السلف القائمة'}
                lang={db.settings.language} 
                employees={db.employees} 
                items={(loanShowArchive ? db.loans.filter(l => l.remainingAmount <= 0) : db.loans.filter(l => l.remainingAmount > 0)).filter(l => {
@@ -353,7 +381,6 @@ const App: React.FC = () => {
                      <div><label className="text-xs font-black uppercase mb-1 block">القسط الدوري</label><input type="number" className="w-full p-4 border rounded-2xl font-black dark:bg-slate-800" value={data.monthlyInstallment} onChange={e => set({...data, monthlyInstallment: Number(e.target.value)})} /></div>
                      <div><label className="text-xs font-black uppercase mb-1 block">تاريخ البدء</label><input type="date" className="w-full p-4 border rounded-2xl font-black dark:bg-slate-800" value={data.date} onChange={e => set({...data, date: e.target.value})} /></div>
                      <div><label className="text-xs font-black uppercase mb-1 block">تاريخ التحصيل النهائي</label><input type="date" className="w-full p-4 border rounded-2xl font-black dark:bg-slate-800" value={data.collectionDate || ''} onChange={e => set({...data, collectionDate: e.target.value})} /></div>
-                     <div className="col-span-2 bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl text-center"><p className="text-xs font-black text-indigo-700">المبلغ المتبقي حالياً: <span className="text-xl">{(data.remainingAmount || 0).toLocaleString()}</span></p></div>
                   </div>
                )}
                renderRow={(i, name) => (
@@ -374,10 +401,16 @@ const App: React.FC = () => {
           <div className="space-y-6">
              <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 no-print">
                <h2 className="text-2xl font-black text-indigo-700">{leavesArchiveMode ? 'أرشيف الإجازات التاريخي' : 'نظام تقديم وإدارة الإجازات'}</h2>
-               <button onClick={() => setLeavesArchiveMode(!leavesArchiveMode)} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black transition-all ${leavesArchiveMode ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-900 text-white'}`}>
-                 {leavesArchiveMode ? <Calendar size={18}/> : <Archive size={18}/>}
-                 {leavesArchiveMode ? 'العودة للطلبات' : 'عرض أرشيف الإجازات'}
-               </button>
+               <div className="flex gap-2">
+                  <div className="flex bg-slate-100 p-1 rounded-xl no-print items-center mr-4">
+                    <button onClick={() => setPrintOrientation('portrait')} className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${printOrientation === 'portrait' ? 'bg-white shadow text-indigo-600' : 'text-slate-400'}`}>طولي</button>
+                    <button onClick={() => setPrintOrientation('landscape')} className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${printOrientation === 'landscape' ? 'bg-white shadow text-indigo-600' : 'text-slate-400'}`}>عرضي</button>
+                  </div>
+                  <button onClick={() => setLeavesArchiveMode(!leavesArchiveMode)} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black transition-all ${leavesArchiveMode ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-900 text-white'}`}>
+                    {leavesArchiveMode ? <Calendar size={18}/> : <Archive size={18}/>}
+                    {leavesArchiveMode ? 'العودة للطلبات' : 'عرض أرشيف الإجازات'}
+                  </button>
+               </div>
              </div>
              <GenericModule<LeaveRequest> 
                title={leavesArchiveMode ? "أرشيف الإجازات" : "نظام الإجازات"} 
@@ -393,7 +426,6 @@ const App: React.FC = () => {
                      <div className="col-span-2"><label className="text-xs font-black uppercase">النوع</label><select className="w-full p-4 border rounded-xl font-bold dark:bg-slate-800" value={data.type} onChange={e => set({...data, type: e.target.value as any})}><option value="annual">سنوية</option><option value="sick">مرضية</option><option value="unpaid">بدون راتب</option><option value="emergency">اضطرارية</option><option value="marriage">زواج</option><option value="death">وفاة</option></select></div>
                      <div><label className="text-xs font-black uppercase">من تاريخ</label><input type="date" className="w-full p-3 border rounded-xl dark:bg-slate-800" value={data.startDate} onChange={e => set({...data, startDate: e.target.value})} /></div>
                      <div><label className="text-xs font-black uppercase">إلى تاريخ</label><input type="date" className="w-full p-3 border rounded-xl dark:bg-slate-800" value={data.endDate} onChange={e => set({...data, endDate: e.target.value})} /></div>
-                     <div className="col-span-2 flex items-center gap-3 bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border-2 border-dashed"><input type="checkbox" id="paid" checked={data.isPaid} onChange={e => set({...data, isPaid: e.target.checked})} className="w-6 h-6" /><label htmlFor="paid" className="font-black text-indigo-700">إجازة مدفوعة الأجر (بدون خصم راتب)</label></div>
                   </div>
                )}
                renderRow={(i, name) => (
@@ -414,10 +446,16 @@ const App: React.FC = () => {
           <div className="space-y-6">
              <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 no-print">
                <h2 className="text-2xl font-black text-indigo-700">{financialsArchiveMode ? 'أرشيف السندات والماليات التاريخي' : 'الماليات والإيصالات والسندات'}</h2>
-               <button onClick={() => setFinancialsArchiveMode(!financialsArchiveMode)} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black transition-all ${financialsArchiveMode ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-900 text-white'}`}>
-                 {financialsArchiveMode ? <Calendar size={18}/> : <Archive size={18}/>}
-                 {financialsArchiveMode ? 'العودة للسندات' : 'عرض أرشيف السندات'}
-               </button>
+               <div className="flex gap-2">
+                  <div className="flex bg-slate-100 p-1 rounded-xl no-print items-center mr-4">
+                    <button onClick={() => setPrintOrientation('portrait')} className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${printOrientation === 'portrait' ? 'bg-white shadow text-indigo-600' : 'text-slate-400'}`}>طولي</button>
+                    <button onClick={() => setPrintOrientation('landscape')} className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${printOrientation === 'landscape' ? 'bg-white shadow text-indigo-600' : 'text-slate-400'}`}>عرضي</button>
+                  </div>
+                  <button onClick={() => setFinancialsArchiveMode(!financialsArchiveMode)} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black transition-all ${financialsArchiveMode ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-900 text-white'}`}>
+                    {financialsArchiveMode ? <Calendar size={18}/> : <Archive size={18}/>}
+                    {financialsArchiveMode ? 'العودة للسندات' : 'عرض أرشيف السندات'}
+                  </button>
+               </div>
              </div>
              <GenericModule<FinancialEntry> 
                title={financialsArchiveMode ? "أرشيف السندات" : "الماليات والسندات"} 
@@ -433,7 +471,6 @@ const App: React.FC = () => {
                      <div className="col-span-2"><label className="text-xs font-black uppercase">نوع المعاملة</label><select className="w-full p-4 border rounded-xl font-bold dark:bg-slate-800" value={data.type} onChange={e => set({...data, type: e.target.value as any})}><option value="bonus">مكافأة</option><option value="deduction">خصم</option><option value="payment">صرف مالي / عهدة</option></select></div>
                      <div><label className="text-xs font-black uppercase">المبلغ</label><input type="number" className="w-full p-3 border rounded-xl font-bold dark:bg-slate-800" value={data.amount} onChange={e => set({...data, amount: Number(e.target.value)})} /></div>
                      <div><label className="text-xs font-black uppercase">التاريخ</label><input type="date" className="w-full p-3 border rounded-xl font-bold dark:bg-slate-800" value={data.date} onChange={e => set({...data, date: e.target.value})} /></div>
-                     <div className="col-span-2"><label className="text-xs font-black uppercase">البيان / السبب</label><textarea className="w-full p-3 border rounded-xl font-bold dark:bg-slate-800" rows={2} value={data.reason} onChange={e => set({...data, reason: e.target.value})} /></div>
                   </div>
                )}
                renderRow={(i, name) => (
@@ -451,7 +488,15 @@ const App: React.FC = () => {
           </div>
         );
       case 'reports':
-        return <ReportsView db={db} payrolls={currentPayrolls} lang={db.settings.language} />;
+        return (
+          <div className="space-y-4">
+            <div className="flex bg-slate-100 p-1 rounded-xl no-print items-center w-fit ml-auto">
+              <button onClick={() => setPrintOrientation('portrait')} className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${printOrientation === 'portrait' ? 'bg-white shadow text-indigo-600' : 'text-slate-400'}`}>طولي</button>
+              <button onClick={() => setPrintOrientation('landscape')} className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${printOrientation === 'landscape' ? 'bg-white shadow text-indigo-600' : 'text-slate-400'}`}>عرضي</button>
+            </div>
+            <ReportsView db={db} payrolls={currentPayrolls} lang={db.settings.language} />
+          </div>
+        );
       case 'settings':
         return <SettingsView settings={db.settings} admin={db.users[0]} db={db} onUpdateSettings={s => setDb(p => ({...p, settings: {...p.settings, ...s}}))} onUpdateAdmin={u => setDb(p => ({...p, users: [ {...p.users[0], ...u}, ...p.users.slice(1) ]}))} onImport={json => setDb(json)} />;
       default: return null;
