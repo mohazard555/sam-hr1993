@@ -63,6 +63,7 @@ export interface Loan {
   id: string;
   employeeId: string;
   amount: number;
+  installmentsCount: number; // عدد الأقساط
   monthlyInstallment: number;
   date: string;
   collectionDate?: string; 
@@ -120,9 +121,9 @@ export interface PayrollRecord {
   overtimePay: number;
   overtimeMinutes: number;
   loanInstallment: number;
-  lateDeduction: number; // خصم التأخير منفصل
-  manualDeductions: number; // الخصومات الأخرى
-  deductions: number; // الإجمالي
+  lateDeduction: number; 
+  manualDeductions: number; 
+  deductions: number; 
   lateMinutes: number;
   workingHours: number;
   workingDays: number;
