@@ -13,7 +13,7 @@ import { loadDB, saveDB, DB } from './db/store';
 import { Employee, PayrollRecord, Language, Theme, FinancialEntry, Loan, LeaveRequest, ProductionEntry } from './types';
 import { generateMonthlyPayroll } from './utils/calculations';
 import { useTranslation } from './utils/translations';
-import { Printer, Search, History, Trash2, FileDown, Calendar, Archive, Building, Briefcase, CheckCircle2, XCircle, DollarSign, ReceiptText, UserCheck, LayoutList, Plus, ArchiveRestore } from 'lucide-react';
+import { Printer, Search, History, Trash2, FileDown, Calendar, Archive, Building, Briefcase, CheckCircle2, XCircle, DollarSign, ReceiptText, UserCheck, LayoutList, Plus, ArchiveRestore, HelpCircle, Info } from 'lucide-react';
 import { exportToExcel } from './utils/export';
 
 const App: React.FC = () => {
@@ -21,13 +21,19 @@ const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
+  const [showForgotHint, setShowForgotHint] = useState(false);
   
-  // Shared States
+  // Shared States for Archives
   const [showVoucher, setShowVoucher] = useState<FinancialEntry | null>(null);
   const [payrollPrintMode, setPayrollPrintMode] = useState<'table' | 'vouchers' | 'signatures'>('table');
   const [loanSearch, setLoanSearch] = useState('');
   const [loanEmpId, setLoanEmpId] = useState('');
   const [loanShowArchive, setLoanShowArchive] = useState(false);
+  
+  // Archive View Toggles
+  const [leavesArchiveMode, setLeavesArchiveMode] = useState(false);
+  const [financialsArchiveMode, setFinancialsArchiveMode] = useState(false);
+  const [productionArchiveMode, setProductionArchiveMode] = useState(false);
 
   useEffect(() => saveDB(db), [db]);
 
@@ -61,10 +67,9 @@ const App: React.FC = () => {
   };
 
   const deleteFromList = <K extends keyof DB>(key: K, id: string) => {
-    setDb(prev => ({ ...prev, [key]: (prev[key] as any[]).filter((i:any) => i.id !== id) }));
+    setDb(prev => ({ ...prev, [key]: (prev[key] as any[]).filter((i:any) => id !== i.id) }));
   };
 
-  // وظيفة إغلاق الشهر والأرشفة
   const archiveCurrentMonth = () => {
     if (window.confirm('هل تريد إغلاق الدورة المالية الحالية وأرشفة الرواتب؟ سيتم نقل السجلات إلى الأرشيف التاريخي.')) {
       setDb(prev => ({
@@ -103,8 +108,7 @@ const App: React.FC = () => {
             <div className="w-24 h-24 bg-white/20 backdrop-blur-2xl rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-2xl border border-white/30">
               <span className="text-6xl font-black">S</span>
             </div>
-            <h1 className="text-3xl font-black tracking-widest">SAM HRMS PRO</h1>
-            <p className="text-[10px] font-bold opacity-70 mt-2 uppercase">Personnel Management Solution</p>
+            <h1 className="text-3xl font-black tracking-widest uppercase">SAM HRMS PRO</h1>
           </div>
           <form onSubmit={handleLogin} className="p-10 space-y-6">
             <div className="space-y-2">
@@ -116,6 +120,16 @@ const App: React.FC = () => {
                <input type="password" className="w-full py-4 px-6 bg-slate-100 dark:bg-slate-800/50 border-2 border-transparent focus:border-indigo-600 dark:border-slate-700 rounded-2xl font-black outline-none transition-all" placeholder="كلمة المرور" value={loginForm.password} onChange={e => setLoginForm({...loginForm, password: e.target.value})} required />
             </div>
             <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-5 rounded-2xl font-black text-lg transition-all shadow-xl shadow-indigo-500/30">دخول النظام</button>
+            
+            <div className="text-center">
+              <button type="button" onClick={() => setShowForgotHint(!showForgotHint)} className="text-[10px] font-black text-indigo-500 hover:underline uppercase tracking-tighter">نسيت كلمة السر؟</button>
+              {showForgotHint && (
+                <div className="mt-4 p-4 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl border border-indigo-100 dark:border-indigo-800 animate-in fade-in slide-in-from-top-2">
+                   <p className="text-[10px] font-black text-indigo-700 dark:text-indigo-400 flex items-center justify-center gap-1 uppercase mb-1"><Info size={12}/> تلميح كلمة المرور</p>
+                   <p className="font-bold text-slate-700 dark:text-slate-300">{db.settings.passwordHint || "لا يوجد تلميح متاح"}</p>
+                </div>
+              )}
+            </div>
             <p className="text-[10px] text-center text-slate-400 font-bold pt-4">© 2025 SAM HRMS - All Rights Reserved</p>
           </form>
         </div>
@@ -134,7 +148,18 @@ const App: React.FC = () => {
       case 'attendance':
         return <Attendance employees={db.employees} records={db.attendance} settings={db.settings} onSaveRecord={r => updateList('attendance', r)} onDeleteRecord={id => deleteFromList('attendance', id)} lang={db.settings.language} />;
       case 'production':
-        return <Production employees={db.employees} items={db.production || []} onSave={i => updateList('production', i)} onDelete={id => deleteFromList('production', id)} />;
+        return (
+          <div className="space-y-6">
+             <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 no-print">
+               <h2 className="text-2xl font-black text-indigo-700">{productionArchiveMode ? 'سجل أرشيف الإنتاج التاريخي' : 'نظام تتبع الإنتاج بالقطعة'}</h2>
+               <button onClick={() => setProductionArchiveMode(!productionArchiveMode)} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black transition-all ${productionArchiveMode ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-900 text-white'}`}>
+                 {productionArchiveMode ? <Calendar size={18}/> : <Archive size={18}/>}
+                 {productionArchiveMode ? 'العودة للتسجيل' : 'عرض أرشيف الإنتاج'}
+               </button>
+             </div>
+             <Production employees={db.employees} items={db.production || []} onSave={i => updateList('production', i)} onDelete={id => deleteFromList('production', id)} />
+          </div>
+        );
       case 'payroll':
         const cycleText = db.settings.salaryCycle === 'weekly' ? 'الأسبوعي' : 'الشهري';
         if (payrollPrintMode === 'table') {
@@ -156,7 +181,7 @@ const App: React.FC = () => {
                     <button className="bg-slate-900 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2 shadow-lg" onClick={() => window.print()}><Printer size={18}/> طباعة الجدول</button>
                  </div>
               </div>
-              <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl border overflow-hidden overflow-x-auto">
+              <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border overflow-hidden overflow-x-auto">
                  <table className="w-full text-right text-sm">
                    <thead className="bg-indigo-600 text-white font-black">
                      <tr>
@@ -299,107 +324,131 @@ const App: React.FC = () => {
         return null;
 
       case 'loans':
-        const filteredLoans = (loanShowArchive ? db.loans.filter(l => l.remainingAmount <= 0) : db.loans.filter(l => l.remainingAmount > 0))
-          .filter(l => {
-             const emp = db.employees.find(e => e.id === l.employeeId);
-             const nameMatch = emp?.name.toLowerCase().includes(loanSearch.toLowerCase());
-             const empMatch = !loanEmpId || l.employeeId === loanEmpId;
-             return nameMatch && empMatch;
-          });
-
         return (
-          <GenericModule<Loan> 
-            title={loanShowArchive ? 'أرشيف السلف المسددة' : 'إدارة السلف القائمة'}
-            lang={db.settings.language} 
-            employees={db.employees} 
-            items={filteredLoans} 
-            onSave={i => updateList('loans', i)} 
-            onDelete={id => deleteFromList('loans', id)} 
-            initialData={{ amount: 0, monthlyInstallment: 0, remainingAmount: 0, date: new Date().toISOString().split('T')[0] }} 
-            tableHeaders={['الموظف', 'البداية', 'المبلغ', 'القسط', 'المتبقي', 'التحصيل']}
-            renderForm={(data, set) => (
-               <div className="grid grid-cols-2 gap-6">
-                  <div><label className="text-xs font-black uppercase mb-1 block">مبلغ السلفة</label><input type="number" className="w-full p-4 border rounded-2xl font-black dark:bg-slate-800" value={data.amount} onChange={e => set({...data, amount: Number(e.target.value), remainingAmount: Number(e.target.value)})} /></div>
-                  <div><label className="text-xs font-black uppercase mb-1 block">القسط الدوري</label><input type="number" className="w-full p-4 border rounded-2xl font-black dark:bg-slate-800" value={data.monthlyInstallment} onChange={e => set({...data, monthlyInstallment: Number(e.target.value)})} /></div>
-                  <div><label className="text-xs font-black uppercase mb-1 block">تاريخ البدء</label><input type="date" className="w-full p-4 border rounded-2xl font-black dark:bg-slate-800" value={data.date} onChange={e => set({...data, date: e.target.value})} /></div>
-                  <div><label className="text-xs font-black uppercase mb-1 block">تاريخ التحصيل النهائي</label><input type="date" className="w-full p-4 border rounded-2xl font-black dark:bg-slate-800" value={data.collectionDate || ''} onChange={e => set({...data, collectionDate: e.target.value})} /></div>
-                  <div className="col-span-2 bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl text-center"><p className="text-xs font-black text-indigo-700">المبلغ المتبقي حالياً: <span className="text-xl">{(data.remainingAmount || 0).toLocaleString()}</span></p></div>
-               </div>
-            )}
-            renderRow={(i, name) => (
-              <>
-                <td className="px-6 py-4 font-black">{name}</td>
-                <td className="px-6 py-4 text-slate-500">{i.date}</td>
-                <td className="px-6 py-4 font-black text-indigo-600">{i.amount.toLocaleString()}</td>
-                <td className="px-6 py-4 font-bold">{i.monthlyInstallment.toLocaleString()}</td>
-                <td className="px-6 py-4 font-black text-rose-600">{i.remainingAmount.toLocaleString()}</td>
-                <td className="px-6 py-4 text-emerald-600 font-bold">{i.collectionDate || '-'}</td>
-              </>
-            )}
-          />
+          <div className="space-y-6">
+             <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 no-print">
+               <h2 className="text-2xl font-black text-indigo-700">{loanShowArchive ? 'سجل أرشيف السلف المسددة' : 'إدارة السلف والقروض القائمة'}</h2>
+               <button onClick={() => setLoanShowArchive(!loanShowArchive)} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black transition-all ${loanShowArchive ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-900 text-white'}`}>
+                 {loanShowArchive ? <Calendar size={18}/> : <Archive size={18}/>}
+                 {loanShowArchive ? 'العودة للقائمة' : 'عرض أرشيف السلف'}
+               </button>
+             </div>
+             <GenericModule<Loan> 
+               title={loanShowArchive ? 'أرشيف السلف المسددة' : 'إدارة السلف القائمة'}
+               lang={db.settings.language} 
+               employees={db.employees} 
+               items={(loanShowArchive ? db.loans.filter(l => l.remainingAmount <= 0) : db.loans.filter(l => l.remainingAmount > 0)).filter(l => {
+                 const emp = db.employees.find(e => e.id === l.employeeId);
+                 const nameMatch = emp?.name.toLowerCase().includes(loanSearch.toLowerCase());
+                 const empMatch = !loanEmpId || l.employeeId === loanEmpId;
+                 return nameMatch && empMatch;
+               })}
+               onSave={i => updateList('loans', i)} 
+               onDelete={id => deleteFromList('loans', id)} 
+               initialData={{ amount: 0, monthlyInstallment: 0, remainingAmount: 0, date: new Date().toISOString().split('T')[0] }} 
+               tableHeaders={['الموظف', 'البداية', 'المبلغ', 'القسط', 'المتبقي', 'التحصيل']}
+               renderForm={(data, set) => (
+                  <div className="grid grid-cols-2 gap-6">
+                     <div><label className="text-xs font-black uppercase mb-1 block">مبلغ السلفة</label><input type="number" className="w-full p-4 border rounded-2xl font-black dark:bg-slate-800" value={data.amount} onChange={e => set({...data, amount: Number(e.target.value), remainingAmount: Number(e.target.value)})} /></div>
+                     <div><label className="text-xs font-black uppercase mb-1 block">القسط الدوري</label><input type="number" className="w-full p-4 border rounded-2xl font-black dark:bg-slate-800" value={data.monthlyInstallment} onChange={e => set({...data, monthlyInstallment: Number(e.target.value)})} /></div>
+                     <div><label className="text-xs font-black uppercase mb-1 block">تاريخ البدء</label><input type="date" className="w-full p-4 border rounded-2xl font-black dark:bg-slate-800" value={data.date} onChange={e => set({...data, date: e.target.value})} /></div>
+                     <div><label className="text-xs font-black uppercase mb-1 block">تاريخ التحصيل النهائي</label><input type="date" className="w-full p-4 border rounded-2xl font-black dark:bg-slate-800" value={data.collectionDate || ''} onChange={e => set({...data, collectionDate: e.target.value})} /></div>
+                     <div className="col-span-2 bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl text-center"><p className="text-xs font-black text-indigo-700">المبلغ المتبقي حالياً: <span className="text-xl">{(data.remainingAmount || 0).toLocaleString()}</span></p></div>
+                  </div>
+               )}
+               renderRow={(i, name) => (
+                 <>
+                   <td className="px-6 py-4 font-black">{name}</td>
+                   <td className="px-6 py-4 text-slate-500">{i.date}</td>
+                   <td className="px-6 py-4 font-black text-indigo-600">{i.amount.toLocaleString()}</td>
+                   <td className="px-6 py-4 font-bold">{i.monthlyInstallment.toLocaleString()}</td>
+                   <td className="px-6 py-4 font-black text-rose-600">{i.remainingAmount.toLocaleString()}</td>
+                   <td className="px-6 py-4 text-emerald-600 font-bold">{i.collectionDate || '-'}</td>
+                 </>
+               )}
+             />
+          </div>
         );
       case 'leaves':
         return (
-          <GenericModule<LeaveRequest> 
-            title="نظام الإجازات" 
-            lang={db.settings.language} 
-            employees={db.employees} 
-            items={db.leaves} 
-            onSave={i => updateList('leaves', i)} 
-            onDelete={id => deleteFromList('leaves', id)} 
-            initialData={{ type: 'annual', status: 'pending', isPaid: true }} 
-            tableHeaders={['الموظف', 'النوع', 'الحالة', 'من', 'إلى', 'الأجر']}
-            renderForm={(data, set) => (
-               <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2"><label className="text-xs font-black uppercase">النوع</label><select className="w-full p-4 border rounded-xl font-bold dark:bg-slate-800" value={data.type} onChange={e => set({...data, type: e.target.value as any})}><option value="annual">سنوية</option><option value="sick">مرضية</option><option value="unpaid">بدون راتب</option><option value="emergency">اضطرارية</option><option value="marriage">زواج</option><option value="death">وفاة</option></select></div>
-                  <div><label className="text-xs font-black uppercase">من تاريخ</label><input type="date" className="w-full p-3 border rounded-xl dark:bg-slate-800" value={data.startDate} onChange={e => set({...data, startDate: e.target.value})} /></div>
-                  <div><label className="text-xs font-black uppercase">إلى تاريخ</label><input type="date" className="w-full p-3 border rounded-xl dark:bg-slate-800" value={data.endDate} onChange={e => set({...data, endDate: e.target.value})} /></div>
-                  <div className="col-span-2 flex items-center gap-3 bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border-2 border-dashed"><input type="checkbox" id="paid" checked={data.isPaid} onChange={e => set({...data, isPaid: e.target.checked})} className="w-6 h-6" /><label htmlFor="paid" className="font-black text-indigo-700">إجازة مدفوعة الأجر (بدون خصم راتب)</label></div>
-               </div>
-            )}
-            renderRow={(i, name) => (
-              <>
-                <td className="px-6 py-4 font-black">{name}</td>
-                <td className="px-6 py-4 font-bold uppercase">{i.type}</td>
-                <td className="px-6 py-4"><span className={`px-3 py-1 rounded-full text-[10px] font-black ${i.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{i.status}</span></td>
-                <td className="px-6 py-4 text-xs font-bold">{i.startDate}</td>
-                <td className="px-6 py-4 text-xs font-bold">{i.endDate}</td>
-                <td className="px-6 py-4 text-center">{i.isPaid ? <CheckCircle2 className="text-emerald-600 inline"/> : <XCircle className="text-rose-600 inline"/>}</td>
-              </>
-            )}
-          />
+          <div className="space-y-6">
+             <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 no-print">
+               <h2 className="text-2xl font-black text-indigo-700">{leavesArchiveMode ? 'أرشيف الإجازات التاريخي' : 'نظام تقديم وإدارة الإجازات'}</h2>
+               <button onClick={() => setLeavesArchiveMode(!leavesArchiveMode)} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black transition-all ${leavesArchiveMode ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-900 text-white'}`}>
+                 {leavesArchiveMode ? <Calendar size={18}/> : <Archive size={18}/>}
+                 {leavesArchiveMode ? 'العودة للطلبات' : 'عرض أرشيف الإجازات'}
+               </button>
+             </div>
+             <GenericModule<LeaveRequest> 
+               title={leavesArchiveMode ? "أرشيف الإجازات" : "نظام الإجازات"} 
+               lang={db.settings.language} 
+               employees={db.employees} 
+               items={db.leaves} 
+               onSave={i => updateList('leaves', i)} 
+               onDelete={id => deleteFromList('leaves', id)} 
+               initialData={{ type: 'annual', status: 'pending', isPaid: true }} 
+               tableHeaders={['الموظف', 'النوع', 'الحالة', 'من', 'إلى', 'الأجر']}
+               renderForm={(data, set) => (
+                  <div className="grid grid-cols-2 gap-4">
+                     <div className="col-span-2"><label className="text-xs font-black uppercase">النوع</label><select className="w-full p-4 border rounded-xl font-bold dark:bg-slate-800" value={data.type} onChange={e => set({...data, type: e.target.value as any})}><option value="annual">سنوية</option><option value="sick">مرضية</option><option value="unpaid">بدون راتب</option><option value="emergency">اضطرارية</option><option value="marriage">زواج</option><option value="death">وفاة</option></select></div>
+                     <div><label className="text-xs font-black uppercase">من تاريخ</label><input type="date" className="w-full p-3 border rounded-xl dark:bg-slate-800" value={data.startDate} onChange={e => set({...data, startDate: e.target.value})} /></div>
+                     <div><label className="text-xs font-black uppercase">إلى تاريخ</label><input type="date" className="w-full p-3 border rounded-xl dark:bg-slate-800" value={data.endDate} onChange={e => set({...data, endDate: e.target.value})} /></div>
+                     <div className="col-span-2 flex items-center gap-3 bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border-2 border-dashed"><input type="checkbox" id="paid" checked={data.isPaid} onChange={e => set({...data, isPaid: e.target.checked})} className="w-6 h-6" /><label htmlFor="paid" className="font-black text-indigo-700">إجازة مدفوعة الأجر (بدون خصم راتب)</label></div>
+                  </div>
+               )}
+               renderRow={(i, name) => (
+                 <>
+                   <td className="px-6 py-4 font-black">{name}</td>
+                   <td className="px-6 py-4 font-bold uppercase">{i.type}</td>
+                   <td className="px-6 py-4"><span className={`px-3 py-1 rounded-full text-[10px] font-black ${i.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{i.status}</span></td>
+                   <td className="px-6 py-4 text-xs font-bold">{i.startDate}</td>
+                   <td className="px-6 py-4 text-xs font-bold">{i.endDate}</td>
+                   <td className="px-6 py-4 text-center">{i.isPaid ? <CheckCircle2 className="text-emerald-600 inline"/> : <XCircle className="text-rose-600 inline"/>}</td>
+                 </>
+               )}
+             />
+          </div>
         );
       case 'financials':
         return (
-          <GenericModule<FinancialEntry> 
-            title="الماليات والإيصالات" 
-            lang={db.settings.language} 
-            employees={db.employees} 
-            items={db.financials} 
-            onSave={i => updateList('financials', i)} 
-            onDelete={id => deleteFromList('financials', id)} 
-            initialData={{ type: 'bonus', amount: 0, date: new Date().toISOString().split('T')[0] }} 
-            tableHeaders={['الموظف', 'النوع', 'المبلغ', 'التاريخ', 'إيصال']}
-            renderForm={(data, set) => (
-               <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2"><label className="text-xs font-black uppercase">نوع المعاملة</label><select className="w-full p-4 border rounded-xl font-bold dark:bg-slate-800" value={data.type} onChange={e => set({...data, type: e.target.value as any})}><option value="bonus">مكافأة</option><option value="deduction">خصم</option><option value="payment">صرف مالي / عهدة</option></select></div>
-                  <div><label className="text-xs font-black uppercase">المبلغ</label><input type="number" className="w-full p-3 border rounded-xl font-bold dark:bg-slate-800" value={data.amount} onChange={e => set({...data, amount: Number(e.target.value)})} /></div>
-                  <div><label className="text-xs font-black uppercase">التاريخ</label><input type="date" className="w-full p-3 border rounded-xl font-bold dark:bg-slate-800" value={data.date} onChange={e => set({...data, date: e.target.value})} /></div>
-                  <div className="col-span-2"><label className="text-xs font-black uppercase">البيان / السبب</label><textarea className="w-full p-3 border rounded-xl font-bold dark:bg-slate-800" rows={2} value={data.reason} onChange={e => set({...data, reason: e.target.value})} /></div>
-               </div>
-            )}
-            renderRow={(i, name) => (
-              <>
-                <td className="px-6 py-4 font-black">{name}</td>
-                <td className={`px-6 py-4 font-bold ${i.type === 'deduction' ? 'text-rose-600' : 'text-emerald-600'}`}>{i.type === 'bonus' ? 'مكافأة' : i.type === 'deduction' ? 'خصم' : 'صرف مالي'}</td>
-                <td className="px-6 py-4 font-black">{(i.amount || 0).toLocaleString()}</td>
-                <td className="px-6 py-4 font-bold text-slate-500">{i.date}</td>
-                <td className="px-6 py-4 text-center no-print">
-                   <button onClick={() => setShowVoucher(i)} className="bg-indigo-50 text-indigo-700 p-2 rounded-xl hover:bg-indigo-100 transition"><ReceiptText size={20}/></button>
-                </td>
-              </>
-            )}
-          />
+          <div className="space-y-6">
+             <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 no-print">
+               <h2 className="text-2xl font-black text-indigo-700">{financialsArchiveMode ? 'أرشيف السندات والماليات التاريخي' : 'الماليات والإيصالات والسندات'}</h2>
+               <button onClick={() => setFinancialsArchiveMode(!financialsArchiveMode)} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black transition-all ${financialsArchiveMode ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-900 text-white'}`}>
+                 {financialsArchiveMode ? <Calendar size={18}/> : <Archive size={18}/>}
+                 {financialsArchiveMode ? 'العودة للسندات' : 'عرض أرشيف السندات'}
+               </button>
+             </div>
+             <GenericModule<FinancialEntry> 
+               title={financialsArchiveMode ? "أرشيف السندات" : "الماليات والسندات"} 
+               lang={db.settings.language} 
+               employees={db.employees} 
+               items={db.financials} 
+               onSave={i => updateList('financials', i)} 
+               onDelete={id => deleteFromList('financials', id)} 
+               initialData={{ type: 'bonus', amount: 0, date: new Date().toISOString().split('T')[0] }} 
+               tableHeaders={['الموظف', 'النوع', 'المبلغ', 'التاريخ', 'إيصال']}
+               renderForm={(data, set) => (
+                  <div className="grid grid-cols-2 gap-4">
+                     <div className="col-span-2"><label className="text-xs font-black uppercase">نوع المعاملة</label><select className="w-full p-4 border rounded-xl font-bold dark:bg-slate-800" value={data.type} onChange={e => set({...data, type: e.target.value as any})}><option value="bonus">مكافأة</option><option value="deduction">خصم</option><option value="payment">صرف مالي / عهدة</option></select></div>
+                     <div><label className="text-xs font-black uppercase">المبلغ</label><input type="number" className="w-full p-3 border rounded-xl font-bold dark:bg-slate-800" value={data.amount} onChange={e => set({...data, amount: Number(e.target.value)})} /></div>
+                     <div><label className="text-xs font-black uppercase">التاريخ</label><input type="date" className="w-full p-3 border rounded-xl font-bold dark:bg-slate-800" value={data.date} onChange={e => set({...data, date: e.target.value})} /></div>
+                     <div className="col-span-2"><label className="text-xs font-black uppercase">البيان / السبب</label><textarea className="w-full p-3 border rounded-xl font-bold dark:bg-slate-800" rows={2} value={data.reason} onChange={e => set({...data, reason: e.target.value})} /></div>
+                  </div>
+               )}
+               renderRow={(i, name) => (
+                 <>
+                   <td className="px-6 py-4 font-black">{name}</td>
+                   <td className={`px-6 py-4 font-bold ${i.type === 'deduction' ? 'text-rose-600' : 'text-emerald-600'}`}>{i.type === 'bonus' ? 'مكافأة' : i.type === 'deduction' ? 'خصم' : 'صرف مالي'}</td>
+                   <td className="px-6 py-4 font-black">{(i.amount || 0).toLocaleString()}</td>
+                   <td className="px-6 py-4 font-bold text-slate-500">{i.date}</td>
+                   <td className="px-6 py-4 text-center no-print">
+                      <button onClick={() => setShowVoucher(i)} className="bg-indigo-50 text-indigo-700 p-2 rounded-xl hover:bg-indigo-100 transition"><ReceiptText size={20}/></button>
+                   </td>
+                 </>
+               )}
+             />
+          </div>
         );
       case 'reports':
         return <ReportsView db={db} payrolls={currentPayrolls} lang={db.settings.language} />;

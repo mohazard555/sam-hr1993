@@ -22,7 +22,7 @@ export interface DB {
   loans: Loan[];
   leaves: LeaveRequest[];
   financials: FinancialEntry[];
-  production: ProductionEntry[]; // حقل الإنتاج
+  production: ProductionEntry[]; 
   warnings: Warning[];
   payrolls: PayrollRecord[];
   payrollHistory: PayrollRecord[];
@@ -43,7 +43,8 @@ const DEFAULT_SETTINGS: CompanySettings = {
   officialCheckOut: '16:00',
   deductionPerLateMinute: 1.0,
   overtimeHourRate: 1.5,
-  salaryCycle: 'monthly'
+  salaryCycle: 'monthly',
+  passwordHint: 'رقم هاتفك أو اسمك المفضل'
 };
 
 const INITIAL_USER: User = {
@@ -80,6 +81,7 @@ export const loadDB = (): DB => {
   if (!parsed.payrollHistory) parsed.payrollHistory = [];
   if (!parsed.production) parsed.production = [];
   if (!parsed.settings.salaryCycle) parsed.settings.salaryCycle = 'monthly';
+  if (!parsed.settings.passwordHint) parsed.settings.passwordHint = DEFAULT_SETTINGS.passwordHint;
   return parsed;
 };
 

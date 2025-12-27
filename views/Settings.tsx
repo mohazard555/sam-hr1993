@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { CompanySettings, User } from '../types';
 import { DB } from '../db/store';
-import { Shield, Coins, Upload, Download, Database, Key, Layout, CalendarRange, Trash2, AlertTriangle, Clock } from 'lucide-react';
+import { Shield, Coins, Upload, Download, Database, Key, Layout, CalendarRange, Trash2, AlertTriangle, Clock, HelpCircle } from 'lucide-react';
 
 interface Props {
   settings: CompanySettings;
@@ -14,7 +14,6 @@ interface Props {
 }
 
 const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, onUpdateAdmin, onImport }) => {
-  const [newCurrency, setNewCurrency] = useState('');
   const [adminForm, setAdminForm] = useState({ username: admin.username, password: admin.password || '' });
   const [confirmWipe, setConfirmWipe] = useState(false);
 
@@ -63,6 +62,10 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
            <div>
              <label className="text-sm font-bold block mb-1 text-slate-700 dark:text-slate-300">اسم البرنامج</label>
              <input className="w-full p-3 border dark:border-slate-800 dark:bg-slate-800 rounded-xl font-bold" value={settings.name} onChange={e => onUpdateSettings({name: e.target.value})} />
+           </div>
+           <div>
+             <label className="text-sm font-bold block mb-1 text-slate-700 dark:text-slate-300 flex items-center gap-2"><HelpCircle size={14}/> تلميح كلمة المرور</label>
+             <input className="w-full p-3 border dark:border-slate-800 dark:bg-slate-800 rounded-xl font-bold" value={settings.passwordHint || ''} onChange={e => onUpdateSettings({passwordHint: e.target.value})} placeholder="مثال: اسم حيوانك المفضل" />
            </div>
         </div>
       </div>

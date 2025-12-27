@@ -28,6 +28,7 @@ export interface CompanySettings {
   deductionPerLateMinute: number;
   overtimeHourRate: number;
   salaryCycle: SalaryCycle;
+  passwordHint?: string; // تلميح كلمة المرور
 }
 
 export interface Employee {
@@ -64,7 +65,7 @@ export interface Loan {
   amount: number;
   monthlyInstallment: number;
   date: string;
-  collectionDate?: string; // تاريخ التحصيل النهائي
+  collectionDate?: string; 
   remainingAmount: number;
   reason?: string;
 }
