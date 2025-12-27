@@ -13,7 +13,7 @@ import { loadDB, saveDB, DB } from './db/store';
 import { Employee, PayrollRecord, Language, Theme, FinancialEntry, Loan, LeaveRequest, ProductionEntry } from './types';
 import { generateMonthlyPayroll } from './utils/calculations';
 import { useTranslation } from './utils/translations';
-import { Printer, Search, History, Trash2, FileDown, Calendar, Archive, Building, Briefcase, CheckCircle2, XCircle, DollarSign, ReceiptText, UserCheck, LayoutList, Plus } from 'lucide-react';
+import { Printer, Search, History, Trash2, FileDown, Calendar, Archive, Building, Briefcase, CheckCircle2, XCircle, DollarSign, ReceiptText, UserCheck, LayoutList, Plus, ArchiveRestore } from 'lucide-react';
 import { exportToExcel } from './utils/export';
 
 const App: React.FC = () => {
@@ -64,7 +64,25 @@ const App: React.FC = () => {
     setDb(prev => ({ ...prev, [key]: (prev[key] as any[]).filter((i:any) => i.id !== id) }));
   };
 
-  // مساعد لتقسيم المصفوفة إلى مجموعات (Chunks)
+  // وظيفة إغلاق الشهر والأرشفة
+  const archiveCurrentMonth = () => {
+    if (window.confirm('هل تريد إغلاق الدورة المالية الحالية وأرشفة الرواتب؟ سيتم نقل السجلات إلى الأرشيف التاريخي.')) {
+      setDb(prev => ({
+        ...prev,
+        payrollHistory: [...prev.payrollHistory, ...currentPayrolls],
+        attendance: prev.attendance.filter(a => {
+            const d = new Date(a.date);
+            return d.getMonth() + 1 !== currentMonth || d.getFullYear() !== currentYear;
+        }),
+        financials: prev.financials.filter(f => {
+            const d = new Date(f.date);
+            return d.getMonth() + 1 !== currentMonth || d.getFullYear() !== currentYear;
+        })
+      }));
+      alert('تمت أرشفة الشهر بنجاح وتجهيز النظام للشهر الجديد.');
+    }
+  };
+
   const chunkArray = (array: any[], size: number) => {
     const result = [];
     for (let i = 0; i < array.length; i += size) {
@@ -127,8 +145,12 @@ const App: React.FC = () => {
                   <div className="text-right"><h2 className="text-2xl font-black">مسير الرواتب {cycleText}</h2><p className="text-sm font-bold">{currentMonth}/{currentYear}</p></div>
               </div>
               <div className="flex flex-col md:flex-row justify-between items-center no-print bg-white dark:bg-slate-900 p-8 rounded-[2rem] border shadow-xl gap-4">
-                 <h3 className="text-2xl font-black text-indigo-700">مسير الرواتب {cycleText}</h3>
+                 <div>
+                   <h3 className="text-2xl font-black text-indigo-700">مسير الرواتب {cycleText}</h3>
+                   <p className="text-xs font-bold text-slate-500">فترة: {currentMonth} / {currentYear}</p>
+                 </div>
                  <div className="flex flex-wrap gap-2">
+                    <button onClick={archiveCurrentMonth} className="bg-amber-600 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2 shadow-lg hover:bg-amber-700"><ArchiveRestore size={18}/> أرشفة الشهر وإغلاق الدورة</button>
                     <button onClick={() => { setPayrollPrintMode('vouchers'); setTimeout(() => window.print(), 500); }} className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2 shadow-lg hover:scale-105 transition-transform"><ReceiptText size={18}/> طباعة الإيصالات (6 بالصفحة)</button>
                     <button onClick={() => { setPayrollPrintMode('signatures'); setTimeout(() => window.print(), 500); }} className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2 shadow-lg hover:scale-105 transition-transform"><UserCheck size={18}/> كشف توقيعات المحاسب</button>
                     <button className="bg-slate-900 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2 shadow-lg" onClick={() => window.print()}><Printer size={18}/> طباعة الجدول</button>
@@ -179,12 +201,10 @@ const App: React.FC = () => {
         }
 
         if (payrollPrintMode === 'vouchers') {
-          // تقسيم الرواتب إلى مجموعات من 6
           const payrollChunks = chunkArray(currentPayrolls, 6);
           return (
             <div className="space-y-4">
               <button onClick={() => setPayrollPrintMode('table')} className="no-print bg-slate-950 text-white px-8 py-3 rounded-2xl mb-8 flex items-center gap-2 shadow-lg"><LayoutList size={20}/> العودة إلى النظام</button>
-              
               {payrollChunks.map((chunk, pageIdx) => (
                 <div key={pageIdx} className="vouchers-grid page-break">
                   {chunk.map((p: any) => {
@@ -201,11 +221,9 @@ const App: React.FC = () => {
                               <p>{new Date().toLocaleDateString()}</p>
                            </div>
                         </div>
-                        
                         <div className="text-[10px] mb-2 font-black border-b border-slate-200 pb-1">
                            {emp?.name} <span className="font-normal opacity-70 text-[8px]">({emp?.position})</span>
                         </div>
-
                         <table>
                            <thead>
                               <tr className="bg-slate-50">
@@ -225,7 +243,6 @@ const App: React.FC = () => {
                               </tr>
                            </tbody>
                         </table>
-
                         <div className="grid grid-cols-2 gap-4 mt-2 text-center text-[8px]">
                            <div><p className="mb-4 opacity-70">المحاسب</p><div className="h-px bg-slate-300"></div></div>
                            <div><p className="mb-4 opacity-70">توقيع المستلم</p><div className="h-px bg-slate-300"></div></div>
