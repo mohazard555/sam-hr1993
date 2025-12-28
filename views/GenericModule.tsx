@@ -19,11 +19,10 @@ interface GenericModuleProps<T> {
   renderRow: (item: T, employeeName: string) => React.ReactNode;
   tableHeaders: string[];
   initialData: Partial<T>;
-  renderPrintHeader?: () => React.ReactNode;
 }
 
-export function GenericModule<T extends { id: string; employeeId: string; date?: string; startDate?: string; endDate?: string; amount?: number; type?: string; remainingAmount?: number; isPaid?: boolean; isArchived?: boolean; status?: string; installmentsCount?: number }>({ 
-  title, lang, employees, items, onSave, onDelete, onPrint, onPrintIndividual, archiveMode, onToggleArchive, renderForm, renderRow, tableHeaders, initialData, renderPrintHeader 
+export function GenericModule<T extends { id: string; employeeId: string; date?: string; startDate?: string; endDate?: string; amount?: number; type?: string; remainingAmount?: number; isPaid?: boolean; isArchived?: boolean; status?: string }>({ 
+  title, lang, employees, items, onSave, onDelete, onPrint, onPrintIndividual, archiveMode, onToggleArchive, renderForm, renderRow, tableHeaders, initialData 
 }: GenericModuleProps<T>) {
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState<Partial<T>>(initialData);
@@ -38,11 +37,7 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
     let list = (items || []).filter(item => {
       if (!item) return false;
       
-      const explicitlyArchived = item.isArchived === true;
-      const fullyPaidLoan = item.remainingAmount !== undefined && item.remainingAmount <= 0;
-      
-      const archived = explicitlyArchived || fullyPaidLoan;
-      
+      const archived = item.isArchived === true || (item.remainingAmount !== undefined && item.remainingAmount <= 0) || (item.status === 'approved' || item.status === 'rejected');
       if (archiveMode && !archived) return false;
       if (!archiveMode && archived) return false;
 
@@ -70,15 +65,15 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
   };
 
   const handleArchive = (item: T) => {
-    if (confirm('هل تريد نقل هذا البند إلى الأرشيف بشكل يدوي؟')) {
-      onSave({ ...item, isArchived: true });
+    if (confirm('هل تريد نقل هذا البند إلى الأرشيف؟')) {
+      const updated = { ...item, isArchived: true };
+      if (updated.status === 'pending') updated.status = 'approved';
+      onSave(updated);
     }
   };
 
   return (
     <div className="space-y-6">
-      {renderPrintHeader && renderPrintHeader()}
-      
       <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 no-print">
         <div className="flex items-center gap-4">
            <div className={`p-4 rounded-2xl ${archiveMode ? 'bg-amber-100 text-amber-600' : 'bg-indigo-100 text-indigo-600'}`}>
@@ -128,19 +123,19 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
                 <td className="px-6 py-5 text-center no-print">
                   <div className="flex justify-center gap-2">
                     {onPrintIndividual && (
-                      <button onClick={() => onPrintIndividual(item)} title="طباعة السند" className="p-2 text-slate-500 rounded-lg hover:bg-slate-100 transition-all"><Printer size={16}/></button>
+                      <button onClick={() => onPrintIndividual(item)} title="طباعة السند" className="p-2 text-slate-500 rounded-lg hover:bg-slate-100"><Printer size={16}/></button>
                     )}
                     {!archiveMode && (
-                      <button onClick={() => handleArchive(item)} title="نقل للأرشيف" className="p-2 text-amber-600 rounded-lg hover:bg-amber-50 transition-all"><Archive size={16}/></button>
+                      <button onClick={() => handleArchive(item)} title="نقل للأرشيف" className="p-2 text-amber-600 rounded-lg hover:bg-amber-50"><Archive size={16}/></button>
                     )}
-                    <button onClick={() => { setFormData(item); setShowModal(true); }} className="p-2 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-all"><Edit2 size={16}/></button>
-                    <button onClick={() => { if(confirm('هل أنت متأكد من الحذف النهائي؟')) onDelete(item.id); }} className="p-2 text-rose-600 rounded-lg hover:bg-rose-50 transition-all"><Trash2 size={16}/></button>
+                    <button onClick={() => { setFormData(item); setShowModal(true); }} className="p-2 text-indigo-600 rounded-lg hover:bg-indigo-50"><Edit2 size={16}/></button>
+                    <button onClick={() => { if(confirm('هل أنت متأكد من الحذف النهائي؟')) onDelete(item.id); }} className="p-2 text-rose-600 rounded-lg hover:bg-rose-50"><Trash2 size={16}/></button>
                   </div>
                 </td>
               </tr>
             ))}
             {filteredItems.length === 0 && (
-              <tr><td colSpan={tableHeaders.length + 1} className="py-20 text-center font-black text-slate-400 italic">لا توجد بيانات تطابق الفلاتر المحددة</td></tr>
+              <tr><td colSpan={tableHeaders.length + 1} className="py-20 text-center font-black text-slate-400">لا توجد بيانات تطابق الفلاتر المحددة</td></tr>
             )}
           </tbody>
         </table>
@@ -148,22 +143,22 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
 
       {showModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xl z-[150] flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl w-full max-w-2xl border dark:border-slate-800 overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl w-full max-w-2xl border dark:border-slate-800">
             <div className="p-8 bg-slate-50 dark:bg-slate-800 border-b flex justify-between items-center rounded-t-[3rem]">
               <h3 className="text-2xl font-black text-indigo-900 dark:text-indigo-400">{formData.id ? 'تعديل سجل' : 'إضافة سجل'} - {title}</h3>
-              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-950 text-2xl font-bold">✕</button>
+              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-950 text-2xl">✕</button>
             </div>
             <form onSubmit={handleSubmit} className="p-8 space-y-6">
               <div>
-                <label className="block text-[10px] font-black mb-2 text-slate-500 uppercase tracking-widest">الموظف المعني</label>
-                <select className="w-full p-4 border-2 dark:bg-slate-800 rounded-2xl font-black dark:text-white outline-none focus:border-indigo-600 transition" value={formData.employeeId || ''} onChange={e => setFormData({...formData, employeeId: e.target.value})} required>
+                <label className="block text-[10px] font-black mb-2 text-slate-500 uppercase">الموظف</label>
+                <select className="w-full p-4 border-2 dark:bg-slate-800 rounded-2xl font-black dark:text-white" value={formData.employeeId || ''} onChange={e => setFormData({...formData, employeeId: e.target.value})} required>
                   <option value="">اختر الموظف...</option>
-                  {employees.map(e => <option key={e.id} value={e.id}>{e.name} - {e.department}</option>)}
+                  {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
                 </select>
               </div>
               {renderForm(formData, setFormData)}
               <div className="flex gap-4 pt-6">
-                <button type="submit" className="flex-1 bg-indigo-600 text-white py-5 rounded-2xl font-black text-lg shadow-xl">حفظ السجل</button>
+                <button type="submit" className="flex-1 bg-indigo-600 text-white py-5 rounded-2xl font-black text-lg shadow-xl">حفظ البيانات</button>
                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 bg-slate-100 dark:bg-slate-800 dark:text-white py-5 rounded-2xl font-black">إلغاء</button>
               </div>
             </form>

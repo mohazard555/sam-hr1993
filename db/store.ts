@@ -12,7 +12,7 @@ import {
   ProductionEntry
 } from '../types';
 
-const STORAGE_KEY = 'SAM_HR_DB_V6_PRO_FINAL';
+const STORAGE_KEY = 'SAM_HR_DB_V6_PRO';
 
 export interface DB {
   settings: CompanySettings;
@@ -44,9 +44,7 @@ const DEFAULT_SETTINGS: CompanySettings = {
   deductionPerLateMinute: 1.0,
   overtimeHourRate: 1.5,
   salaryCycle: 'monthly',
-  passwordHint: 'رقم هاتفك أو اسمك المفضل',
-  archiveRetentionDays: 90,
-  archiveLogs: []
+  passwordHint: 'رقم هاتفك أو اسمك المفضل'
 };
 
 const INITIAL_USER: User = {
@@ -84,8 +82,6 @@ export const loadDB = (): DB => {
   if (!parsed.production) parsed.production = [];
   if (!parsed.settings.salaryCycle) parsed.settings.salaryCycle = 'monthly';
   if (!parsed.settings.passwordHint) parsed.settings.passwordHint = DEFAULT_SETTINGS.passwordHint;
-  if (parsed.settings.archiveRetentionDays === undefined) parsed.settings.archiveRetentionDays = 90;
-  if (!parsed.settings.archiveLogs) parsed.settings.archiveLogs = [];
   return parsed;
 };
 

@@ -12,10 +12,9 @@ interface Props {
   onPrintIndividual?: (item: ProductionEntry) => void;
   archiveMode: boolean;
   onToggleArchive: () => void;
-  renderPrintHeader?: () => React.ReactNode;
 }
 
-const Production: React.FC<Props> = ({ employees, items, onSave, onDelete, onPrintIndividual, archiveMode, onToggleArchive, renderPrintHeader }) => {
+const Production: React.FC<Props> = ({ employees, items, onSave, onDelete, onPrintIndividual, archiveMode, onToggleArchive }) => {
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFrom, setDateFrom] = useState('');
@@ -67,8 +66,6 @@ const Production: React.FC<Props> = ({ employees, items, onSave, onDelete, onPri
 
   return (
     <div className="space-y-6">
-      {renderPrintHeader && renderPrintHeader()}
-
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 no-print">
         <div className="flex items-center gap-4">
            <div className={`p-4 rounded-2xl ${archiveMode ? 'bg-amber-100 text-amber-600' : 'bg-indigo-100 text-indigo-600'}`}>
@@ -96,7 +93,6 @@ const Production: React.FC<Props> = ({ employees, items, onSave, onDelete, onPri
             <tr className="font-black text-xs uppercase">
               <th className="px-6 py-5">الموظف / التاريخ</th>
               <th className="px-6 py-5 text-center">عدد القطع</th>
-              <th className="px-6 py-5 text-center">السعر</th>
               <th className="px-6 py-5">الملاحظات</th>
               <th className="px-6 py-5 text-center">الإجمالي</th>
               <th className="px-6 py-5 text-center no-print">إجراءات</th>
@@ -104,7 +100,7 @@ const Production: React.FC<Props> = ({ employees, items, onSave, onDelete, onPri
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {filteredItems.map(item => (
-              <tr key={item.id} className="hover:bg-indigo-50 transition font-bold">
+              <tr key={item.id} className="hover:bg-indigo-50 transition">
                 <td className="px-6 py-5">
                    <p className="font-black">{employees.find(e => e.id === item.employeeId)?.name}</p>
                    <p className="text-[10px] text-slate-400 font-bold uppercase">{item.date}</p>
@@ -112,13 +108,10 @@ const Production: React.FC<Props> = ({ employees, items, onSave, onDelete, onPri
                 <td className="px-6 py-5 text-center">
                    <span className="bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded font-black text-xs">{item.piecesCount} قطعة</span>
                 </td>
-                <td className="px-6 py-5 text-center font-bold text-slate-600">
-                   {item.valuePerPiece.toLocaleString()}
-                </td>
                 <td className="px-6 py-5 text-xs text-slate-600 font-bold max-w-[200px] truncate" title={item.notes}>
                    {item.notes || '-'}
                 </td>
-                <td className="px-6 py-5 text-center font-black text-indigo-700 bg-indigo-50/30">{(item.totalValue || 0).toLocaleString()}</td>
+                <td className="px-6 py-5 text-center font-black text-emerald-600">{(item.totalValue || 0).toLocaleString()}</td>
                 <td className="px-6 py-5 text-center no-print">
                   <div className="flex justify-center gap-2">
                     {onPrintIndividual && (
@@ -133,9 +126,6 @@ const Production: React.FC<Props> = ({ employees, items, onSave, onDelete, onPri
                 </td>
               </tr>
             ))}
-            {filteredItems.length === 0 && (
-              <tr><td colSpan={6} className="py-20 text-center font-black text-slate-400 italic">لا توجد بيانات إنتاج لعرضها</td></tr>
-            )}
           </tbody>
         </table>
       </div>
