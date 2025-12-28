@@ -92,6 +92,7 @@ export interface ProductionEntry {
   specifications: string;
   valuePerPiece: number;
   totalValue: number;
+  notes?: string;
   isArchived?: boolean;
 }
 

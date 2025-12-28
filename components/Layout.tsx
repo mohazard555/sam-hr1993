@@ -3,7 +3,7 @@ import React from 'react';
 import { 
   Users, Clock, CreditCard, Calendar, 
   BarChart3, Settings as SettingsIcon, LayoutDashboard,
-  Wallet, Zap, LogOut, Sun, Moon, FileText, Building
+  Wallet, Zap, LogOut, Sun, Moon, FileText, Building, Printer, ClipboardList
 } from 'lucide-react';
 import { useTranslation } from '../utils/translations';
 import { Language, User, Theme } from '../types';
@@ -33,6 +33,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang
     { id: 'loans', label: t('loans'), icon: CreditCard, roles: ['admin', 'manager'] },
     { id: 'production', label: t('production'), icon: Zap, roles: ['admin', 'manager'] },
     { id: 'payroll', label: t('payroll'), icon: BarChart3, roles: ['admin'] },
+    { id: 'documents', label: isRtl ? 'النماذج المطبوعة' : 'Print Forms', icon: ClipboardList, roles: ['admin', 'manager'] },
     { id: 'reports', label: isRtl ? 'التقارير النوعية' : 'Reports', icon: FileText, roles: ['admin', 'manager'] },
     { id: 'settings', label: t('settings'), icon: SettingsIcon, roles: ['admin'] },
   ];
@@ -48,7 +49,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang
             <div className="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/50">S</div>
             <span>SAM</span>
           </h1>
-          <p className="text-[10px] text-indigo-300 mt-1 font-bold">لإدارة شؤون الموظفين</p>
+          <p className="text-[10px] text-indigo-300 mt-1 font-bold tracking-widest uppercase">HRMS PRO</p>
         </div>
         <nav className="flex-1 overflow-y-auto p-4 space-y-1">
           {filteredMenu.map((item) => (
