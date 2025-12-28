@@ -12,9 +12,11 @@ interface Props {
   onSaveRecord: (record: AttendanceRecord) => void;
   onDeleteRecord: (id: string) => void;
   lang: 'ar' | 'en';
+  // Fix: Added missing onPrint property to interface to match usage in App.tsx
+  onPrint: () => void;
 }
 
-const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecord, onDeleteRecord, lang }) => {
+const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecord, onDeleteRecord, lang, onPrint }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedEmp, setSelectedEmp] = useState('');
   const [checkIn, setCheckIn] = useState(settings.officialCheckIn);
@@ -165,7 +167,8 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
               </div>
               <div className="flex items-end gap-2">
                  <button onClick={() => exportToExcel(archivedRecords, "AttendanceArchive")} className="flex-1 bg-emerald-600 text-white p-3 rounded-xl flex items-center justify-center gap-2 font-black shadow-lg"><FileDown size={18}/> Excel</button>
-                 <button onClick={() => window.print()} className="flex-1 bg-slate-900 text-white p-3 rounded-xl flex items-center justify-center gap-2 font-black shadow-lg"><Printer size={18}/> طباعة</button>
+                 {/* Fix: use the onPrint prop from App.tsx to handle printing orientation choice */}
+                 <button onClick={onPrint} className="flex-1 bg-slate-900 text-white p-3 rounded-xl flex items-center justify-center gap-2 font-black shadow-lg"><Printer size={18}/> طباعة</button>
               </div>
            </div>
 

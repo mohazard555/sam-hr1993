@@ -93,6 +93,7 @@ const Production: React.FC<Props> = ({ employees, items, onSave, onDelete, onPri
             <tr className="font-black text-xs uppercase">
               <th className="px-6 py-5">الموظف / التاريخ</th>
               <th className="px-6 py-5 text-center">عدد القطع</th>
+              <th className="px-6 py-5 text-center">السعر</th>
               <th className="px-6 py-5">الملاحظات</th>
               <th className="px-6 py-5 text-center">الإجمالي</th>
               <th className="px-6 py-5 text-center no-print">إجراءات</th>
@@ -108,10 +109,13 @@ const Production: React.FC<Props> = ({ employees, items, onSave, onDelete, onPri
                 <td className="px-6 py-5 text-center">
                    <span className="bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded font-black text-xs">{item.piecesCount} قطعة</span>
                 </td>
+                <td className="px-6 py-5 text-center font-bold text-slate-600">
+                   {item.valuePerPiece.toLocaleString()}
+                </td>
                 <td className="px-6 py-5 text-xs text-slate-600 font-bold max-w-[200px] truncate" title={item.notes}>
                    {item.notes || '-'}
                 </td>
-                <td className="px-6 py-5 text-center font-black text-emerald-600">{(item.totalValue || 0).toLocaleString()}</td>
+                <td className="px-6 py-5 text-center font-black text-indigo-700 bg-indigo-50/30">{(item.totalValue || 0).toLocaleString()}</td>
                 <td className="px-6 py-5 text-center no-print">
                   <div className="flex justify-center gap-2">
                     {onPrintIndividual && (
@@ -126,6 +130,9 @@ const Production: React.FC<Props> = ({ employees, items, onSave, onDelete, onPri
                 </td>
               </tr>
             ))}
+            {filteredItems.length === 0 && (
+              <tr><td colSpan={6} className="py-20 text-center font-black text-slate-400 italic">لا توجد بيانات إنتاج لعرضها</td></tr>
+            )}
           </tbody>
         </table>
       </div>
