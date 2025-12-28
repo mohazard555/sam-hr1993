@@ -19,7 +19,7 @@ const PrintForms: React.FC<Props> = ({ employees, settings, onPrint }) => {
       title: 'طلب إجازة رسمي', 
       icon: Calendar, 
       color: 'text-indigo-600', 
-      placeholder: 'السيد مدير الموارد البشرية المحترم،\n\nأرجو التكرم بالموافقة على منحي إجازة (سنوية/مرضية) تبدأ من تاريخ ... ولغاية تاريخ ...\n\nوتقبلوا فائق الاحترام والتقدير.' 
+      placeholder: 'السيد مدير الموارد البشرية المحترم،\n\nأرجو التكرم بالموافقة على منحي إجازة (سنوية/مرضية) تبدأ من تاريخ ... ولغاية تاريخ ...\n\nولكم خالص الشكر والتقدير.' 
     },
     permission: { 
       title: 'إذن خروج مؤقت', 
@@ -50,7 +50,7 @@ const PrintForms: React.FC<Props> = ({ employees, settings, onPrint }) => {
         employeeId: selectedEmp,
         employeeName: emp?.name,
         notes: details,
-        date: new Date().toLocaleDateString('ar-SY'),
+        date: new Date().toISOString().split('T')[0],
         id: 'DOC-' + Math.random().toString(36).substr(2, 6).toUpperCase()
       }
     });
@@ -60,20 +60,25 @@ const PrintForms: React.FC<Props> = ({ employees, settings, onPrint }) => {
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20 no-print">
       <div className="bg-white dark:bg-slate-900 p-10 rounded-[3rem] shadow-2xl border dark:border-slate-800">
         <div className="flex items-center gap-4 mb-10">
-           <div className="p-4 bg-indigo-600 text-white rounded-2xl shadow-lg"><FileText size={32}/></div>
-           <div><h2 className="text-3xl font-black text-slate-900 dark:text-white">محرر الوثائق والخطابات</h2><p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">توليد قرارات وطلبات إدارية احترافية</p></div>
+           <div className="p-4 bg-indigo-600 text-white rounded-2xl shadow-lg">
+              <FileText size={32}/>
+           </div>
+           <div>
+              <h2 className="text-3xl font-black text-slate-900 dark:text-white">محرر الخطابات الرسمية</h2>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">توليد قرارات وطلبات إدارية احترافية</p>
+           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
            <div>
-              <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">الموظف المعني</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">1. الموظف المعني</label>
               <select className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 rounded-2xl font-black outline-none focus:border-indigo-600 transition dark:text-white" value={selectedEmp} onChange={e => setSelectedEmp(e.target.value)}>
                  <option value="">-- اختر من القائمة --</option>
                  {employees.map(e => <option key={e.id} value={e.id}>{e.name} ({e.department})</option>)}
               </select>
            </div>
            <div>
-              <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">نوع المستند الرسمي</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">2. نوع المستند</label>
               <div className="grid grid-cols-2 gap-3">
                  {(Object.keys(formConfigs) as Array<keyof typeof formConfigs>).map(type => (
                    <button key={type} onClick={() => { setFormType(type); setDetails(formConfigs[type].placeholder); }} className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${formType === type ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20' : 'border-slate-100 dark:border-slate-800'}`}>
@@ -87,11 +92,13 @@ const PrintForms: React.FC<Props> = ({ employees, settings, onPrint }) => {
 
         <div className="space-y-6">
            <div>
-              <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">محتوى الخطاب (الموضوع)</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">3. نص الخطاب الرسمي</label>
               <textarea className="w-full p-8 bg-slate-50 dark:bg-slate-800 border-2 rounded-3xl font-bold h-64 outline-none transition-all resize-none text-lg leading-relaxed dark:text-white" placeholder="أدخل نص الخطاب هنا..." value={details} onChange={e => setDetails(e.target.value)}></textarea>
            </div>
            
-           <button onClick={handleGenerate} className="w-full bg-slate-900 text-white py-6 rounded-3xl font-black text-xl shadow-2xl hover:bg-slate-950 transition-all flex items-center justify-center gap-3"><Printer size={28}/> معاينة الخطاب والطباعة</button>
+           <button onClick={handleGenerate} className="w-full bg-slate-900 text-white py-6 rounded-3xl font-black text-xl shadow-2xl hover:bg-slate-950 transition-all flex items-center justify-center gap-3">
+              <Printer size={28}/> معاينة وطباعة الخطاب
+           </button>
         </div>
       </div>
     </div>

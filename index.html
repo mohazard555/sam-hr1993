@@ -55,24 +55,25 @@
                 box-shadow: none !important;
             }
 
+            /* تقييد شكل السند في الطباعة ليظهر كبطاقة رسمية */
             .print-constrained-voucher {
                 width: 190mm !important;
                 margin: 10mm auto !important;
-                border: 4px double #000 !important;
+                border: 6px double #000 !important;
                 padding: 20mm !important;
-                background: #fff !important;
+                background: white !important;
                 page-break-inside: avoid;
             }
 
             table { 
                 width: 100% !important; 
                 border-collapse: collapse !important; 
-                margin-top: 5mm !important;
+                margin-top: 10mm !important;
                 border: 2px solid #000 !important;
             }
             th, td { 
                 border: 1px solid #000 !important; 
-                padding: 3mm !important; 
+                padding: 4mm !important; 
                 font-size: 11pt !important; 
                 text-align: center !important; 
                 color: #000 !important;
@@ -86,7 +87,7 @@
                 display: grid !important;
                 grid-template-columns: 1fr 1fr !important;
                 grid-template-rows: repeat(3, 1fr) !important;
-                gap: 2mm !important;
+                gap: 5mm !important;
                 width: 100% !important;
             }
             .voucher-card {
