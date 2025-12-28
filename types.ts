@@ -13,6 +13,14 @@ export interface User {
   permissions: string[];
 }
 
+export interface ArchiveLog {
+  id: string;
+  date: string;
+  type: string;
+  recordsCount: number;
+  performedBy: string;
+}
+
 export interface CompanySettings {
   name: string;
   address: string;
@@ -29,6 +37,8 @@ export interface CompanySettings {
   overtimeHourRate: number;
   salaryCycle: SalaryCycle;
   passwordHint?: string;
+  archiveRetentionDays: number; // مدة الاحتفاظ بالبيانات الجارية بالأيام
+  archiveLogs: ArchiveLog[];
 }
 
 export interface Employee {
@@ -57,6 +67,7 @@ export interface AttendanceRecord {
   lateMinutes: number;
   overtimeMinutes: number;
   status: 'present' | 'absent' | 'leave' | 'excused';
+  isArchived?: boolean;
 }
 
 export interface Loan {
@@ -134,4 +145,5 @@ export interface PayrollRecord {
   workingDays: number;
   netSalary: number;
   isPaid: boolean;
+  archivedAt?: string;
 }

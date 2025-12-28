@@ -19,10 +19,11 @@ interface GenericModuleProps<T> {
   renderRow: (item: T, employeeName: string) => React.ReactNode;
   tableHeaders: string[];
   initialData: Partial<T>;
+  renderPrintHeader?: () => React.ReactNode;
 }
 
-export function GenericModule<T extends { id: string; employeeId: string; date?: string; startDate?: string; endDate?: string; amount?: number; type?: string; remainingAmount?: number; isPaid?: boolean; isArchived?: boolean; status?: string }>({ 
-  title, lang, employees, items, onSave, onDelete, onPrint, onPrintIndividual, archiveMode, onToggleArchive, renderForm, renderRow, tableHeaders, initialData 
+export function GenericModule<T extends { id: string; employeeId: string; date?: string; startDate?: string; endDate?: string; amount?: number; type?: string; remainingAmount?: number; isPaid?: boolean; isArchived?: boolean; status?: string; installmentsCount?: number }>({ 
+  title, lang, employees, items, onSave, onDelete, onPrint, onPrintIndividual, archiveMode, onToggleArchive, renderForm, renderRow, tableHeaders, initialData, renderPrintHeader 
 }: GenericModuleProps<T>) {
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState<Partial<T>>(initialData);
@@ -37,7 +38,6 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
     let list = (items || []).filter(item => {
       if (!item) return false;
       
-      // التعديل: الأرشفة تعتمد فقط على حقل isArchived أو إذا كان سلف مسدد بالكامل
       const explicitlyArchived = item.isArchived === true;
       const fullyPaidLoan = item.remainingAmount !== undefined && item.remainingAmount <= 0;
       
@@ -77,6 +77,8 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
 
   return (
     <div className="space-y-6">
+      {renderPrintHeader && renderPrintHeader()}
+      
       <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 no-print">
         <div className="flex items-center gap-4">
            <div className={`p-4 rounded-2xl ${archiveMode ? 'bg-amber-100 text-amber-600' : 'bg-indigo-100 text-indigo-600'}`}>

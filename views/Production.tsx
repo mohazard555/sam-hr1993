@@ -12,9 +12,10 @@ interface Props {
   onPrintIndividual?: (item: ProductionEntry) => void;
   archiveMode: boolean;
   onToggleArchive: () => void;
+  renderPrintHeader?: () => React.ReactNode;
 }
 
-const Production: React.FC<Props> = ({ employees, items, onSave, onDelete, onPrintIndividual, archiveMode, onToggleArchive }) => {
+const Production: React.FC<Props> = ({ employees, items, onSave, onDelete, onPrintIndividual, archiveMode, onToggleArchive, renderPrintHeader }) => {
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFrom, setDateFrom] = useState('');
@@ -66,6 +67,8 @@ const Production: React.FC<Props> = ({ employees, items, onSave, onDelete, onPri
 
   return (
     <div className="space-y-6">
+      {renderPrintHeader && renderPrintHeader()}
+
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 no-print">
         <div className="flex items-center gap-4">
            <div className={`p-4 rounded-2xl ${archiveMode ? 'bg-amber-100 text-amber-600' : 'bg-indigo-100 text-indigo-600'}`}>
@@ -101,7 +104,7 @@ const Production: React.FC<Props> = ({ employees, items, onSave, onDelete, onPri
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {filteredItems.map(item => (
-              <tr key={item.id} className="hover:bg-indigo-50 transition">
+              <tr key={item.id} className="hover:bg-indigo-50 transition font-bold">
                 <td className="px-6 py-5">
                    <p className="font-black">{employees.find(e => e.id === item.employeeId)?.name}</p>
                    <p className="text-[10px] text-slate-400 font-bold uppercase">{item.date}</p>
