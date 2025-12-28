@@ -9,11 +9,12 @@ interface Props {
   items: ProductionEntry[];
   onSave: (item: ProductionEntry) => void;
   onDelete: (id: string) => void;
+  onPrintIndividual?: (item: ProductionEntry) => void;
   archiveMode: boolean;
   onToggleArchive: () => void;
 }
 
-const Production: React.FC<Props> = ({ employees, items, onSave, onDelete, archiveMode, onToggleArchive }) => {
+const Production: React.FC<Props> = ({ employees, items, onSave, onDelete, onPrintIndividual, archiveMode, onToggleArchive }) => {
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFrom, setDateFrom] = useState('');
@@ -28,17 +29,14 @@ const Production: React.FC<Props> = ({ employees, items, onSave, onDelete, archi
 
   const filteredItems = useMemo(() => {
     return (items || []).filter(item => {
-      // Archive Filter
       const isArchived = item.isArchived === true;
       if (archiveMode && !isArchived) return false;
       if (!archiveMode && isArchived) return false;
 
-      // Name Search
       const emp = employees.find(e => e.id === item.employeeId);
       const nameMatch = emp?.name.toLowerCase().includes(searchTerm.toLowerCase());
       if (!nameMatch) return false;
 
-      // Date Range
       if (dateFrom && item.date < dateFrom) return false;
       if (dateTo && item.date > dateTo) return false;
 
@@ -67,7 +65,6 @@ const Production: React.FC<Props> = ({ employees, items, onSave, onDelete, archi
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 no-print">
         <div className="flex items-center gap-4">
            <div className={`p-4 rounded-2xl ${archiveMode ? 'bg-amber-100 text-amber-600' : 'bg-indigo-100 text-indigo-600'}`}>
@@ -85,11 +82,10 @@ const Production: React.FC<Props> = ({ employees, items, onSave, onDelete, archi
           <button onClick={onToggleArchive} className={`px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg transition-all ${archiveMode ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700'}`}>
              {archiveMode ? <Calendar size={20}/> : <Archive size={20}/>} {archiveMode ? 'العودة للمهام' : 'الأرشيف'}
           </button>
-          <button onClick={() => window.print()} className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg"><Printer size={20} /> طباعة التقرير</button>
+          <button onClick={() => window.print()} className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg"><Printer size={20} /> طباعة القائمة</button>
         </div>
       </div>
 
-      {/* Filters Bar */}
       <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-lg border dark:border-slate-800 grid grid-cols-1 md:grid-cols-3 gap-4 no-print items-end">
          <div className="relative">
             <Search className="absolute right-4 top-3.5 text-slate-400" size={18}/>
@@ -102,7 +98,6 @@ const Production: React.FC<Props> = ({ employees, items, onSave, onDelete, archi
          <button onClick={() => {setSearchTerm(''); setDateFrom(''); setDateTo('');}} className="p-3 bg-slate-100 text-slate-500 rounded-2xl font-black text-xs hover:bg-slate-200 transition">إعادة تعيين الفلاتر</button>
       </div>
 
-      {/* Table */}
       <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border dark:border-slate-800 overflow-hidden overflow-x-auto">
         <table className="w-full text-right">
           <thead className="bg-indigo-900 text-white border-b">
@@ -123,6 +118,9 @@ const Production: React.FC<Props> = ({ employees, items, onSave, onDelete, archi
                 <td className="px-6 py-5 text-center font-black text-emerald-600">{(item.totalValue || 0).toLocaleString()}</td>
                 <td className="px-6 py-5 text-center no-print">
                   <div className="flex justify-center gap-2">
+                    {onPrintIndividual && (
+                      <button onClick={() => onPrintIndividual(item)} title="طباعة الإشعار" className="p-2 text-slate-500 rounded-lg hover:bg-slate-100 transition"><Printer size={16}/></button>
+                    )}
                     {!archiveMode && (
                       <button onClick={() => handleArchive(item)} title="نقل للأرشيف" className="p-2 text-amber-600 rounded-lg hover:bg-amber-50 transition"><Archive size={16}/></button>
                     )}

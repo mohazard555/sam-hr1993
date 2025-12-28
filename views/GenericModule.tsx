@@ -12,6 +12,7 @@ interface GenericModuleProps<T> {
   onSave: (item: T) => void;
   onDelete: (id: string) => void;
   onPrint?: () => void;
+  onPrintIndividual?: (item: T) => void;
   archiveMode: boolean;
   onToggleArchive: () => void;
   renderForm: (formData: Partial<T>, setFormData: React.Dispatch<React.SetStateAction<Partial<T>>>) => React.ReactNode;
@@ -21,13 +22,12 @@ interface GenericModuleProps<T> {
 }
 
 export function GenericModule<T extends { id: string; employeeId: string; date?: string; startDate?: string; endDate?: string; amount?: number; type?: string; remainingAmount?: number; isPaid?: boolean; isArchived?: boolean; status?: string }>({ 
-  title, lang, employees, items, onSave, onDelete, onPrint, archiveMode, onToggleArchive, renderForm, renderRow, tableHeaders, initialData 
+  title, lang, employees, items, onSave, onDelete, onPrint, onPrintIndividual, archiveMode, onToggleArchive, renderForm, renderRow, tableHeaders, initialData 
 }: GenericModuleProps<T>) {
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState<Partial<T>>(initialData);
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Date Filtering States
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   
@@ -37,17 +37,14 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
     let list = (items || []).filter(item => {
       if (!item) return false;
       
-      // Archive Filter Logic
       const archived = item.isArchived === true || (item.remainingAmount !== undefined && item.remainingAmount <= 0) || (item.status === 'approved' || item.status === 'rejected');
       if (archiveMode && !archived) return false;
       if (!archiveMode && archived) return false;
 
-      // Employee Search Filter
       const emp = employees.find(e => e.id === item.employeeId);
       const nameMatch = emp?.name.toLowerCase().includes(searchTerm.toLowerCase());
       if (!nameMatch) return false;
 
-      // Date Range Filter
       const itemDate = item.date || item.startDate;
       if (itemDate) {
         if (dateFrom && itemDate < dateFrom) return false;
@@ -77,7 +74,6 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
 
   return (
     <div className="space-y-6">
-      {/* Header & Controls */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 no-print">
         <div className="flex items-center gap-4">
            <div className={`p-4 rounded-2xl ${archiveMode ? 'bg-amber-100 text-amber-600' : 'bg-indigo-100 text-indigo-600'}`}>
@@ -96,11 +92,10 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
              {archiveMode ? <Calendar size={20}/> : <History size={20}/>} {archiveMode ? 'العودة للمهام' : 'سجل الأرشيف'}
           </button>
           <button onClick={() => exportToExcel(filteredItems, title)} className="bg-emerald-600 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg"><FileDown size={20} /> Excel</button>
-          {onPrint && <button onClick={onPrint} className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg"><Printer size={20} /> طباعة</button>}
+          {onPrint && <button onClick={onPrint} className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg"><Printer size={20} /> طباعة القائمة</button>}
         </div>
       </div>
 
-      {/* Filters Bar */}
       <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-lg border dark:border-slate-800 grid grid-cols-1 md:grid-cols-3 gap-4 no-print items-end">
          <div className="relative">
             <Search className="absolute right-4 top-3.5 text-slate-400" size={18}/>
@@ -113,7 +108,6 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
          <button onClick={() => {setSearchTerm(''); setDateFrom(''); setDateTo('');}} className="p-3 bg-slate-100 text-slate-500 rounded-2xl font-black text-xs hover:bg-slate-200 transition">إعادة تعيين الفلاتر</button>
       </div>
 
-      {/* Data Table */}
       <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border dark:border-slate-800 overflow-hidden overflow-x-auto">
         <table className="w-full text-right">
           <thead className="bg-slate-50 dark:bg-slate-800 border-b">
@@ -128,6 +122,9 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
                 {renderRow(item, employees.find(e => e.id === item.employeeId)?.name || 'Unknown')}
                 <td className="px-6 py-5 text-center no-print">
                   <div className="flex justify-center gap-2">
+                    {onPrintIndividual && (
+                      <button onClick={() => onPrintIndividual(item)} title="طباعة السند" className="p-2 text-slate-500 rounded-lg hover:bg-slate-100"><Printer size={16}/></button>
+                    )}
                     {!archiveMode && (
                       <button onClick={() => handleArchive(item)} title="نقل للأرشيف" className="p-2 text-amber-600 rounded-lg hover:bg-amber-50"><Archive size={16}/></button>
                     )}
@@ -144,7 +141,6 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
         </table>
       </div>
 
-      {/* Entry Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xl z-[150] flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl w-full max-w-2xl border dark:border-slate-800">

@@ -46,48 +46,50 @@
             }
 
             @page {
-                size: A4;
-                margin: 1.5cm;
+                margin: 1cm;
             }
+
+            body.print-portrait { width: 210mm; }
+            body.print-landscape { width: 297mm; }
 
             .vouchers-grid {
                 display: grid !important;
                 grid-template-columns: repeat(2, 1fr) !important;
-                gap: 15px !important;
+                grid-template-rows: repeat(3, 1fr) !important;
+                gap: 10px !important;
+                width: 100% !important;
+                height: 270mm !important; /* ضمان بقاء الـ 6 في صفحة واحدة */
+                page-break-after: always;
             }
 
-            .voucher-container {
-                border: 1px solid #ccc !important;
-                padding: 15px !important;
-                page-break-inside: avoid;
-                margin-bottom: 10px;
+            .voucher-card {
+                border: 1px solid #000 !important;
+                padding: 10px !important;
                 border-radius: 8px !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-between !important;
+                font-size: 9pt !important;
             }
 
-            table { 
-                width: 100% !important; 
-                border-collapse: collapse !important; 
-                margin-top: 10px !important;
+            .print-logo-small {
+                height: 40px !important;
+                width: auto !important;
+                object-contain: contain !important;
             }
-            th, td { 
-                border: 1px solid #ddd !important; 
-                padding: 8px !important; 
-                font-size: 10pt !important;
-                text-align: right !important; /* ضمان محاذاة اليمين */
-            }
-            th {
-                background-color: #f8fafc !important;
-                font-weight: bold !important;
-            }
-            
-            .print-header {
+
+            .print-header-modern {
                 display: flex !important;
                 justify-content: space-between !important;
                 align-items: center !important;
-                border-bottom: 3px solid #000 !important;
-                padding-bottom: 10px !important;
-                margin-bottom: 20px !important;
+                border-bottom: 2px solid #000 !important;
+                padding-bottom: 5px !important;
+                margin-bottom: 15px !important;
             }
+
+            table { width: 100% !important; border-collapse: collapse !important; }
+            th, td { border: 1px solid #000 !important; padding: 4px !important; font-size: 10pt !important; text-align: right !important; }
+            th { background-color: #f0f0f0 !important; }
         }
         
         .print-only { display: none; }
