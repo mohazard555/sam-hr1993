@@ -32,18 +32,22 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang
     { id: 'financials', label: t('financials'), icon: Wallet, roles: ['admin', 'manager'] },
     { id: 'loans', label: t('loans'), icon: CreditCard, roles: ['admin', 'manager'] },
     { id: 'production', label: t('production'), icon: Zap, roles: ['admin', 'manager'] },
-    { id: 'payroll', label: t('payroll'), icon: BarChart3, roles: ['admin'] },
+    { id: 'payroll', label: t('payroll'), icon: BarChart3, roles: ['admin', 'manager'] },
     { id: 'documents', label: isRtl ? 'النماذج المطبوعة' : 'Print Forms', icon: ClipboardList, roles: ['admin', 'manager'] },
     { id: 'reports', label: isRtl ? 'التقارير النوعية' : 'Reports', icon: FileText, roles: ['admin', 'manager'] },
     { id: 'settings', label: t('settings'), icon: SettingsIcon, roles: ['admin'] },
   ];
 
-  const filteredMenu = menuItems.filter(item => currentUser && (currentUser.role === 'admin' || item.roles.includes(currentUser.role)));
+  const filteredMenu = menuItems.filter(item => {
+    if (!currentUser) return false;
+    if (currentUser.role === 'admin') return true;
+    return item.roles.includes(currentUser.role);
+  });
 
   return (
     <div className={`flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden ${isRtl ? 'text-right' : 'text-left'}`} dir={isRtl ? 'rtl' : 'ltr'}>
       {/* Sidebar */}
-      <aside className="w-64 bg-indigo-950 text-white flex flex-col no-print border-l dark:border-slate-800">
+      <aside className="w-64 bg-indigo-950 text-white flex flex-col no-print border-l dark:border-slate-800 transition-all duration-300">
         <div className="p-6 border-b border-indigo-900">
           <h1 className="text-2xl font-black text-indigo-400 flex items-center gap-2">
             <div className="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/50">S</div>
@@ -56,9 +60,9 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                 activeTab === item.id 
-                ? 'bg-indigo-600 text-white shadow-lg' 
+                ? 'bg-indigo-600 text-white shadow-lg scale-105' 
                 : 'text-indigo-300 hover:bg-indigo-900 hover:text-white'
               }`}
             >
@@ -69,10 +73,10 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang
         </nav>
         <div className="p-4 border-t border-indigo-900 bg-indigo-950/50">
           <div className="flex items-center justify-between mb-4 bg-indigo-900/40 p-2 rounded-lg">
-             <button onClick={toggleTheme} className="p-2 hover:bg-indigo-800 rounded-lg text-indigo-300">
+             <button onClick={toggleTheme} className="p-2 hover:bg-indigo-800 rounded-lg text-indigo-300 transition">
                 {theme === 'light' ? <Moon size={20}/> : <Sun size={20}/>}
              </button>
-             <button onClick={onLogout} className="p-2 hover:bg-red-500/20 text-red-400 rounded-lg">
+             <button onClick={onLogout} className="p-2 hover:bg-red-500/20 text-red-400 rounded-lg transition">
                 <LogOut size={20} />
              </button>
           </div>
@@ -84,25 +88,25 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0">
-        <header className="h-16 bg-white dark:bg-slate-900 border-b dark:border-slate-800 flex items-center justify-between px-8 no-print shadow-sm">
+      <main className="flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
+        <header className="h-16 bg-white dark:bg-slate-900 border-b dark:border-slate-800 flex items-center justify-between px-8 no-print shadow-sm z-10">
           <div>
             <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 uppercase tracking-wide">
               {menuItems.find(m => m.id === activeTab)?.label}
             </h2>
           </div>
           <div className="flex items-center gap-4">
-             <div className="hidden md:block">
-                <p className="text-xs text-slate-700 dark:text-slate-400 font-black text-left">{currentUser?.name}</p>
-                <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-black uppercase text-left">{currentUser?.role}</p>
+             <div className="hidden md:block text-right">
+                <p className="text-xs text-slate-700 dark:text-slate-400 font-black">{currentUser?.name}</p>
+                <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-black uppercase tracking-widest">{currentUser?.role}</p>
              </div>
-             <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center border dark:border-slate-700">
+             <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center border dark:border-slate-700 shadow-sm">
                 <Users size={20} className="text-indigo-600 dark:text-indigo-500" />
              </div>
           </div>
         </header>
 
-        <section className="flex-1 overflow-y-auto p-8">
+        <section className="flex-1 overflow-y-auto p-8 relative">
           {children}
         </section>
       </main>

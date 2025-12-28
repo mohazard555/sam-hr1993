@@ -86,7 +86,7 @@ export interface Loan {
 export interface LeaveRequest {
   id: string;
   employeeId: string;
-  type: 'annual' | 'sick' | 'unpaid' | 'emergency' | 'marriage' | 'death';
+  type: 'annual' | 'sick' | 'unpaid' | 'emergency' | 'marriage' | 'death' | 'maternity' | 'hajj';
   startDate: string;
   endDate: string;
   status: 'pending' | 'approved' | 'rejected';
