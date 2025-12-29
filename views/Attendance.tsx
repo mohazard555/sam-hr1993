@@ -54,8 +54,6 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
     setCheckOut(r.checkOut);
     setDate(r.date);
     if (showArchive) {
-        // إذا كنا في الأرشيف نفتح النموذج في مودال صغير أو نعود للواجهة
-        // للخيار الأبسط سنغلق الأرشيف ونفعل وضع التعديل
         setShowArchive(false);
     }
   };
@@ -129,9 +127,6 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {filteredRecords.map(r => {
                     const emp = employees.find(e => e.id === r.employeeId);
-                    const officialIn = emp?.customCheckIn || settings.officialCheckIn;
-                    const officialOut = emp?.customCheckOut || settings.officialCheckOut;
-                    const requiredMins = calculateTimeDiffMinutes(officialOut, officialIn);
                     const actualMins = calculateTimeDiffMinutes(r.checkOut, r.checkIn);
                     
                     return (
@@ -144,10 +139,7 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
                            <span className="bg-indigo-50 dark:bg-indigo-900/20 px-4 py-2 rounded-xl text-indigo-700 dark:text-indigo-400">{r.checkIn} - {r.checkOut}</span>
                         </td>
                         <td className="text-center">
-                          <div className="flex flex-col text-[10px] font-black items-center">
-                            <span className="text-slate-400">المستحقة: {formatHours(requiredMins)}</span>
-                            <span className="text-indigo-600 font-black border-t dark:border-slate-700 mt-1 pt-1">الفعلية: {formatHours(actualMins)}</span>
-                          </div>
+                          <span className="text-indigo-600 font-black pt-1">{formatHours(actualMins)}</span>
                         </td>
                         <td className="text-center">
                           <div className="flex flex-col items-center gap-1">
@@ -228,8 +220,8 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
                       <td className={`text-center ${r.lateMinutes > 0 ? 'text-rose-600 font-black' : ''}`}>{r.lateMinutes}</td>
                       <td className="text-center no-print">
                          <div className="flex justify-center gap-2">
-                           <button onClick={() => handleEdit(r)} className="p-2 text-indigo-600 rounded-lg hover:bg-indigo-50"><Edit2 size={16}/></button>
-                           <button onClick={() => onDeleteRecord(r.id)} className="p-2 text-rose-600 rounded-lg hover:bg-rose-50"><Trash2 size={16}/></button>
+                           <button onClick={() => handleEdit(r)} title="تعديل السجل" className="p-2 text-indigo-600 rounded-lg hover:bg-indigo-50"><Edit2 size={16}/></button>
+                           <button onClick={() => onDeleteRecord(r.id)} title="حذف نهائي" className="p-2 text-rose-600 rounded-lg hover:bg-rose-50"><Trash2 size={16}/></button>
                          </div>
                       </td>
                     </tr>

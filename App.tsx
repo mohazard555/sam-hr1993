@@ -277,17 +277,17 @@ const App: React.FC = () => {
         <div className="space-y-6">
           <div className="bg-white dark:bg-slate-900 p-10 rounded-[2.5rem] shadow-xl border dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-6 no-print">
              <div className="text-right flex-1">
-                <h2 className="text-4xl font-black text-indigo-700 tracking-tighter">مسير الرواتب</h2>
+                <h2 className="text-4xl font-black text-[#4f46e5] tracking-tighter">مسير الرواتب</h2>
                 <p className="text-sm font-bold text-slate-500 mt-1">شهر {historyFilter.month} عام {historyFilter.year}</p>
              </div>
              <div className="flex flex-wrap gap-3">
                 <button 
                   onClick={() => setIndividualPrintItem({ title: 'قسائم رواتب الموظفين', type: 'vouchers', data: displayedPayroll })}
-                  className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-2 shadow-xl hover:bg-indigo-700 transition"
+                  className="bg-[#4f46e5] text-white px-8 py-4 rounded-2xl font-black flex items-center gap-2 shadow-xl hover:bg-indigo-700 transition"
                 >
                   <ReceiptText size={20}/> القسائم (Cards)
                 </button>
-                <button onClick={() => setShowPrintChoice(true)} className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-2 shadow-xl hover:bg-slate-950 transition">
+                <button onClick={() => setShowPrintChoice(true)} className="bg-[#0f172a] text-white px-8 py-4 rounded-2xl font-black flex items-center gap-2 shadow-xl hover:bg-slate-950 transition">
                   <Printer size={20}/> طباعة الكشف
                 </button>
              </div>
@@ -299,6 +299,7 @@ const App: React.FC = () => {
                  <tr>
                    <th className="px-6 py-5 text-right font-black">الموظف</th>
                    <th className="px-2 py-5 font-black border-r border-white/10">الأيام</th>
+                   <th className="px-4 py-5 font-black border-r border-white/10">ساعات العمل</th>
                    <th className="px-4 py-5 font-black border-r border-white/10">الأساسي</th>
                    <th className="px-4 py-5 font-black border-r border-white/10">الإضافي</th>
                    <th className="px-4 py-5 font-black border-r border-white/10">الإنتاج</th>
@@ -313,12 +314,13 @@ const App: React.FC = () => {
                    <tr key={p.id} className="hover:bg-slate-50 transition font-bold">
                      <td className="px-6 py-5 text-right font-black text-slate-900">{db.employees.find(e => e.id === p.employeeId)?.name}</td>
                      <td className="px-2 py-5 text-slate-700">{p.workingDays}</td>
+                     <td className="px-4 py-5 text-slate-700">{p.workingHours} س</td>
                      <td className="px-4 py-5 text-slate-900">{p.baseSalary.toLocaleString()}</td>
                      <td className="px-4 py-5 text-emerald-600">+{p.overtimePay.toLocaleString()}</td>
                      <td className="px-4 py-5 text-emerald-600">+{p.production.toLocaleString()}</td>
                      <td className="px-4 py-5 text-emerald-600">+{p.bonuses.toLocaleString()}</td>
                      <td className="px-4 py-5 text-rose-600">-{p.deductions.toLocaleString()}</td>
-                     <td className="px-4 py-5 text-indigo-600">{p.transport.toLocaleString()}</td>
+                     <td className="px-4 py-5 text-[#4f46e5]">{p.transport.toLocaleString()}</td>
                      <td className="px-10 py-5 font-black text-indigo-900 bg-indigo-50/50">{p.netSalary.toLocaleString()}</td>
                    </tr>
                  ))}
@@ -437,7 +439,7 @@ const App: React.FC = () => {
                                <span className="text-3xl font-black text-indigo-900">{data.endDate}</span>
                              </div>
                           </div>
-                          <div className="bg-indigo-600 text-white p-12 rounded-[3rem] shadow-2xl scale-110">
+                          <div className="bg-[#4f46e5] text-white p-12 rounded-[3rem] shadow-2xl scale-110">
                              <p className="text-[12px] opacity-70 mb-3 uppercase font-black tracking-widest">نوع الإجازة المطلوبة</p>
                              <p className="text-5xl font-black">{leaveTypesAr[data.type] || 'إجازة'}</p>
                              <div className="mt-6 pt-6 border-t border-white/20 font-black text-xl">
