@@ -1,5 +1,5 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
-import ReactDOM from 'react-dom/client';
 import Layout from './components/Layout';
 import Dashboard from './views/Dashboard';
 import Employees from './views/Employees';
@@ -50,11 +50,11 @@ const App: React.FC = () => {
   const currentYear = new Date().getFullYear();
 
   const currentPayrolls = useMemo(() => generateMonthlyPayroll(
-    currentMonth, currentYear, db.employees, 
-    db.attendance.filter(a => !a.isArchived), 
-    db.loans.filter(l => !l.isArchived), 
-    db.financials.filter(f => !f.isArchived), 
-    db.production.filter(p => !p.isArchived), 
+    currentMonth, currentYear, db.employees || [], 
+    db.attendance?.filter(a => !a.isArchived) || [], 
+    db.loans?.filter(l => !l.isArchived) || [], 
+    db.financials?.filter(f => !f.isArchived) || [], 
+    db.production?.filter(p => !p.isArchived) || [], 
     db.settings
   ), [currentMonth, currentYear, db]);
 
@@ -73,16 +73,9 @@ const App: React.FC = () => {
     setDb(prev => ({ ...prev, [key]: (prev[key] as any[]).filter((i:any) => id !== i.id) }));
   };
 
-  const executePrintAction = (content: React.ReactNode) => {
-    const printRoot = document.getElementById('print-root');
-    if (printRoot) {
-      // Use createRoot for React 18 compatibility instead of deprecated ReactDOM.render
-      const root = ReactDOM.createRoot(printRoot);
-      root.render(<div className="p-8 dir-rtl text-right font-cairo bg-white">{content}</div>);
-      window.print();
-      // Clean up the root after printing to avoid React internal state issues
-      root.unmount();
-    }
+  // محرك الطباعة الجديد: يعتمد على حاوية الطباعة داخل React
+  const handleFinalPrint = () => {
+    window.print();
   };
 
   const leaveTypesAr: Record<string, string> = {
@@ -90,98 +83,90 @@ const App: React.FC = () => {
   };
 
   const financialTypesAr: Record<string, string> = {
-    'bonus': 'مكافأة', 'deduction': 'خصم', 'production_incentive': 'حافز إنتاج', 'payment': 'سند صرف'
+    'bonus': 'مكافأة', 'deduction': 'خصم إداري', 'production_incentive': 'حافز إنتاج', 'payment': 'سند صرف'
   };
 
   // --- مكونات قوالب الطباعة الفنية ---
 
   const PrintableHeader = ({ title }: { title: string }) => (
-    <div className="flex justify-between items-center border-b-4 border-indigo-900 pb-4 mb-8">
+    <div className="flex justify-between items-center border-b-8 border-indigo-900 pb-6 mb-10">
       <div className="text-right">
-        <h1 className="text-3xl font-black text-indigo-700">{db.settings.name}</h1>
-        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{title}</p>
+        <h1 className="text-4xl font-black text-indigo-800">{db.settings.name}</h1>
+        <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mt-1">{title}</p>
       </div>
-      {db.settings.logo && <img src={db.settings.logo} className="h-16 w-auto object-contain" />}
+      {db.settings.logo && <img src={db.settings.logo} className="h-20 w-auto object-contain" />}
       <div className="text-left text-[10px] font-black text-slate-300">
-        <p>تاريخ الاستخراج: {new Date().toLocaleDateString('ar-EG')}</p>
-      </div>
-    </div>
-  );
-
-  const PrintableSignatures = () => (
-    <div className="grid grid-cols-3 gap-10 mt-20 pt-10 border-t-2 border-slate-100 text-center">
-      <div className="space-y-6">
-        <p className="text-xs font-black text-slate-400 uppercase">توقيع الموظف</p>
-        <div className="border-b-2 border-slate-900 mx-10"></div>
-      </div>
-      <div className="space-y-6">
-        <p className="text-xs font-black text-slate-400 uppercase">قسم الحسابات</p>
-        <div className="border-b-2 border-slate-900 mx-10"></div>
-      </div>
-      <div className="space-y-6">
-        <p className="text-xs font-black text-slate-400 uppercase">إدارة المؤسسة / الاعتماد</p>
-        <div className="border-b-2 border-slate-900 mx-10"></div>
+        <p>الرقم المرجعي: {Math.random().toString(36).substr(2, 6).toUpperCase()}</p>
+        <p>تاريخ الإصدار: {new Date().toLocaleDateString('ar-EG')}</p>
       </div>
     </div>
   );
 
   const DocumentPrintCard = ({ title, type, data }: { title: string, type: PrintType, data: any }) => {
-    const emp = db.employees.find(e => e.id === data.employeeId) || { name: data.employeeName || '.......' };
+    const emp = db.employees.find(e => e.id === data.employeeId) || { name: data.employeeName || '.......', department: 'غير محدد' };
     return (
-      <div className="bg-white p-10 print-card max-w-4xl mx-auto rounded-[3rem] border border-slate-100 shadow-sm">
+      <div className="bg-white p-12 print-card max-w-5xl mx-auto rounded-[3rem] border border-slate-200">
         <PrintableHeader title={title} />
         
         <div className="space-y-12">
-           <div className="flex justify-between items-center border-b-2 border-slate-50 pb-6">
-             <span className="text-xl font-black text-indigo-900">الاسم الكامل للموظف:</span>
-             <span className="text-4xl font-black text-slate-900 bg-indigo-50/50 px-8 py-2 rounded-2xl">{emp.name}</span>
+           <div className="flex justify-between items-center bg-slate-50 p-6 rounded-3xl border border-slate-100">
+             <div className="space-y-2 text-right">
+                <span className="text-xs font-black text-indigo-400 block uppercase">الاسم الكامل للموظف:</span>
+                <span className="text-4xl font-black text-slate-900">{emp.name}</span>
+             </div>
+             <div className="text-left space-y-2">
+                <span className="text-xs font-black text-slate-400 block uppercase">القسم الإداري:</span>
+                <span className="text-xl font-bold text-indigo-700">{emp.department}</span>
+             </div>
            </div>
 
-           <div className="relative border-2 border-dashed border-indigo-200 rounded-[3rem] p-10 bg-white">
-              <span className="absolute -top-4 right-12 bg-white px-6 text-[10px] font-black text-indigo-700 uppercase border rounded-full">بيانات الوثيقة المعتمدة</span>
+           <div className="relative border-4 border-dashed border-indigo-200 rounded-[3rem] p-12 bg-white shadow-inner">
+              <span className="absolute -top-5 right-12 bg-indigo-600 px-8 py-2 text-xs font-black text-white uppercase rounded-full shadow-lg">بيانات الوثيقة المعتمدة</span>
               
-              <div className="flex flex-col md:flex-row items-center gap-10">
-                 <div className="bg-[#4f46e5] text-white p-10 rounded-[2.5rem] shadow-2xl text-center min-w-[220px]">
+              <div className="flex flex-col md:flex-row items-center gap-12">
+                 <div className="bg-indigo-900 text-white p-14 rounded-[3rem] shadow-2xl text-center min-w-[280px]">
                     <p className="text-[10px] opacity-70 mb-2 font-black uppercase tracking-widest">نوع الإجراء</p>
-                    <p className="text-4xl font-black">
+                    <p className="text-5xl font-black">
                        {type === 'leave' ? leaveTypesAr[data.type] : 
                         type === 'financial' ? financialTypesAr[data.type] : 
                         type === 'loan' ? 'سند سلفة' : 
-                        type === 'production' ? 'إنتاجية' : 'مستند'}
+                        type === 'production' ? 'إنتاجية' : 'مستند إداري'}
                     </p>
-                    <div className="mt-4 pt-4 border-t border-white/20 font-bold text-lg">
-                       {type === 'leave' && (data.isPaid ? 'إجازة مأجورة' : 'بدون راتب')}
-                       {type === 'financial' && `${data.amount?.toLocaleString()} ${db.settings.currency}`}
+                    <div className="mt-8 pt-8 border-t border-white/20 font-bold text-2xl">
+                       {data.isPaid === true && 'إجازة مأجورة بالكامل'}
+                       {data.isPaid === false && 'إجازة بدون راتب'}
+                       {data.amount && `${data.amount.toLocaleString()} ${db.settings.currency}`}
                     </div>
                  </div>
 
-                 <div className="flex-1 space-y-6 text-right">
+                 <div className="flex-1 space-y-8 text-right">
                     {type === 'leave' && (
-                      <div className="space-y-4">
-                         <p className="text-2xl font-bold flex justify-between border-r-4 border-indigo-600 pr-4"><span>من تاريخ:</span> <span className="font-black text-indigo-900">{data.startDate}</span></p>
-                         <p className="text-2xl font-bold flex justify-between border-r-4 border-indigo-600 pr-4"><span>إلى تاريخ:</span> <span className="font-black text-indigo-900">{data.endDate}</span></p>
+                      <div className="space-y-6">
+                         <div className="flex justify-between items-center border-r-8 border-indigo-600 pr-6">
+                            <span className="text-xl font-bold text-slate-500">من تاريخ:</span>
+                            <span className="text-3xl font-black text-indigo-900">{data.startDate}</span>
+                         </div>
+                         <div className="flex justify-between items-center border-r-8 border-indigo-600 pr-6">
+                            <span className="text-xl font-bold text-slate-500">إلى تاريخ:</span>
+                            <span className="text-3xl font-black text-indigo-900">{data.endDate}</span>
+                         </div>
                       </div>
                     )}
-                    {type === 'loan' && (
-                      <div className="space-y-3">
-                         <p className="text-2xl font-black text-indigo-900">إجمالي السلفة: {data.amount?.toLocaleString()}</p>
-                         <p className="text-xl font-bold">القسط الشهري: {data.monthlyInstallment?.toLocaleString()}</p>
-                      </div>
+                    {(data.reason || data.notes) && (
+                       <div className="p-6 bg-slate-50 rounded-2xl border-2 border-indigo-100 italic text-slate-700 font-bold text-xl leading-relaxed">
+                          "{data.reason || data.notes}"
+                       </div>
                     )}
-                    {type === 'document' && <p className="text-2xl font-bold italic leading-relaxed text-slate-700">{data.notes}</p>}
                  </div>
               </div>
            </div>
-
-           {(data.reason || data.notes) && type !== 'document' && (
-              <div className="p-8 bg-slate-50 rounded-[2rem] border-r-8 border-indigo-600 shadow-inner">
-                 <p className="text-xs font-black text-indigo-400 mb-2 uppercase tracking-widest">ملاحظات إضافية:</p>
-                 <p className="text-xl font-bold leading-relaxed text-slate-800 italic">{data.reason || data.notes}</p>
-              </div>
-           )}
         </div>
 
-        <PrintableSignatures />
+        <div className="grid grid-cols-3 gap-12 mt-24 text-center border-t pt-12">
+           <div className="space-y-4"><p className="text-[10px] font-black text-slate-400 uppercase">توقيع الموظف</p><div className="border-b-2 border-slate-900 w-2/3 mx-auto mt-8"></div></div>
+           <div className="space-y-4"><p className="text-[10px] font-black text-slate-400 uppercase">قسم الحسابات</p><div className="border-b-2 border-slate-900 w-2/3 mx-auto mt-8"></div></div>
+           <div className="space-y-4"><p className="text-[10px] font-black text-slate-400 uppercase">اعتماد الإدارة</p><div className="border-b-2 border-slate-900 w-2/3 mx-auto mt-8"></div></div>
+        </div>
       </div>
     );
   };
@@ -191,31 +176,28 @@ const App: React.FC = () => {
       {payrolls.map(p => {
         const emp = db.employees.find(e => e.id === p.employeeId);
         return (
-          <div key={p.id} className="print-card border-2 border-slate-200 p-6 rounded-[2rem] bg-white relative overflow-hidden">
-            <div className="flex justify-between items-center border-b pb-3 mb-4">
+          <div key={p.id} className="print-card border-2 border-slate-200 p-8 rounded-[2rem] bg-white relative">
+            <div className="flex justify-between items-start border-b-2 border-indigo-100 pb-4 mb-6">
                <div className="text-right">
-                  <p className="text-[10px] font-black text-indigo-600">إيصال استلام راتب</p>
-                  <h3 className="text-lg font-black">{emp?.name}</h3>
+                  <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">إيصال صرف راتب</p>
+                  <h3 className="text-xl font-black text-slate-900">{emp?.name}</h3>
                </div>
-               <div className="text-left text-[8px] font-bold text-slate-400">
-                  <p>{p.month}/{p.year}</p>
-                  <p>ID: {p.id.split('-')[0]}</p>
+               <div className="text-left text-[9px] font-bold text-slate-400">
+                  <p>الفترة: {p.month}/{p.year}</p>
+                  <p>صافي: {p.netSalary.toLocaleString()}</p>
                </div>
             </div>
-            <div className="space-y-2 text-[10px] font-bold">
+            <div className="space-y-2 text-[11px] font-bold">
                <div className="flex justify-between"><span>الراتب الأساسي:</span> <span>{p.baseSalary.toLocaleString()}</span></div>
-               <div className="flex justify-between text-indigo-600"><span>بدل مواصلات:</span> <span>+{p.transport.toLocaleString()}</span></div>
-               <div className="flex justify-between text-emerald-600"><span>إضافي + إنتاج + مكافأة:</span> <span>+{(p.overtimePay + p.production + p.bonuses).toLocaleString()}</span></div>
-               <div className="flex justify-between text-rose-600 border-b pb-2"><span>إجمالي الخصومات والسلف:</span> <span>-{p.deductions.toLocaleString()}</span></div>
-               <div className="flex justify-between text-lg font-black text-indigo-900 pt-2">
-                 <span>الصافي المستلم:</span> 
-                 <span>{p.netSalary.toLocaleString()} {db.settings.currency}</span>
+               <div className="flex justify-between text-indigo-600"><span>بدل المواصلات:</span> <span>+{p.transport.toLocaleString()}</span></div>
+               <div className="flex justify-between text-emerald-600"><span>إضافي ساعات:</span> <span>+{p.overtimePay.toLocaleString()} ({ (p.overtimeMinutes / 60).toFixed(1) } س)</span></div>
+               <div className="flex justify-between text-rose-600"><span>تأخير ساعات:</span> <span>-{p.lateDeduction.toLocaleString()} ({ (p.lateMinutes / 60).toFixed(1) } س)</span></div>
+               <div className="flex justify-between text-rose-600"><span>سداد سلف:</span> <span>-{p.loanInstallment.toLocaleString()}</span></div>
+               <div className="flex justify-between text-xl font-black text-indigo-900 pt-4 mt-4 border-t-4 border-indigo-900">
+                 <span>المبلغ الصافي:</span> <span>{p.netSalary.toLocaleString()} {db.settings.currency}</span>
                </div>
             </div>
-            <div className="mt-8 flex justify-between text-[8px] opacity-60">
-              <span>توقيع الموظف: .................</span>
-              <span>{db.settings.name}</span>
-            </div>
+            <div className="mt-8 flex justify-between text-[9px] opacity-60"><span>توقيع الموظف: .................</span> <span>توقيع الحسابات: .................</span></div>
           </div>
         );
       })}
@@ -227,7 +209,7 @@ const App: React.FC = () => {
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 font-cairo" dir="rtl">
-        <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl w-full max-w-md border dark:border-slate-800 overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl w-full max-w-md border dark:border-slate-800 overflow-hidden relative">
           <div className="bg-indigo-600 p-12 text-white text-center">
             <h1 className="text-4xl font-black tracking-tighter">SAM HRMS</h1>
             <p className="text-xs font-bold mt-2 opacity-80 uppercase tracking-widest">إدارة الموارد البشرية المتطورة</p>
@@ -238,7 +220,7 @@ const App: React.FC = () => {
             <button className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black text-lg shadow-xl hover:bg-indigo-700 transition">دخول النظام</button>
             <div className="text-center">
                <button type="button" onClick={() => setShowForgotHint(!showForgotHint)} className="text-xs font-black text-indigo-500">نسيت كلمة السر؟</button>
-               {showForgotHint && <div className="mt-4 p-4 bg-amber-50 rounded-2xl text-xs font-bold text-amber-700 border border-amber-100">تلميح: {db.settings.passwordHint}</div>}
+               {showForgotHint && <div className="mt-4 p-4 bg-amber-50 rounded-2xl text-xs font-bold text-amber-700 border border-amber-100 animate-in fade-in slide-in-from-top-2">تلميح المسؤول: {db.settings.passwordHint}</div>}
             </div>
           </form>
         </div>
@@ -250,7 +232,7 @@ const App: React.FC = () => {
     switch (activeTab) {
       case 'dashboard': return <Dashboard employeesCount={db.employees.length} todayAttendance={db.attendance.filter(a => a.date === new Date().toISOString().split('T')[0]).length} totalLoans={db.loans.reduce((acc, l) => acc + (l.remainingAmount || 0), 0)} totalSalaryBudget={currentPayrolls.reduce((acc, p) => acc + p.netSalary, 0)} />;
       case 'employees': return <Employees employees={db.employees} departments={db.departments} settings={db.settings} onAdd={e => updateList('employees', e)} onDelete={id => deleteFromList('employees', id)} />;
-      case 'departments': return <Departments departments={db.departments} employees={db.employees} onUpdate={depts => setDb({...db, departments: depts})} onUpdateEmployee={emp => updateList('employees', emp)} />;
+      case 'departments': return <Departments departments={db.departments || []} employees={db.employees || []} onUpdate={depts => setDb({...db, departments: depts})} onUpdateEmployee={emp => updateList('employees', emp)} />;
       case 'attendance': return <Attendance employees={db.employees} records={db.attendance} settings={db.settings} onSaveRecord={r => updateList('attendance', r)} onDeleteRecord={id => deleteFromList('attendance', id)} lang={db.settings.language} onPrint={() => window.print()} />;
       case 'leaves': return (
         <GenericModule<LeaveRequest> 
@@ -341,7 +323,7 @@ const App: React.FC = () => {
         <div className="space-y-8">
           <div className="bg-white dark:bg-slate-900 p-10 rounded-[3rem] shadow-xl border dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-6 no-print">
              <div className="text-right flex-1">
-                <h2 className="text-4xl font-black text-indigo-700 tracking-tighter flex items-center gap-3">مسير الرواتب <span className="text-lg bg-slate-100 px-4 py-1 rounded-full text-slate-500 font-bold">شهر {currentMonth} عام {currentYear}</span></h2>
+                <h2 className="text-4xl font-black text-indigo-700 tracking-tighter flex items-center gap-3">مسير الرواتب المعتمد <span className="text-lg bg-slate-100 px-4 py-1 rounded-full text-slate-500 font-bold">شهر {currentMonth} / {currentYear}</span></h2>
              </div>
              <div className="flex flex-wrap gap-4">
                 <button 
@@ -351,43 +333,49 @@ const App: React.FC = () => {
                   <ReceiptText size={20}/> القسائم (Cards)
                 </button>
                 <button onClick={() => window.print()} className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-2 shadow-xl hover:bg-slate-950 transition">
-                  <Printer size={20}/> طباعة الكشف
+                  <Printer size={20}/> طباعة الكشف الكامل
                 </button>
              </div>
           </div>
           
           <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl border dark:border-slate-800 overflow-hidden overflow-x-auto">
-             <table className="w-full text-center text-sm">
+             <table className="w-full text-center text-[11px]">
                <thead className="bg-[#1e1b4b] text-white">
                  <tr>
-                   <th className="px-6 py-6 text-right font-black">الموظف</th>
-                   <th className="px-3 py-6 font-black border-r border-white/10">الأيام</th>
-                   <th className="px-4 py-6 font-black border-r border-white/10">ساعات العمل</th>
-                   <th className="px-4 py-6 font-black border-r border-white/10">الأساسي</th>
-                   <th className="px-4 py-6 font-black border-r border-white/10">الإضافي</th>
-                   <th className="px-4 py-6 font-black border-r border-white/10">مكافآت</th>
-                   <th className="px-4 py-6 font-black border-r border-white/10">خصم/سلفة</th>
-                   <th className="px-10 py-6 font-black bg-[#0f0e2b] text-white shadow-inner">الصافي</th>
+                   <th className="px-4 py-6 text-right font-black sticky right-0 bg-[#1e1b4b]">الموظف</th>
+                   <th className="px-2 py-6 font-black border-r border-white/10">الأساسي</th>
+                   <th className="px-2 py-6 font-black border-r border-white/10">مواصلات</th>
+                   <th className="px-2 py-6 font-black border-r border-white/10 bg-emerald-900/40">ساعات إضافي</th>
+                   <th className="px-2 py-6 font-black border-r border-white/10 bg-emerald-900/40 text-emerald-200">قيمة إضافي</th>
+                   <th className="px-2 py-6 font-black border-r border-white/10 bg-rose-900/40">ساعات تأخير</th>
+                   <th className="px-2 py-6 font-black border-r border-white/10 bg-rose-900/40 text-rose-200">قيمة تأخير</th>
+                   <th className="px-2 py-6 font-black border-r border-white/10 text-emerald-300">مكافآت</th>
+                   <th className="px-2 py-6 font-black border-r border-white/10 text-rose-400">السلف</th>
+                   <th className="px-2 py-6 font-black border-r border-white/10 text-rose-300">خصومات</th>
+                   <th className="px-6 py-6 font-black bg-[#0f0e2b] text-white shadow-inner text-sm">صافي الراتب</th>
                  </tr>
                </thead>
                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                  {currentPayrolls.map(p => (
                    <tr key={p.id} className="hover:bg-slate-50 transition font-black">
-                     <td className="px-6 py-6 text-right font-black text-slate-900 dark:text-white text-lg">{db.employees.find(e => e.id === p.employeeId)?.name}</td>
-                     <td className="px-3 py-6 text-slate-700 dark:text-slate-300">{p.workingDays}</td>
-                     <td className="px-4 py-6 text-slate-700 dark:text-slate-300">{p.workingHours} س</td>
-                     <td className="px-4 py-6">{p.baseSalary.toLocaleString()}</td>
-                     <td className="px-4 py-6 text-emerald-600">+{p.overtimePay.toLocaleString()}</td>
-                     <td className="px-4 py-6 text-emerald-600">+{p.bonuses.toLocaleString()}</td>
-                     <td className="px-4 py-6 text-rose-600">-{p.deductions.toLocaleString()}</td>
-                     <td className="px-10 py-6 font-black text-indigo-900 bg-indigo-50/30 text-xl">{p.netSalary.toLocaleString()}</td>
+                     <td className="px-4 py-6 text-right text-slate-900 dark:text-white text-sm sticky right-0 bg-white dark:bg-slate-900 z-10">{db.employees.find(e => e.id === p.employeeId)?.name}</td>
+                     <td className="px-2 py-6">{p.baseSalary.toLocaleString()}</td>
+                     <td className="px-2 py-6 text-indigo-500">{p.transport.toLocaleString()}</td>
+                     <td className="px-2 py-6 text-emerald-600 bg-emerald-50/20">{ (p.overtimeMinutes / 60).toFixed(1) } س</td>
+                     <td className="px-2 py-6 text-emerald-600 bg-emerald-50/20 font-bold">{p.overtimePay.toLocaleString()}</td>
+                     <td className="px-2 py-6 text-rose-500 bg-rose-50/20">{ (p.lateMinutes / 60).toFixed(1) } س</td>
+                     <td className="px-2 py-6 text-rose-500 bg-rose-50/20 font-bold">{p.lateDeduction.toLocaleString()}</td>
+                     <td className="px-2 py-6 text-emerald-600">+{ (p.bonuses + p.production).toLocaleString() }</td>
+                     <td className="px-2 py-6 text-rose-700 font-black">-{p.loanInstallment.toLocaleString()}</td>
+                     <td className="px-2 py-6 text-rose-600">-{p.manualDeductions.toLocaleString()}</td>
+                     <td className="px-6 py-6 font-black text-indigo-900 bg-indigo-50/30 text-lg shadow-inner">{p.netSalary.toLocaleString()}</td>
                    </tr>
                  ))}
                </tbody>
              </table>
           </div>
           <div className="flex justify-center pt-8">
-             <button className="no-print w-full max-w-4xl bg-[#059669] text-white py-7 rounded-full font-black text-2xl shadow-2xl flex items-center justify-center gap-4"><CheckCircle size={36}/> إغلاق وأرشفة المسير الحالي</button>
+             <button className="no-print w-full max-w-4xl bg-[#059669] text-white py-7 rounded-full font-black text-2xl shadow-2xl flex items-center justify-center gap-4 hover:scale-105 transition-transform"><CheckCircle size={36}/> إغلاق وأرشفة المسير الحالي</button>
           </div>
         </div>
       );
@@ -399,16 +387,17 @@ const App: React.FC = () => {
     <Layout activeTab={activeTab} setActiveTab={setActiveTab} lang={db.settings.language} theme={db.settings.theme} toggleTheme={() => setDb(p => ({...p, settings: {...p.settings, theme: p.settings.theme === 'light' ? 'dark' : 'light'}}))} currentUser={currentUser} onLogout={() => setCurrentUser(null)}>
       {renderContent()}
       
+      {/* Container للطباعة والمعاينة - يظهر فقط عند الحاجة */}
       {individualPrintItem && (
         <div className="fixed inset-0 bg-slate-950/95 z-[300] flex items-center justify-center p-6 no-print overflow-y-auto">
           <div className="bg-white p-6 w-full max-w-5xl shadow-2xl rounded-[3rem] border border-slate-200">
              <div className="flex justify-between items-center mb-8 border-b pb-4">
-                <h3 className="font-black text-indigo-700 text-3xl">المعاينة والاعتماد</h3>
+                <h3 className="font-black text-indigo-700 text-3xl">المعايـنة والاعـتـماد</h3>
                 <button onClick={() => setIndividualPrintItem(null)} className="bg-rose-50 text-rose-500 p-2 rounded-full hover:rotate-90 transition-transform"><X size={40}/></button>
              </div>
              
-             {/* منطقة عرض المعاينة */}
-             <div className="border-4 border-dashed border-slate-100 rounded-[3rem] p-10 bg-white">
+             {/* منطقة عرض المعاينة الحقيقية */}
+             <div className="border-4 border-dashed border-slate-100 rounded-[3rem] p-10 bg-white" id="printable-area-preview">
                 {individualPrintItem.type === 'vouchers' 
                   ? <VouchersPrintGrid payrolls={individualPrintItem.data} />
                   : <DocumentPrintCard title={individualPrintItem.title} type={individualPrintItem.type} data={individualPrintItem.data} />}
@@ -416,20 +405,25 @@ const App: React.FC = () => {
 
              <div className="flex gap-6 mt-10">
                 <button 
-                  onClick={() => executePrintAction(
-                    individualPrintItem.type === 'vouchers' 
-                    ? <VouchersPrintGrid payrolls={individualPrintItem.data} />
-                    : <DocumentPrintCard title={individualPrintItem.title} type={individualPrintItem.type} data={individualPrintItem.data} />
-                  )}
+                  onClick={handleFinalPrint}
                   className="flex-1 bg-indigo-600 text-white py-6 rounded-[2rem] font-black text-2xl shadow-2xl flex items-center justify-center gap-4 hover:scale-105 transition"
                 >
                   <Printer size={36}/> تنفيذ أمر الطباعة الآن
                 </button>
-                <button onClick={() => setIndividualPrintItem(null)} className="px-12 bg-slate-100 font-black rounded-[2rem] text-xl">إغلاق المعاينة</button>
+                <button onClick={() => setIndividualPrintItem(null)} className="px-12 bg-slate-100 font-black rounded-[2rem] text-xl">إلغاء المعاينة</button>
              </div>
           </div>
         </div>
       )}
+
+      {/* منطقة الطباعة المخفية التي يراها المتصفح فقط عند استدعاء window.print() */}
+      <div id="print-root" className="hidden print:block absolute top-0 left-0 w-full bg-white p-8">
+        {individualPrintItem && (
+          individualPrintItem.type === 'vouchers' 
+            ? <VouchersPrintGrid payrolls={individualPrintItem.data} />
+            : <DocumentPrintCard title={individualPrintItem.title} type={individualPrintItem.type} data={individualPrintItem.data} />
+        )}
+      </div>
     </Layout>
   );
 };

@@ -31,6 +31,7 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
   const filteredItems = useMemo(() => {
     let list = (items || []).filter(item => {
       if (!item) return false;
+      // تصحيح منطق الأرشفة: إذا كان archivedMode مفعل، نعرض السجلات المؤرشفة فقط، والعكس صحيح.
       const archived = item.isArchived === true;
       if (archiveMode && !archived) return false;
       if (!archiveMode && archived) return false;
@@ -53,7 +54,7 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
   };
 
   const handleArchive = (item: T) => {
-    if (confirm('هل تريد نقل هذا السجل للأرشيف؟ سيختفي من القائمة الحالية ويظهر فقط في سجل الأرشيف.')) {
+    if (confirm('هل تريد نقل هذا السجل للأرشيف؟ سيختفي من القائمة النشطة ويظهر في سجل الأرشيف.')) {
       onSave({ ...item, isArchived: true });
     }
   };
@@ -97,7 +98,7 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
                 <td className="px-6 py-5 text-center no-print">
                   <div className="flex justify-center gap-2">
                     {onPrintIndividual && (
-                      <button onClick={() => onPrintIndividual(item)} title="طباعة" className="p-2 text-indigo-600 rounded-lg hover:bg-indigo-50 transition"><Printer size={18}/></button>
+                      <button onClick={() => onPrintIndividual(item)} title="معاينة وطباعة" className="p-2 text-indigo-600 rounded-lg hover:bg-indigo-50 transition"><Printer size={18}/></button>
                     )}
                     {!archiveMode && (
                       <button onClick={() => handleArchive(item)} title="نقل للأرشيف" className="p-2 text-amber-600 rounded-lg hover:bg-amber-50 transition"><Archive size={18}/></button>

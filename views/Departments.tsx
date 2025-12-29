@@ -10,7 +10,7 @@ interface Props {
   onUpdateEmployee: (emp: Employee) => void;
 }
 
-const Departments: React.FC<Props> = ({ departments, employees, onUpdate, onUpdateEmployee }) => {
+const Departments: React.FC<Props> = ({ departments = [], employees = [], onUpdate, onUpdateEmployee }) => {
   const [newDept, setNewDept] = useState('');
   const [expandedDept, setExpandedDept] = useState<string | null>(null);
 
@@ -37,7 +37,7 @@ const Departments: React.FC<Props> = ({ departments, employees, onUpdate, onUpda
       <div className="bg-white dark:bg-slate-900 p-10 rounded-[3rem] shadow-2xl border border-slate-200 dark:border-slate-800">
         <h3 className="text-2xl font-black mb-8 text-indigo-700 dark:text-indigo-400 flex items-center gap-3">
           <Building size={28}/>
-          إدارة هيكلية الأقسام
+          إدارة هيكلية الأقسام والوحدات
         </h3>
         
         <form onSubmit={addDept} className="flex gap-4 mb-12">
@@ -48,13 +48,13 @@ const Departments: React.FC<Props> = ({ departments, employees, onUpdate, onUpda
             onChange={e => setNewDept(e.target.value)}
           />
           <button type="submit" className="bg-indigo-600 text-white px-10 rounded-2xl font-black shadow-xl hover:bg-indigo-700 transition-all flex items-center gap-2">
-            <Plus size={24}/> إضافة
+            <Plus size={24}/> إضافة القسم
           </button>
         </form>
 
         <div className="space-y-6">
           {departments.map(dept => {
-            const deptEmps = employees.filter(e => e.department === dept);
+            const deptEmps = (employees || []).filter(e => e.department === dept);
             const isExpanded = expandedDept === dept;
 
             return (
@@ -70,7 +70,7 @@ const Departments: React.FC<Props> = ({ departments, employees, onUpdate, onUpda
                     <div>
                       <span className="font-black text-xl text-slate-950 dark:text-white">{dept}</span>
                       <p className="text-xs font-black text-slate-500 uppercase flex items-center gap-2 mt-1">
-                        <Users size={14}/> {deptEmps.length} موظف حالي
+                        <Users size={14}/> {deptEmps.length} موظف نشط
                       </p>
                     </div>
                   </div>
@@ -86,9 +86,9 @@ const Departments: React.FC<Props> = ({ departments, employees, onUpdate, onUpda
 
                 {isExpanded && (
                   <div className="p-8 pt-0 bg-white/70 dark:bg-slate-950/20 border-t-2 dark:border-slate-800 animate-in slide-in-from-top-4">
-                    <div className="flex justify-between items-center mb-6">
+                    <div className="flex justify-between items-center mb-6 pt-6">
                         <h4 className="text-sm font-black text-indigo-600 uppercase tracking-widest flex items-center gap-2">
-                            <UserPlus size={16}/> إعادة تخصيص الموظفين:
+                            <UserPlus size={16}/> الموظفين المنتسبين للقسم:
                         </h4>
                     </div>
                     
@@ -111,19 +111,13 @@ const Departments: React.FC<Props> = ({ departments, employees, onUpdate, onUpda
                          </div>
                        )}
                     </div>
-                    
-                    <div className="mt-8 pt-6 border-t dark:border-slate-800">
-                        <p className="text-[10px] font-black text-slate-500 text-center">
-                            يمكنك تغيير قسم الموظف عبر القائمة المنسدلة بجانب اسمه.
-                        </p>
-                    </div>
                   </div>
                 )}
               </div>
             );
           })}
           {departments.length === 0 && (
-            <div className="py-24 text-center text-slate-400 italic font-black">لم يتم تحديد أي أقسام للشركة بعد.</div>
+            <div className="py-24 text-center text-slate-400 italic font-black">لم يتم تعريف أية أقسام بعد في هيكلية الشركة.</div>
           )}
         </div>
       </div>
