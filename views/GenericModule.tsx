@@ -61,6 +61,12 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
     setFormData(initialData);
   };
 
+  const handleArchive = (item: T) => {
+    if (confirm('هل تريد نقل هذا السجل للأرشيف؟')) {
+      onSave({ ...item, isArchived: true });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 no-print">
@@ -113,6 +119,9 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
                   <div className="flex justify-center gap-2">
                     {onPrintIndividual && (
                       <button onClick={() => onPrintIndividual(item)} title="طباعة السند" className="p-2 text-slate-500 rounded-lg hover:bg-slate-100 transition"><Printer size={16}/></button>
+                    )}
+                    {!archiveMode && (
+                      <button onClick={() => handleArchive(item)} title="نقل للأرشيف" className="p-2 text-amber-600 rounded-lg hover:bg-amber-50 transition"><Archive size={16}/></button>
                     )}
                     <button onClick={() => { setFormData(item); setShowModal(true); }} className="p-2 text-indigo-600 rounded-lg hover:bg-indigo-50 transition"><Edit2 size={16}/></button>
                     <button onClick={() => { if(confirm('حذف نهائي؟')) onDelete(item.id); }} className="p-2 text-rose-600 rounded-lg hover:bg-rose-50 transition"><Trash2 size={16}/></button>
