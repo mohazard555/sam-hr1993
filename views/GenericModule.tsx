@@ -69,12 +69,12 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 no-print">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 no-print text-right">
         <div className="flex items-center gap-4">
            <div className={`p-4 rounded-2xl ${archiveMode ? 'bg-amber-100 text-amber-600' : 'bg-indigo-100 text-indigo-600'}`}>
               {archiveMode ? <History size={28}/> : <Archive size={28}/>}
            </div>
-           <div>
+           <div className="text-right">
               <h2 className="text-2xl font-black text-indigo-700 dark:text-indigo-400">{title}</h2>
               <p className="text-xs font-bold text-slate-500">{archiveMode ? 'استعراض الأرشيف التاريخي' : 'إدارة الطلبات والبيانات الحالية'}</p>
            </div>
@@ -87,24 +87,18 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
              {archiveMode ? <Calendar size={20}/> : <History size={20}/>} {archiveMode ? 'العودة للمهام' : 'سجل الأرشيف'}
           </button>
           <button onClick={() => exportToExcel(filteredItems, title)} className="bg-emerald-600 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg"><FileDown size={20} /> Excel</button>
-          {onPrint && <button onClick={onPrint} className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg"><Printer size={20} /> طباعة القائمة</button>}
+          <button onClick={() => window.print()} className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg"><Printer size={20} /> طباعة التقرير</button>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-lg border dark:border-slate-800 grid grid-cols-1 md:grid-cols-3 gap-4 no-print items-end">
-         <div className="relative">
-            <Search className="absolute right-4 top-3.5 text-slate-400" size={18}/>
-            <input className="w-full pr-12 pl-4 py-3 bg-slate-50 dark:bg-slate-800 border rounded-2xl font-black" placeholder="بحث باسم الموظف..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-         </div>
-         <div className="flex gap-2">
-            <div className="flex-1"><label className="text-[10px] font-black mr-2 text-slate-400">من تاريخ</label><input type="date" className="w-full p-3 bg-slate-50 dark:bg-slate-800 border rounded-2xl font-bold" value={dateFrom} onChange={e => setDateFrom(e.target.value)} /></div>
-            <div className="flex-1"><label className="text-[10px] font-black mr-2 text-slate-400">إلى تاريخ</label><input type="date" className="w-full p-3 bg-slate-50 dark:bg-slate-800 border rounded-2xl font-bold" value={dateTo} onChange={e => setDateTo(e.target.value)} /></div>
-         </div>
-         <button onClick={() => {setSearchTerm(''); setDateFrom(''); setDateTo('');}} className="p-3 bg-slate-100 text-slate-500 rounded-2xl font-black text-xs hover:bg-slate-200 transition">تصفير الفلاتر</button>
-      </div>
-
-      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border dark:border-slate-800 overflow-hidden overflow-x-auto">
-        <table className="w-full text-right">
+      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border dark:border-slate-800 overflow-hidden overflow-x-auto relative">
+        <div className="print-only p-12 text-center border-b-4 border-slate-900 bg-slate-50">
+           <div className="flex justify-between items-center">
+             <div className="text-right"><h1 className="text-3xl font-black text-indigo-900 uppercase">تقرير {title}</h1><p className="text-sm font-bold text-slate-400">الحالة: {archiveMode ? 'سجلات مؤرشفة' : 'بيانات جارية'}</p></div>
+             <p className="text-xs font-black bg-white px-4 py-2 border rounded-xl">بتاريخ: {new Date().toLocaleDateString('ar-EG')}</p>
+           </div>
+        </div>
+        <table className="w-full text-right text-sm">
           <thead className="bg-slate-50 dark:bg-slate-800 border-b">
             <tr className="text-slate-900 dark:text-slate-100 font-black text-xs uppercase">
               {tableHeaders.map((h, i) => <th key={i} className="px-6 py-5">{h}</th>)}
@@ -113,17 +107,17 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {filteredItems.map(item => (
-              <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+              <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition font-bold">
                 {renderRow(item, employees.find(e => e.id === item.employeeId)?.name || 'Unknown')}
                 <td className="px-6 py-5 text-center no-print">
                   <div className="flex justify-center gap-2">
                     {onPrintIndividual && (
-                      <button onClick={() => onPrintIndividual(item)} title="طباعة السند" className="p-2 text-slate-500 rounded-lg hover:bg-slate-100 transition"><Printer size={16}/></button>
+                      <button onClick={() => onPrintIndividual(item)} title="طباعة السند الفردي" className="p-2 text-indigo-600 rounded-lg hover:bg-indigo-50 transition"><Printer size={18}/></button>
                     )}
                     {!archiveMode && (
-                      <button onClick={() => handleArchive(item)} title="نقل للأرشيف" className="p-2 text-amber-600 rounded-lg hover:bg-amber-50 transition"><Archive size={16}/></button>
+                      <button onClick={() => handleArchive(item)} title="نقل للأرشيف" className="p-2 text-amber-600 rounded-lg hover:bg-amber-50 transition"><Archive size={18}/></button>
                     )}
-                    <button onClick={() => { setFormData(item); setShowModal(true); }} className="p-2 text-indigo-600 rounded-lg hover:bg-indigo-50 transition"><Edit2 size={16}/></button>
+                    <button onClick={() => { setFormData(item); setShowModal(true); }} className="p-2 text-slate-400 rounded-lg hover:bg-slate-100 transition"><Edit2 size={16}/></button>
                     <button onClick={() => { if(confirm('حذف نهائي؟')) onDelete(item.id); }} className="p-2 text-rose-600 rounded-lg hover:bg-rose-50 transition"><Trash2 size={16}/></button>
                   </div>
                 </td>
@@ -136,11 +130,11 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
       {showModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xl z-[150] flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl w-full max-w-2xl border dark:border-slate-800 overflow-hidden">
-            <div className="p-8 bg-indigo-600 dark:bg-indigo-800 border-b flex justify-between items-center">
+            <div className="p-8 bg-indigo-600 dark:bg-indigo-800 border-b flex justify-between items-center text-right">
               <h3 className="text-2xl font-black text-white">{formData.id ? 'تعديل سجل' : 'إضافة سجل'} - {title}</h3>
               <button onClick={() => setShowModal(false)} className="text-white/60 hover:text-white transition"><X size={32}/></button>
             </div>
-            <form onSubmit={handleSubmit} className="p-8 space-y-8">
+            <form onSubmit={handleSubmit} className="p-8 space-y-8 text-right">
               <div>
                 <label className="block text-[10px] font-black mb-2 text-slate-400 uppercase tracking-widest">الموظف المعني</label>
                 <select className="w-full p-4 border-2 dark:bg-slate-800 rounded-2xl font-black dark:text-white" value={formData.employeeId || ''} onChange={e => setFormData({...formData, employeeId: e.target.value})} required>
