@@ -43,69 +43,50 @@
                 width: 100% !important;
                 margin: 0 !important;
                 padding: 0 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
 
             @page {
-                margin: 0.5cm;
+                margin: 0;
+                size: auto;
             }
 
-            /* إزالة الحواف الدائرية والظلال عند الطباعة */
-            .rounded-\[3rem\], .rounded-\[2\.5rem\], .rounded-\[2rem\], .rounded-3xl, .rounded-2xl {
-                border-radius: 0 !important;
+            .print-card-template {
+                border: none !important;
                 box-shadow: none !important;
-                border: 1px solid #ccc !important;
+                width: 100% !important;
+                max-width: none !important;
+                padding: 2cm !important;
+                margin: 0 !important;
+                height: 100vh !important;
             }
+
+            /* الحفاظ على الألوان والخلفيات في الطباعة */
+            .bg-indigo-800 { background-color: #1e1b4b !important; }
+            .bg-indigo-600 { background-color: #4f46e5 !important; }
+            .bg-slate-50 { background-color: #f8fafc !important; }
+            .bg-indigo-50 { background-color: #eef2ff !important; }
+            .text-white { color: white !important; }
+            .text-indigo-900 { color: #1e1b4b !important; }
+            .rounded-\[3rem\] { border-radius: 3rem !important; }
+            .rounded-\[2\.5rem\] { border-radius: 2.5rem !important; }
+            .border-indigo-600 { border-color: #4f46e5 !important; }
+            .border-dashed { border-style: dashed !important; }
 
             .vouchers-grid {
                 display: grid !important;
                 grid-template-columns: repeat(2, 1fr) !important;
-                grid-template-rows: repeat(3, 1fr) !important;
-                gap: 5px !important;
-                width: 100% !important;
-                height: 280mm !important;
-                page-break-after: always;
+                gap: 10px !important;
+                padding: 10px !important;
             }
 
             .voucher-card {
-                border: 1px solid #000 !important;
-                padding: 10px !important;
-                border-radius: 0 !important;
-                display: flex !important;
-                flex-direction: column !important;
-                justify-content: space-between !important;
-                font-size: 8pt !important;
-                background-color: #fff !important;
+                border: 1px solid #ddd !important;
+                padding: 15px !important;
+                background-color: white !important;
+                page-break-inside: avoid;
             }
-
-            .print-logo-small {
-                height: 45px !important;
-                width: auto !important;
-                object-fit: contain !important;
-            }
-
-            table { 
-                width: 100% !important; 
-                border-collapse: collapse !important; 
-                margin-top: 10px !important;
-                border: 1px solid #000 !important;
-            }
-            th, td { 
-                border: 1px solid #ccc !important; 
-                padding: 8px !important; 
-                font-size: 9pt !important; 
-                text-align: right !important; 
-                color: #000 !important;
-            }
-            th { 
-                background-color: #f1f5f9 !important; 
-                color: #1e1b4b !important;
-                font-weight: 900 !important;
-                border-bottom: 2px solid #000 !important;
-            }
-            
-            .text-indigo-700, .text-indigo-600 { color: #4338ca !important; }
-            .text-emerald-600 { color: #059669 !important; }
-            .text-rose-600 { color: #dc2626 !important; }
         }
         
         .print-only { display: none; }

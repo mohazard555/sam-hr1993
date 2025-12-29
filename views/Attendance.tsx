@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Employee, AttendanceRecord, CompanySettings } from '../types';
-import { Clock, Trash2, Edit2, FileDown, Search, Calendar, Printer, CheckCircle, AlertCircle, Archive, Filter } from 'lucide-react';
+import { Clock, Trash2, Edit2, FileDown, Search, Calendar, Printer, CheckCircle, AlertCircle, Archive, Filter, X } from 'lucide-react';
 import { calculateTimeDiffMinutes } from '../utils/calculations';
 import { exportToExcel } from '../utils/export';
 
@@ -47,6 +47,19 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
     setEditingId(null); setSelectedEmp('');
   };
 
+  const handleEdit = (r: AttendanceRecord) => {
+    setEditingId(r.id);
+    setSelectedEmp(r.employeeId);
+    setCheckIn(r.checkIn);
+    setCheckOut(r.checkOut);
+    setDate(r.date);
+    if (showArchive) {
+        // إذا كنا في الأرشيف نفتح النموذج في مودال صغير أو نعود للواجهة
+        // للخيار الأبسط سنغلق الأرشيف ونفعل وضع التعديل
+        setShowArchive(false);
+    }
+  };
+
   const filteredRecords = useMemo(() => {
     return records.filter(r => {
       const emp = employees.find(e => e.id === r.employeeId);
@@ -82,7 +95,7 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
       {!showArchive ? (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 animate-in fade-in duration-500">
           <div className="lg:col-span-1 bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border dark:border-slate-800 shadow-2xl h-fit">
-            <h3 className="text-xl font-black mb-8 flex items-center gap-2 text-indigo-700 text-right"><Clock size={24} /> تسجيل دوام</h3>
+            <h3 className="text-xl font-black mb-8 flex items-center gap-2 text-indigo-700 text-right"><Clock size={24} /> {editingId ? 'تعديل سجل دوام' : 'تسجيل دوام'}</h3>
             <form onSubmit={handleSubmit} className="space-y-6 text-right">
               <div><label className="text-[10px] font-black uppercase mb-1 block">الموظف</label>
               <select className="w-full p-4 border dark:bg-slate-800 rounded-xl font-bold" value={selectedEmp} onChange={e => setSelectedEmp(e.target.value)} required>
@@ -94,7 +107,10 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
                  <div><label className="text-[10px] font-black block">دخول</label><input type="time" className="w-full p-3 border dark:bg-slate-800 rounded-xl font-bold" value={checkIn} onChange={e => setCheckIn(e.target.value)} /></div>
                  <div><label className="text-[10px] font-black block">خروج</label><input type="time" className="w-full p-3 border dark:bg-slate-800 rounded-xl font-bold" value={checkOut} onChange={e => setCheckOut(e.target.value)} /></div>
               </div>
-              <button className="w-full bg-indigo-600 text-white py-4 rounded-xl font-black shadow-lg">حفظ السجل</button>
+              <div className="flex gap-2">
+                <button className={`flex-1 ${editingId ? 'bg-indigo-600' : 'bg-indigo-600'} text-white py-4 rounded-xl font-black shadow-lg`}>{editingId ? 'تحديث السجل' : 'حفظ السجل'}</button>
+                {editingId && <button type="button" onClick={() => {setEditingId(null); setSelectedEmp('');}} className="p-4 bg-slate-100 dark:bg-slate-800 rounded-xl"><X size={20}/></button>}
+              </div>
             </form>
           </div>
 
@@ -144,8 +160,8 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
                         </td>
                         <td className="text-center no-print">
                           <div className="flex justify-center gap-1">
-                            <button onClick={() => { setEditingId(r.id); setSelectedEmp(r.employeeId); setCheckIn(r.checkIn); setCheckOut(r.checkOut); setDate(r.date); }} className="p-2 text-indigo-600 rounded-lg"><Edit2 size={16}/></button>
-                            <button onClick={() => onDeleteRecord(r.id)} className="p-2 text-rose-600 rounded-lg"><Trash2 size={16}/></button>
+                            <button onClick={() => handleEdit(r)} className="p-2 text-indigo-600 rounded-lg hover:bg-indigo-50"><Edit2 size={16}/></button>
+                            <button onClick={() => onDeleteRecord(r.id)} className="p-2 text-rose-600 rounded-lg hover:bg-rose-50"><Trash2 size={16}/></button>
                           </div>
                         </td>
                       </tr>
@@ -180,7 +196,7 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
               </div>
            </div>
 
-           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border dark:border-slate-800 shadow-2xl overflow-hidden">
+           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border dark:border-slate-800 shadow-2xl overflow-hidden overflow-x-auto">
              <div className="print-only p-10 text-center border-b-4 border-slate-900 bg-slate-50">
                 <div className="flex justify-between items-center mb-6">
                    <h1 className="text-3xl font-black text-indigo-900">سجل أرشيف الحضور والانصراف</h1>
@@ -198,6 +214,7 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
                     <th className="text-center py-4">الانصراف</th>
                     <th className="text-center py-4">الساعات الفعلية</th>
                     <th className="text-center py-4">تأخير (د)</th>
+                    <th className="text-center py-4 no-print">إجراءات</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -209,6 +226,12 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
                       <td className="text-center">{r.checkOut}</td>
                       <td className="text-center font-black text-indigo-700">{formatHours(calculateTimeDiffMinutes(r.checkOut, r.checkIn))}</td>
                       <td className={`text-center ${r.lateMinutes > 0 ? 'text-rose-600 font-black' : ''}`}>{r.lateMinutes}</td>
+                      <td className="text-center no-print">
+                         <div className="flex justify-center gap-2">
+                           <button onClick={() => handleEdit(r)} className="p-2 text-indigo-600 rounded-lg hover:bg-indigo-50"><Edit2 size={16}/></button>
+                           <button onClick={() => onDeleteRecord(r.id)} className="p-2 text-rose-600 rounded-lg hover:bg-rose-50"><Trash2 size={16}/></button>
+                         </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

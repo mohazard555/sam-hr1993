@@ -403,14 +403,14 @@ const App: React.FC = () => {
     return (
       <div className="fixed inset-0 bg-slate-950/95 z-[300] flex items-center justify-center p-6 no-print overflow-y-auto">
         <div className="bg-white p-12 w-full max-w-4xl text-slate-900 relative shadow-2xl border-[12px] border-double border-indigo-900/10 rounded-xl print-card-template overflow-hidden">
-           <button onClick={() => setIndividualPrintItem(null)} className="absolute top-6 left-6 text-slate-400 hover:text-rose-600 transition-all z-[10]"><X size={40}/></button>
+           <button onClick={() => setIndividualPrintItem(null)} className="absolute top-6 left-6 text-slate-400 hover:text-rose-600 transition-all z-[10] no-print"><X size={40}/></button>
            
            {renderPrintHeader(title)}
 
            <div className="space-y-12 py-10 text-right">
               <div className="flex justify-between items-center border-b-2 border-slate-100 pb-6">
                  <span className="text-indigo-900 font-black text-2xl">الاسم الكامل للموظف:</span>
-                 <span className="text-5xl font-black text-slate-900 bg-indigo-50/40 px-8 py-3 rounded-2xl">{emp.name}</span>
+                 <span className="text-5xl font-black text-slate-900 bg-indigo-50 px-8 py-3 rounded-2xl">{emp.name}</span>
               </div>
 
               <div className="bg-slate-50 p-12 border-2 border-indigo-900/10 min-h-[300px] relative rounded-[3rem] shadow-inner flex flex-col justify-center">
@@ -437,7 +437,7 @@ const App: React.FC = () => {
                                <span className="text-3xl font-black text-indigo-900">{data.endDate}</span>
                              </div>
                           </div>
-                          <div className="bg-indigo-800 text-white p-12 rounded-[3rem] shadow-2xl scale-110">
+                          <div className="bg-indigo-600 text-white p-12 rounded-[3rem] shadow-2xl scale-110">
                              <p className="text-[12px] opacity-70 mb-3 uppercase font-black tracking-widest">نوع الإجازة المطلوبة</p>
                              <p className="text-5xl font-black">{leaveTypesAr[data.type] || 'إجازة'}</p>
                              <div className="mt-6 pt-6 border-t border-white/20 font-black text-xl">
@@ -500,7 +500,7 @@ const App: React.FC = () => {
               {(data.reason || data.notes) && type !== 'document' && (
                 <div className="border-t-2 border-slate-100 pt-10">
                    <p className="text-[12px] font-black text-indigo-400 mb-6 uppercase tracking-widest">الملاحظات والتفاصيل الإضافية:</p>
-                   <p className="text-2xl font-bold border-r-8 border-indigo-700 pr-10 leading-relaxed text-slate-700 bg-indigo-50/20 p-10 rounded-[3rem] shadow-inner">{data.reason || data.notes}</p>
+                   <p className="text-2xl font-bold border-r-8 border-indigo-700 pr-10 leading-relaxed text-slate-700 bg-indigo-50 p-10 rounded-[3rem] shadow-inner">{data.reason || data.notes}</p>
                 </div>
               )}
            </div>
@@ -524,7 +524,7 @@ const App: React.FC = () => {
         </div>
 
         <div className="fixed bottom-12 flex gap-8 no-print z-[400] scale-110">
-            <button onClick={() => executePrint('portrait')} className="bg-indigo-700 text-white px-16 py-6 rounded-[2.5rem] font-black text-2xl shadow-2xl hover:scale-105 transition flex items-center gap-4"><Printer size={36}/> تنفيذ أمر الطباعة</button>
+            <button onClick={() => executePrint('portrait')} className="bg-[#4f46e5] text-white px-16 py-6 rounded-[2.5rem] font-black text-2xl shadow-2xl hover:scale-105 transition flex items-center gap-4"><Printer size={36}/> تنفيذ أمر الطباعة</button>
             <button onClick={() => setIndividualPrintItem(null)} className="bg-white text-slate-900 px-12 py-6 rounded-[2.5rem] font-black text-xl shadow-2xl border-2 border-indigo-50 hover:bg-slate-50">إلغاء المعاينة</button>
         </div>
       </div>
