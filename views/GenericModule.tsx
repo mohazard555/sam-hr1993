@@ -27,10 +27,6 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState<Partial<T>>(initialData);
   const [searchTerm, setSearchTerm] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  
-  const isRtl = lang === 'ar';
 
   const filteredItems = useMemo(() => {
     let list = (items || []).filter(item => {
@@ -43,15 +39,10 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
       const nameMatch = emp?.name.toLowerCase().includes(searchTerm.toLowerCase());
       if (!nameMatch) return false;
 
-      const itemDate = item.date || item.startDate;
-      if (itemDate) {
-        if (dateFrom && itemDate < dateFrom) return false;
-        if (dateTo && itemDate > dateTo) return false;
-      }
       return true;
     });
     return list.sort((a, b) => ((b.date || b.startDate) || '').localeCompare((a.date || a.startDate) || ''));
-  }, [items, archiveMode, searchTerm, dateFrom, dateTo, employees]);
+  }, [items, archiveMode, searchTerm, employees]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,7 +53,7 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
   };
 
   const handleArchive = (item: T) => {
-    if (confirm('هل تريد نقل هذا السجل للأرشيف؟')) {
+    if (confirm('هل تريد نقل هذا السجل للأرشيف؟ سيختفي من القائمة الحالية ويظهر فقط في سجل الأرشيف.')) {
       onSave({ ...item, isArchived: true });
     }
   };
@@ -87,17 +78,11 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
              {archiveMode ? <Calendar size={20}/> : <History size={20}/>} {archiveMode ? 'العودة للمهام' : 'سجل الأرشيف'}
           </button>
           <button onClick={() => exportToExcel(filteredItems, title)} className="bg-emerald-600 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg"><FileDown size={20} /> Excel</button>
-          <button onClick={() => window.print()} className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg"><Printer size={20} /> طباعة التقرير</button>
+          <button onClick={() => window.print()} className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg"><Printer size={20} /> طباعة القائمة</button>
         </div>
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border dark:border-slate-800 overflow-hidden overflow-x-auto relative">
-        <div className="print-only p-12 text-center border-b-4 border-slate-900 bg-slate-50">
-           <div className="flex justify-between items-center">
-             <div className="text-right"><h1 className="text-3xl font-black text-indigo-900 uppercase">تقرير {title}</h1><p className="text-sm font-bold text-slate-400">الحالة: {archiveMode ? 'سجلات مؤرشفة' : 'بيانات جارية'}</p></div>
-             <p className="text-xs font-black bg-white px-4 py-2 border rounded-xl">بتاريخ: {new Date().toLocaleDateString('ar-EG')}</p>
-           </div>
-        </div>
         <table className="w-full text-right text-sm">
           <thead className="bg-slate-50 dark:bg-slate-800 border-b">
             <tr className="text-slate-900 dark:text-slate-100 font-black text-xs uppercase">
@@ -107,18 +92,18 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {filteredItems.map(item => (
-              <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition font-bold">
+              <tr key={item.id} className="hover:bg-slate-50 transition font-bold">
                 {renderRow(item, employees.find(e => e.id === item.employeeId)?.name || 'Unknown')}
                 <td className="px-6 py-5 text-center no-print">
                   <div className="flex justify-center gap-2">
                     {onPrintIndividual && (
-                      <button onClick={() => onPrintIndividual(item)} title="طباعة السند الفردي" className="p-2 text-indigo-600 rounded-lg hover:bg-indigo-50 transition"><Printer size={18}/></button>
+                      <button onClick={() => onPrintIndividual(item)} title="طباعة" className="p-2 text-indigo-600 rounded-lg hover:bg-indigo-50 transition"><Printer size={18}/></button>
                     )}
                     {!archiveMode && (
                       <button onClick={() => handleArchive(item)} title="نقل للأرشيف" className="p-2 text-amber-600 rounded-lg hover:bg-amber-50 transition"><Archive size={18}/></button>
                     )}
                     <button onClick={() => { setFormData(item); setShowModal(true); }} className="p-2 text-slate-400 rounded-lg hover:bg-slate-100 transition"><Edit2 size={16}/></button>
-                    <button onClick={() => { if(confirm('حذف نهائي؟')) onDelete(item.id); }} className="p-2 text-rose-600 rounded-lg hover:bg-rose-50 transition"><Trash2 size={16}/></button>
+                    <button onClick={() => { if(confirm('حذف السجل نهائياً؟')) onDelete(item.id); }} className="p-2 text-rose-600 rounded-lg hover:bg-rose-50 transition"><Trash2 size={16}/></button>
                   </div>
                 </td>
               </tr>
@@ -129,24 +114,26 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
 
       {showModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xl z-[150] flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl w-full max-w-2xl border dark:border-slate-800 overflow-hidden">
-            <div className="p-10 bg-[#4f46e5] text-white border-b flex justify-between items-center text-right">
-              <h3 className="text-3xl font-black text-white">{formData.id ? 'تعديل سجل' : 'إضافة سجل'} - {title}</h3>
-              <button onClick={() => setShowModal(false)} className="text-white hover:text-white transition"><X size={40}/></button>
+          <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl w-full max-w-2xl border dark:border-slate-800 overflow-hidden relative">
+            <div className="p-8 bg-[#4f46e5] text-white border-b flex justify-between items-center text-right relative">
+              <h3 className="text-2xl font-black text-white w-full text-center">{formData.id ? 'تعديل سجل' : 'إضافة سجل'} - {title}</h3>
+              <button onClick={() => setShowModal(false)} className="absolute left-8 top-1/2 -translate-y-1/2 text-white hover:rotate-90 transition-all duration-300"><X size={32}/></button>
             </div>
             <form onSubmit={handleSubmit} className="p-10 space-y-8 text-right">
               <div>
-                <label className="block text-[10px] font-black mb-2 text-slate-400 uppercase tracking-widest mr-2">الموظف المعني</label>
-                <select className="w-full p-5 bg-slate-50 border-2 dark:bg-slate-800 rounded-3xl font-black dark:text-white outline-none focus:border-[#4f46e5] transition-all appearance-none text-lg" value={formData.employeeId || ''} onChange={e => setFormData({...formData, employeeId: e.target.value})} required>
+                <label className="block text-[10px] font-black mb-3 text-slate-400 uppercase tracking-widest mr-2">الموظف المعني</label>
+                <select className="w-full p-5 bg-white border-2 border-slate-100 dark:bg-slate-800 dark:border-slate-700 rounded-2xl font-black dark:text-white outline-none focus:border-indigo-600 transition-all text-lg shadow-sm" value={formData.employeeId || ''} onChange={e => setFormData({...formData, employeeId: e.target.value})} required>
                   <option value="">-- اختر الموظف --</option>
                   {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
                 </select>
               </div>
-              <div className="border-t-2 border-slate-100 dark:border-slate-800 pt-8">
+              
+              <div className="pt-2">
                 {renderForm(formData, setFormData)}
               </div>
-              <div className="flex gap-4 pt-4">
-                <button type="submit" className="flex-1 bg-[#4f46e5] text-white py-6 rounded-[2rem] font-black text-xl shadow-xl hover:bg-indigo-700 transition">حفظ البيانات</button>
+
+              <div className="flex gap-4 pt-6">
+                <button type="submit" className="flex-1 bg-indigo-600 text-white py-6 rounded-[2rem] font-black text-xl shadow-xl hover:bg-indigo-700 transition">حفظ البيانات</button>
                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 bg-slate-100 dark:bg-slate-800 dark:text-white py-6 rounded-[2rem] font-black text-xl">إلغاء</button>
               </div>
             </form>
