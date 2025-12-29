@@ -130,14 +130,14 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
       {showModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xl z-[150] flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl w-full max-w-2xl border dark:border-slate-800 overflow-hidden">
-            <div className="p-8 bg-indigo-600 dark:bg-indigo-800 border-b flex justify-between items-center text-right">
-              <h3 className="text-2xl font-black text-white">{formData.id ? 'تعديل سجل' : 'إضافة سجل'} - {title}</h3>
-              <button onClick={() => setShowModal(false)} className="text-white/60 hover:text-white transition"><X size={32}/></button>
+            <div className="p-10 bg-[#4f46e5] text-white border-b flex justify-between items-center text-right">
+              <h3 className="text-3xl font-black text-white">{formData.id ? 'تعديل سجل' : 'إضافة سجل'} - {title}</h3>
+              <button onClick={() => setShowModal(false)} className="text-white hover:text-white transition"><X size={40}/></button>
             </div>
-            <form onSubmit={handleSubmit} className="p-8 space-y-8 text-right">
+            <form onSubmit={handleSubmit} className="p-10 space-y-8 text-right">
               <div>
-                <label className="block text-[10px] font-black mb-2 text-slate-400 uppercase tracking-widest">الموظف المعني</label>
-                <select className="w-full p-4 border-2 dark:bg-slate-800 rounded-2xl font-black dark:text-white" value={formData.employeeId || ''} onChange={e => setFormData({...formData, employeeId: e.target.value})} required>
+                <label className="block text-[10px] font-black mb-2 text-slate-400 uppercase tracking-widest mr-2">الموظف المعني</label>
+                <select className="w-full p-5 bg-slate-50 border-2 dark:bg-slate-800 rounded-3xl font-black dark:text-white outline-none focus:border-[#4f46e5] transition-all appearance-none text-lg" value={formData.employeeId || ''} onChange={e => setFormData({...formData, employeeId: e.target.value})} required>
                   <option value="">-- اختر الموظف --</option>
                   {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
                 </select>
@@ -146,8 +146,8 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
                 {renderForm(formData, setFormData)}
               </div>
               <div className="flex gap-4 pt-4">
-                <button type="submit" className="flex-1 bg-indigo-600 text-white py-5 rounded-2xl font-black text-lg shadow-xl hover:bg-indigo-700 transition">حفظ البيانات</button>
-                <button type="button" onClick={() => setShowModal(false)} className="flex-1 bg-slate-100 dark:bg-slate-800 dark:text-white py-5 rounded-2xl font-black">إلغاء</button>
+                <button type="submit" className="flex-1 bg-[#4f46e5] text-white py-6 rounded-[2rem] font-black text-xl shadow-xl hover:bg-indigo-700 transition">حفظ البيانات</button>
+                <button type="button" onClick={() => setShowModal(false)} className="flex-1 bg-slate-100 dark:bg-slate-800 dark:text-white py-6 rounded-[2rem] font-black text-xl">إلغاء</button>
               </div>
             </form>
           </div>

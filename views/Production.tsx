@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Employee, ProductionEntry } from '../types';
-import { Zap, Plus, Trash2, Edit2, Search, FileDown, Printer, Calendar, User as UserIcon, Settings2, Package, Archive, History, CalendarRange, X } from 'lucide-react';
+import { Zap, Plus, Trash2, Edit2, Search, FileDown, Printer, Calendar, Package, Archive, History, X } from 'lucide-react';
 import { exportToExcel } from '../utils/export';
 
 interface Props {
@@ -59,7 +59,7 @@ const Production: React.FC<Props> = ({ employees, items, onSave, onDelete, onPri
   };
 
   const handleArchive = (item: ProductionEntry) => {
-    if (confirm('نقل سجل الإنتاج للأرشيف التاريخي؟')) {
+    if (confirm('هل تريد نقل سجل الإنتاج هذا إلى الأرشيف التاريخي؟')) {
        onSave({ ...item, isArchived: true });
     }
   };
@@ -78,18 +78,18 @@ const Production: React.FC<Props> = ({ employees, items, onSave, onDelete, onPri
         </div>
         <div className="flex gap-2">
           {!archiveMode && (
-            <button onClick={() => setShowModal(true)} className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg hover:bg-indigo-700 transition font-black"><Plus size={20} /> تسجيل إنتاج جديد</button>
+            <button onClick={() => { setFormData({ date: new Date().toISOString().split('T')[0], piecesCount: 0, valuePerPiece: 0, totalValue: 0, notes: '' }); setShowModal(true); }} className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg hover:bg-indigo-700 transition"><Plus size={20} /> تسجيل إنتاج جديد</button>
           )}
-          <button onClick={onToggleArchive} className={`px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg transition-all ${archiveMode ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700'} font-black`}>
-             {archiveMode ? <Calendar size={20}/> : <Archive size={20}/>} {archiveMode ? 'العودة للتسجيل' : 'عرض سجل الأرشيف'}
+          <button onClick={onToggleArchive} className={`px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg transition-all ${archiveMode ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700'}`}>
+             {archiveMode ? <Calendar size={20}/> : <History size={20}/>} {archiveMode ? 'العودة للتسجيل' : 'عرض سجل الأرشيف'}
           </button>
-          <button onClick={() => window.print()} className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg font-black"><Printer size={20} /> طباعة القائمة</button>
+          <button onClick={() => window.print()} className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg"><Printer size={20} /> طباعة القائمة</button>
         </div>
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border dark:border-slate-800 overflow-hidden overflow-x-auto relative">
         <div className="print-only p-12 text-center border-b-4 border-slate-900 bg-slate-50">
-           <h1 className="text-3xl font-black text-indigo-900 uppercase">تقرير الإنتاجية {archiveMode ? '(الأرشيف)' : '(الجاري)'}</h1>
+           <h1 className="text-3xl font-black text-indigo-900 uppercase">تقرير الإنتاجية {archiveMode ? '(الأرشيف)' : ''}</h1>
            <p className="text-sm font-bold opacity-60">تاريخ الاستخراج: {new Date().toLocaleDateString('ar-EG')}</p>
         </div>
         <table className="w-full text-right text-sm">
@@ -99,6 +99,7 @@ const Production: React.FC<Props> = ({ employees, items, onSave, onDelete, onPri
               <th className="px-6 py-5 text-center">كمية الإنتاج (قطع)</th>
               <th className="px-6 py-5 text-center">سعر القطعة</th>
               <th className="px-6 py-5 text-center">إجمالي الاستحقاق</th>
+              <th className="px-6 py-5">الملاحظات</th>
               <th className="px-6 py-5 no-print text-center">إجراءات</th>
             </tr>
           </thead>
@@ -109,19 +110,15 @@ const Production: React.FC<Props> = ({ employees, items, onSave, onDelete, onPri
                    <p className="font-black text-slate-900 dark:text-white">{employees.find(e => e.id === item.employeeId)?.name}</p>
                    <p className="text-[10px] text-slate-400 font-bold">{item.date}</p>
                 </td>
-                <td className="px-6 py-5 text-center">
-                   <span className="bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 px-4 py-2 rounded-xl font-black">{item.piecesCount} قطعة</span>
-                </td>
-                <td className="px-6 py-5 text-center">
-                   {item.valuePerPiece?.toLocaleString()}
-                </td>
-                <td className="px-6 py-5 text-center font-black text-emerald-600 bg-emerald-50/30">
-                   { (item.totalValue || 0).toLocaleString() }
-                </td>
+                <td className="px-6 py-5 text-center font-black">{item.piecesCount} قطعة</td>
+                <td className="px-6 py-5 text-center">{item.valuePerPiece?.toLocaleString()}</td>
+                <td className="px-6 py-5 text-center font-black text-emerald-600 bg-emerald-50/10">{(item.totalValue || 0).toLocaleString()}</td>
+                <td className="px-6 py-5 text-xs text-slate-500 italic max-w-xs truncate">{item.notes || '-'}</td>
                 <td className="px-6 py-5 text-center no-print">
                    <div className="flex justify-center gap-2">
                     <button onClick={() => onPrintIndividual?.(item)} className="p-2 text-indigo-600 rounded-lg hover:bg-indigo-50 transition"><Printer size={18}/></button>
                     {!archiveMode && <button onClick={() => handleArchive(item)} className="p-2 text-amber-600 rounded-lg hover:bg-amber-50 transition"><Archive size={18}/></button>}
+                    <button onClick={() => { setFormData(item); setShowModal(true); }} className="p-2 text-slate-400 rounded-lg hover:bg-slate-100 transition"><Edit2 size={16}/></button>
                     <button onClick={() => onDelete(item.id)} className="p-2 text-rose-600 rounded-lg hover:bg-rose-50 transition"><Trash2 size={16}/></button>
                    </div>
                 </td>
@@ -141,7 +138,7 @@ const Production: React.FC<Props> = ({ employees, items, onSave, onDelete, onPri
             <form onSubmit={handleSubmit} className="p-8 space-y-6 text-right">
               <div>
                 <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">الموظف المنفذ</label>
-                <select className="w-full p-4 border rounded-xl font-black dark:bg-slate-800 dark:text-white text-right" value={formData.employeeId || ''} onChange={e => setFormData({...formData, employeeId: e.target.value})} required>
+                <select className="w-full p-4 border rounded-xl font-black dark:bg-slate-800 dark:text-white" value={formData.employeeId || ''} onChange={e => setFormData({...formData, employeeId: e.target.value})} required>
                   <option value="">-- اختر الموظف --</option>
                   {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
                 </select>
@@ -165,6 +162,10 @@ const Production: React.FC<Props> = ({ employees, items, onSave, onDelete, onPri
                       { ((formData.piecesCount || 0) * (formData.valuePerPiece || 0)).toLocaleString() }
                    </div>
                 </div>
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">ملاحظات العمل</label>
+                <textarea className="w-full p-4 border rounded-xl font-bold dark:bg-slate-800 dark:text-white h-24 outline-none focus:border-indigo-600 transition" placeholder="أية ملاحظات إضافية عن نوع القطع أو الجودة..." value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})}></textarea>
               </div>
               <button type="submit" className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black text-lg shadow-xl hover:bg-indigo-700 transition">تأكيد وحفظ السجل</button>
             </form>
