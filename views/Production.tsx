@@ -81,7 +81,7 @@ const Production: React.FC<Props> = ({ employees, items, settings, onSave, onDel
               {archiveMode ? <History size={28}/> : <Zap size={28}/>}
            </div>
            <div className="text-right">
-              <h2 className="text-2xl font-black text-indigo-700">{archiveMode ? 'أرشيف الإنتاج التاريخي' : 'سجلات الإنتاج والقطع اليومي'}</h2>
+              <h2 className="text-2xl font-black text-indigo-700">إنتاجية الموظفين {archiveMode ? '(الأرشيف)' : ''}</h2>
               <p className="text-xs font-bold text-slate-500">متابعة دقيقة لكميات الإنتاج وقيم الاستحقاق</p>
            </div>
         </div>
@@ -96,22 +96,26 @@ const Production: React.FC<Props> = ({ employees, items, settings, onSave, onDel
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border dark:border-slate-800 overflow-hidden overflow-x-auto relative">
-        {/* ترويسة الطباعة الموحدة */}
-        <div className="hidden print:flex justify-between items-start border-b-4 border-indigo-950 pb-6 mb-8 w-full p-12">
-          <div className="text-right">
-            <h1 className="text-3xl font-black text-indigo-950 leading-none">{settings.name}</h1>
-            <p className="text-sm font-black text-indigo-700 mt-2">تقرير إنتاجية الموظفين {archiveMode ? '(الأرشيف التاريخي)' : ''}</p>
-          </div>
-          <div className="flex flex-col items-center">
-            {settings.logo && <img src={settings.logo} className="h-20 w-auto object-contain mb-2" />}
-          </div>
-          <div className="text-left">
-            <p className="text-[10px] font-black text-slate-400">تاريخ الاستخراج: {new Date().toLocaleDateString('ar-EG')}</p>
-            <p className="text-[10px] font-black text-slate-400">توقيت التقرير: {new Date().toLocaleTimeString('ar-EG')}</p>
-          </div>
-        </div>
+      {/* Advanced Filter Bar */}
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-lg border dark:border-slate-800 grid grid-cols-1 md:grid-cols-4 gap-4 no-print text-right">
+         <div className="relative">
+            <Search className="absolute right-3 top-3.5 text-slate-400" size={18}/>
+            <input type="text" placeholder="بحث باسم الموظف..." className="w-full pr-10 p-3 bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+         </div>
+         <div className="relative">
+            <Calendar className="absolute right-3 top-3.5 text-slate-400" size={18}/>
+            <input type="date" className="w-full pr-10 p-3 bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold text-center" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+         </div>
+         <div className="relative">
+            <Calendar className="absolute right-3 top-3.5 text-slate-400" size={18}/>
+            <input type="date" className="w-full pr-10 p-3 bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold text-center" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+         </div>
+         <button onClick={() => exportToExcel(filteredItems, "Production_Report")} className="bg-emerald-600 text-white font-black rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-700 transition">
+            <FileDown size={18}/> تصدير البيانات
+         </button>
+      </div>
 
+      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border dark:border-slate-800 overflow-hidden overflow-x-auto relative">
         <table className="w-full text-right text-sm">
           <thead className="bg-slate-50 dark:bg-slate-800 border-b">
             <tr className="text-slate-900 dark:text-slate-100 font-black text-xs uppercase">

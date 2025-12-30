@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Employee } from '../types';
-import { Plus, Trash2, Edit2, Printer, Archive, History, X } from 'lucide-react';
+import { Plus, Trash2, Edit2, Printer, Archive, History, X, Search, Calendar, FileDown } from 'lucide-react';
 import { exportToExcel } from '../utils/export';
 
 interface GenericModuleProps<T> {
@@ -28,18 +28,32 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
 }: GenericModuleProps<T>) {
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState<Partial<T>>(initialData);
-  const [searchTerm, setSearchTerm] = useState('');
+  
+  // States for advanced filtering in archive
+  const [archiveSearch, setArchiveSearch] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const filteredItems = useMemo(() => {
     let list = (items || []).filter(item => {
       const archived = item.isArchived === true;
       if (archiveMode && !archived) return false;
       if (!archiveMode && archived) return false;
+      
       const emp = employees.find(e => e.id === item.employeeId);
-      return emp?.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = emp?.name.toLowerCase().includes(archiveSearch.toLowerCase());
+      if (!matchesSearch) return false;
+
+      const itemDate = item.date || item.startDate;
+      if (itemDate) {
+        if (dateFrom && itemDate < dateFrom) return false;
+        if (dateTo && itemDate > dateTo) return false;
+      }
+
+      return true;
     });
     return list.sort((a, b) => ((b.date || b.startDate) || '').localeCompare((a.date || a.startDate) || ''));
-  }, [items, archiveMode, searchTerm, employees]);
+  }, [items, archiveMode, archiveSearch, dateFrom, dateTo, employees]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +70,7 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
            <div className={`p-4 rounded-2xl ${archiveMode ? 'bg-amber-100 text-amber-600' : 'bg-indigo-100 text-indigo-600'}`}>
               {archiveMode ? <History size={28}/> : <Archive size={28}/>}
            </div>
-           <h2 className="text-2xl font-black text-indigo-700">{title}</h2>
+           <h2 className="text-2xl font-black text-indigo-700">{title} {archiveMode ? '(الأرشيف)' : ''}</h2>
         </div>
         <div className="flex gap-2">
           {!archiveMode && <button onClick={() => { setFormData(initialData); setShowModal(true); }} className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg"><Plus size={20} /> إضافة جديد</button>}
@@ -67,22 +81,28 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border overflow-hidden overflow-x-auto relative">
-        {/* ترويسة الطباعة الموحدة */}
-        <div className="hidden print:flex justify-between items-start border-b-4 border-indigo-950 pb-6 mb-8 w-full p-8">
-          <div className="text-right">
-            <h1 className="text-3xl font-black text-indigo-950 leading-none">{companyName}</h1>
-            <p className="text-sm font-black text-indigo-700 mt-2">{title} {archiveMode ? '(سجل الأرشيف)' : ''}</p>
-          </div>
-          <div className="flex flex-col items-center">
-            {logo && <img src={logo} className="h-16 w-auto object-contain mb-2" />}
-          </div>
-          <div className="text-left">
-            <p className="text-[10px] font-black text-slate-400">تاريخ الاستخراج: {new Date().toLocaleDateString('ar-EG')}</p>
-            <p className="text-[10px] font-black text-slate-400">توقيت التقرير: {new Date().toLocaleTimeString('ar-EG')}</p>
-          </div>
+      {/* Advanced Filter for Archive Mode */}
+      {archiveMode && (
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-lg border dark:border-slate-800 grid grid-cols-1 md:grid-cols-4 gap-4 no-print animate-in fade-in duration-300">
+           <div className="relative">
+              <Search className="absolute right-3 top-3.5 text-slate-400" size={18}/>
+              <input type="text" placeholder="بحث باسم الموظف..." className="w-full pr-10 p-3 bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold" value={archiveSearch} onChange={e => setArchiveSearch(e.target.value)} />
+           </div>
+           <div className="relative">
+              <Calendar className="absolute right-3 top-3.5 text-slate-400" size={18}/>
+              <input type="date" className="w-full pr-10 p-3 bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold text-center" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+           </div>
+           <div className="relative">
+              <Calendar className="absolute right-3 top-3.5 text-slate-400" size={18}/>
+              <input type="date" className="w-full pr-10 p-3 bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold text-center" value={dateTo} onChange={e => setArchiveSearch(e.target.value)} />
+           </div>
+           <button onClick={() => exportToExcel(filteredItems, title + "_Archive")} className="bg-emerald-600 text-white font-black rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-700 transition">
+              <FileDown size={18}/> تصدير Excel
+           </button>
         </div>
+      )}
 
+      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border overflow-hidden overflow-x-auto relative">
         <table className="w-full text-right text-sm">
           <thead className="bg-slate-50 dark:bg-slate-800 border-b">
             <tr className="text-slate-900 dark:text-slate-100 font-black text-xs uppercase">

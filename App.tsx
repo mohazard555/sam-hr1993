@@ -110,9 +110,9 @@ const App: React.FC = () => {
   const DocumentPrintCard = ({ title, type, data }: { title: string, type: PrintType, data: any }) => {
     const emp = db.employees.find(e => e.id === data.employeeId) || { name: data.employeeName || '.......', department: 'غير محدد' };
     return (
-      <div className="bg-white p-12 print-card w-full max-w-4xl mx-auto rounded-[3.5rem] border-2 border-slate-100 shadow-sm relative overflow-hidden">
+      <div className="bg-white print-card w-full max-w-4xl mx-auto rounded-[3.5rem] border-2 border-slate-100 shadow-sm relative overflow-hidden">
         <PrintableHeader title={title} />
-        <div className="space-y-12">
+        <div className="space-y-10">
            <div className="flex justify-between items-center bg-slate-50 p-10 rounded-[2.5rem] border border-slate-100 text-right">
              <div className="text-right flex-1">
                 <span className="text-[11px] font-black text-indigo-400 block uppercase mb-1">اسم الموظف:</span>
@@ -124,7 +124,7 @@ const App: React.FC = () => {
              </div>
            </div>
            <div className="border-4 border-dashed border-indigo-200 rounded-[3rem] p-10 bg-white relative">
-              <span className="absolute -top-5 right-14 bg-indigo-600 px-8 py-1.5 text-[11px] font-black text-white uppercase rounded-full shadow-lg no-print">بيانات معتمدة من الإدارة</span>
+              <span className="absolute -top-5 right-14 bg-indigo-600 px-8 py-1.5 text-[11px] font-black text-white uppercase rounded-full shadow-lg">بيانات معتمدة من الإدارة</span>
               <div className="flex items-center gap-10">
                  <div className="bg-indigo-950 text-white p-10 rounded-[2.5rem] shadow-xl text-center min-w-[220px]">
                     <p className="text-[11px] opacity-70 mb-3 font-black uppercase tracking-widest">نوع السند</p>
@@ -137,7 +137,7 @@ const App: React.FC = () => {
                     {data.amount && <div className="mt-6 pt-6 border-t border-white/20 font-black text-2xl">{data.amount.toLocaleString()} <span className="text-lg opacity-60">{db.settings.currency}</span></div>}
                  </div>
                  <div className="flex-1 text-right space-y-6">
-                    {data.startDate && <p className="text-2xl font-black text-slate-800">الفترة الزمنية: من {data.startDate} إلى {data.endDate}</p>}
+                    {(data.startDate || data.date) && <p className="text-2xl font-black text-slate-800">التاريخ: {data.startDate || data.date} {data.endDate ? `إلى ${data.endDate}` : ''}</p>}
                     <div className="p-8 bg-slate-50 rounded-[2rem] italic font-bold text-xl text-slate-600 leading-relaxed min-h-[120px] flex items-center border border-slate-100">
                        {data.reason || data.notes || "لا توجد ملاحظات إضافية مسجلة لهذا المستند."}
                     </div>
@@ -145,7 +145,7 @@ const App: React.FC = () => {
               </div>
            </div>
         </div>
-        <div className="grid grid-cols-2 gap-32 mt-20 text-center border-t-2 pt-10 text-[14px] font-black opacity-60">
+        <div className="grid grid-cols-2 gap-32 mt-16 text-center border-t-2 pt-10 text-[14px] font-black opacity-60">
            <div className="flex flex-col gap-6">
               <span>توقيع الموظف المستلم</span>
               <span className="text-slate-300">.............................</span>
@@ -245,8 +245,8 @@ const App: React.FC = () => {
           renderRow={(i, name) => (<><td className="px-6 py-4 font-black">{name}</td><td className="px-6 py-4 font-bold">{leaveTypesAr[i.type]}</td><td className="px-6 py-4">{i.isPaid ? 'نعم' : 'لا'}</td><td className="px-6 py-4">{i.startDate}</td><td className="px-6 py-4">{i.endDate}</td></>)} 
           renderFooter={(list) => (
              <tr>
-               <td className="px-6 py-4">إجمالي طلبات الإجازة</td>
-               <td className="px-6 py-4 text-center text-lg">{list.length} طلب</td>
+               <td className="px-6 py-4 text-right">إجمالي سجلات الأرشيف</td>
+               <td className="px-6 py-4 text-center text-lg">{list.length} سجل</td>
                <td colSpan={3}></td>
                <td className="no-print"></td>
              </tr>
@@ -280,22 +280,12 @@ const App: React.FC = () => {
                    }} />
                  </div>
                </div>
-               <div className="bg-[#f0f4ff] border-4 border-dashed border-indigo-200 rounded-[3rem] p-10 grid grid-cols-2 gap-10 items-center">
-                  <div className="text-center order-2">
-                    <label className="text-[10pt] font-black text-indigo-700 uppercase mb-1 block">القسط الشهري</label>
-                    <p className="text-7xl font-black text-indigo-900">{data.monthlyInstallment || 0}</p>
-                  </div>
-                  <div className="border-l-2 border-indigo-100 pl-10 order-1 text-right">
-                    <label className="text-[10pt] font-black text-indigo-700 uppercase mb-2 block flex items-center gap-1 justify-center"><CalendarDays size={20}/> تاريخ التحصيل</label>
-                    <input type="date" className="w-full p-4 bg-white border-2 border-indigo-100 rounded-2xl font-black text-center outline-none focus:border-indigo-600 transition" value={data.collectionDate || ''} onChange={e => set({...data, collectionDate: e.target.value})} />
-                  </div>
-               </div>
             </div>
           )} 
           renderRow={(i, name) => (<><td className="px-6 py-4 font-black">{name}</td><td className="px-6 py-4 font-black">{i.amount.toLocaleString()}</td><td className="px-6 py-4 text-rose-600 font-black">{i.remainingAmount.toLocaleString()}</td><td className="px-6 py-4">{i.date}</td></>)} 
           renderFooter={(list) => (
              <tr>
-               <td className="px-6 py-4">إجمالي السلف</td>
+               <td className="px-6 py-4 text-right">إجمالي السلف</td>
                <td className="px-6 py-4 text-center font-black">{list.reduce((acc,curr)=>acc+(curr.amount||0),0).toLocaleString()}</td>
                <td className="px-6 py-4 text-center font-black text-emerald-300">{list.reduce((acc,curr)=>acc+(curr.remainingAmount||0),0).toLocaleString()}</td>
                <td className="px-6 py-4"></td>
@@ -324,7 +314,7 @@ const App: React.FC = () => {
           renderRow={(i, name) => (<><td className="px-6 py-4 font-black">{name}</td><td className="px-6 py-4 font-bold">{financialTypesAr[i.type || 'bonus']}</td><td className="px-6 py-4 font-black">{i.amount.toLocaleString()}</td><td className="px-6 py-4">{i.date}</td></>)} 
           renderFooter={(list) => (
              <tr>
-               <td className="px-6 py-4">إجمالي السندات</td>
+               <td className="px-6 py-4 text-right">إجمالي السندات</td>
                <td className="px-6 py-4 text-center">-</td>
                <td className="px-6 py-4 text-center font-black text-indigo-300">{list.reduce((acc,curr)=>acc+(curr.amount||0),0).toLocaleString()}</td>
                <td className="px-6 py-4"></td>
@@ -336,7 +326,7 @@ const App: React.FC = () => {
       case 'production': return <Production employees={db.employees} items={db.production || []} settings={db.settings} onSave={i => updateList('production', i)} onDelete={id => deleteFromList('production', id)} archiveMode={archiveModes.production} onToggleArchive={() => setArchiveModes(p => ({...p, production: !p.production}))} onPrintIndividual={i => setIndividualPrintItem({title: "إشعار إنتاجية موظف", type: 'production', data: i})} />;
       case 'payroll': return (
         <div className="space-y-8">
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 flex justify-between items-center no-print">
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 flex justify-between items-center no-print text-right">
              <h2 className="text-3xl font-black text-indigo-700">مسير الرواتب - {currentMonth}/{currentYear}</h2>
              <div className="flex gap-3">
                 <button onClick={() => setIndividualPrintItem({ title: 'قسائم رواتب الموظفين المعتمدة', type: 'vouchers', data: currentPayrolls })} className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg"><ReceiptText size={20}/> القسائم</button>
@@ -354,7 +344,6 @@ const App: React.FC = () => {
                    <th className="px-2 py-6 bg-indigo-950 border-r border-white/5">الأساسي</th>
                    <th className="px-2 py-6 bg-indigo-950 border-r border-white/5">مواصلات</th>
                    <th className="px-2 py-6 bg-slate-900 text-indigo-300 border-r border-white/5">س. فعلية</th>
-                   <th className="px-2 py-6 bg-slate-900 text-indigo-300 border-r border-white/5">س. مستحقة</th>
                    <th className="px-2 py-6 bg-[#064e3b] text-emerald-100 border-r border-white/5">إضافي($)</th>
                    <th className="px-2 py-6 bg-[#7f1d1d] text-rose-100 border-r border-white/5">تأخير($)</th>
                    <th className="px-2 py-6 bg-indigo-950 text-rose-300 border-r border-white/5">سلف</th>
@@ -367,8 +356,7 @@ const App: React.FC = () => {
                      <td className="px-4 py-6 text-right sticky right-0 bg-white dark:bg-slate-900 border-r">{db.employees.find(e => e.id === p.employeeId)?.name}</td>
                      <td className="px-2 py-6">{p.baseSalary.toLocaleString()}</td>
                      <td className="px-2 py-6 text-indigo-500">{p.transport.toLocaleString()}</td>
-                     <td className="px-2 py-6 text-slate-500 bg-slate-50/10 font-black">{p.workingHours} س</td>
-                     <td className="px-2 py-6 text-slate-500 bg-slate-50/10 font-black">{(p.workingDays || 0) * 8} س</td>
+                     <td className="px-2 py-6 font-black">{p.workingHours} س</td>
                      <td className="px-2 py-6 text-emerald-600 bg-emerald-50/20 font-black">{p.overtimePay.toLocaleString()}</td>
                      <td className="px-2 py-6 text-rose-500 bg-rose-50/20 font-black">{p.lateDeduction.toLocaleString()}</td>
                      <td className="px-2 py-6 text-rose-700 font-black">-{p.loanInstallment.toLocaleString()}</td>
@@ -382,7 +370,6 @@ const App: React.FC = () => {
                    <td className="px-2 py-6 bg-indigo-900/50">{payrollTotals.base.toLocaleString()}</td>
                    <td className="px-2 py-6 bg-indigo-900/50">{payrollTotals.transport.toLocaleString()}</td>
                    <td className="px-2 py-6 bg-slate-900/80 text-indigo-300">{payrollTotals.actualHours} س</td>
-                   <td className="px-2 py-6 bg-slate-900/80 text-indigo-300">{payrollTotals.dueHours} س</td>
                    <td className="px-2 py-6 bg-emerald-900/60">{payrollTotals.overtime.toLocaleString()}</td>
                    <td className="px-2 py-6 bg-rose-900/60">-{payrollTotals.late.toLocaleString()}</td>
                    <td className="px-2 py-6 bg-indigo-900/50">-{payrollTotals.loans.toLocaleString()}</td>
@@ -407,13 +394,12 @@ const App: React.FC = () => {
       {individualPrintItem && (
         <div className="fixed inset-0 bg-slate-950/95 z-[500] flex items-center justify-center p-6 no-print overflow-y-auto no-print-wrapper">
           <div className="bg-white p-10 w-full max-w-5xl shadow-2xl rounded-[3.5rem] border-4 border-white/20 transition-all">
-             <div className="flex justify-between items-center mb-10 border-b-2 pb-6 no-print">
+             <div className="flex justify-between items-center mb-10 border-b-2 pb-6 no-print text-right">
                 <h3 className="font-black text-indigo-800 text-3xl">معاينة قبل الطباعة</h3>
-                <button onClick={() => setIndividualPrintItem(null)} className="text-rose-500 p-2 hover:bg-rose-50 rounded-full transition transform hover:rotate-90"><X size={44}/></button>
+                <button onClick={() => setIndividualPrintItem(null)} className="modal-close-btn text-rose-500 p-2 hover:bg-rose-50 rounded-full transition transform hover:rotate-90"><X size={44}/></button>
              </div>
              
-             {/* الهدف الرئيسي للطباعة مع معرّف فريد */}
-             <div id="print-area-target" className="bg-white overflow-visible rounded-[2rem]">
+             <div id="print-area-target" className="bg-white overflow-visible rounded-[2rem] text-right">
                 {individualPrintItem.type === 'vouchers' 
                   ? <VouchersPrintGrid payrolls={individualPrintItem.data} />
                   : <DocumentPrintCard title={individualPrintItem.title} type={individualPrintItem.type} data={individualPrintItem.data} />}

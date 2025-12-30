@@ -31,16 +31,17 @@
         }
         
         @media print {
-            /* 1. إخفاء العناصر غير المرغوبة تماماً من الـ Layout */
+            /* 1. إخفاء العناصر غير المرغوبة تماماً */
             body > *:not(.no-print-wrapper), 
             .no-print, 
             aside, 
             header, 
-            button {
+            button,
+            .modal-close-btn {
                 display: none !important;
             }
 
-            /* 2. تنظيف مساحة العمل للطباعة */
+            /* 2. تهيئة الصفحة للطباعة */
             html, body {
                 height: auto !important;
                 overflow: visible !important;
@@ -49,48 +50,44 @@
                 padding: 0 !important;
             }
 
-            /* 3. إظهار حاوية الطباعة فقط وإجبارها على الظهور */
+            /* 3. حاوية الطباعة الرئيسية */
             #print-area-target {
                 display: block !important;
                 visibility: visible !important;
                 position: relative !important;
                 width: 100% !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                transform: none !important;
-                left: auto !important;
-                top: auto !important;
+                padding: 10mm !important;
             }
 
-            /* 4. معالجة العناصر الأب المفقودة أو المخفية */
-            #root, main, section {
-                display: block !important;
-                height: auto !important;
-                overflow: visible !important;
-                position: static !important;
-                padding: 0 !important;
-                margin: 0 !important;
-            }
-
-            /* 5. ضمان الألوان والحدود */
+            /* 4. فرض الألوان والحدود المنحنية */
             * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
-                visibility: visible;
             }
 
+            /* 5. تصميم البطاقة (Card) في الطباعة */
             .print-card {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
                 border: 2px solid #e2e8f0 !important;
+                border-radius: 40px !important; /* نفس انحناء المعاينة */
                 background-color: white !important;
-                margin-bottom: 20px !important;
+                margin-bottom: 25px !important;
+                padding: 30px !important;
+                display: block !important;
+                box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05) !important;
             }
 
+            /* 6. توزيع قسائم الرواتب (2 في كل صف) */
             .vouchers-grid-print {
                 display: grid !important;
                 grid-template-columns: 1fr 1fr !important;
-                gap: 15px !important;
+                gap: 20px !important;
+            }
+
+            /* 7. إخفاء حاويات الـ Scrollbar */
+            ::-webkit-scrollbar {
+                display: none;
             }
         }
     </style>
