@@ -31,63 +31,66 @@
         }
         
         @media print {
-            /* 1. إخفاء كل شيء في الصفحة تماماً */
-            body * {
-                visibility: hidden !important;
+            /* 1. إخفاء العناصر غير المرغوبة تماماً من الـ Layout */
+            body > *:not(.no-print-wrapper), 
+            .no-print, 
+            aside, 
+            header, 
+            button {
+                display: none !important;
             }
 
-            /* 2. إظهار منطقة الطباعة المقصودة فقط وما بداخلها */
-            #print-area-target, 
-            #print-area-target * {
-                visibility: visible !important;
-            }
-
-            /* 3. جعل منطقة الطباعة تبدأ من أعلى الصفحة تماماً وبعرض كامل */
-            #print-area-target {
-                position: absolute !important;
-                left: 0 !important;
-                top: 0 !important;
-                width: 100% !important;
-                margin: 0 !important;
-                padding: 20px !important;
-                display: block !important;
-            }
-
-            /* 4. إزالة أي قيود تمنع ظهور المحتوى في الطباعة */
+            /* 2. تنظيف مساحة العمل للطباعة */
             html, body {
                 height: auto !important;
                 overflow: visible !important;
                 background: white !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
 
-            /* 5. ضمان طباعة الألوان والحدود */
+            /* 3. إظهار حاوية الطباعة فقط وإجبارها على الظهور */
+            #print-area-target {
+                display: block !important;
+                visibility: visible !important;
+                position: relative !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                transform: none !important;
+                left: auto !important;
+                top: auto !important;
+            }
+
+            /* 4. معالجة العناصر الأب المفقودة أو المخفية */
+            #root, main, section {
+                display: block !important;
+                height: auto !important;
+                overflow: visible !important;
+                position: static !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
+            /* 5. ضمان الألوان والحدود */
             * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
+                visibility: visible;
             }
 
-            /* 6. منع قص البطاقات (القسائم) في منتصف الورقة */
             .print-card {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
-                margin-bottom: 30px !important;
-                display: block !important;
                 border: 2px solid #e2e8f0 !important;
-                border-radius: 40px !important;
-                overflow: hidden !important;
+                background-color: white !important;
+                margin-bottom: 20px !important;
             }
 
-            /* 7. تنسيق شبكة القسائم للطباعة (2 في كل صف) */
             .vouchers-grid-print {
                 display: grid !important;
                 grid-template-columns: 1fr 1fr !important;
-                gap: 20px !important;
-                width: 100% !important;
-            }
-
-            /* إخفاء أي عناصر غير ضرورية داخل منطقة الطباعة */
-            .no-print {
-                display: none !important;
+                gap: 15px !important;
             }
         }
     </style>
