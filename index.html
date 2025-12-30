@@ -31,71 +31,66 @@
         }
         
         @media print {
-            /* إظهار محتوى React */
-            #root { display: block !important; }
-            
-            /* إخفاء واجهة الموقع (القوائم والأزرار) */
-            .no-print, aside, header, button, .modal-backdrop-bg { 
-                display: none !important; 
-            }
-            
-            /* إخفاء كل شيء داخل main ما عدا حاوية المعاينة إذا كانت مفتوحة */
-            body.is-printing-preview main > section > *:not(.print-overlay) {
-                display: none !important;
+            /* 1. إخفاء كل شيء في الصفحة بشكل افتراضي */
+            body * {
+                visibility: hidden !important;
             }
 
-            body { 
-                background: white !important; 
+            /* 2. إظهار منطقة الطباعة المستهدفة ومحتوياتها فقط */
+            #print-area-target, 
+            #print-area-target * {
+                visibility: visible !important;
+            }
+
+            /* 3. إعادة تموضع منطقة الطباعة لتكون في أعلى الصفحة تماماً */
+            #print-area-target {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
                 margin: 0 !important;
                 padding: 0 !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
+                display: block !important;
             }
 
-            /* تصميم بطاقات الطباعة لتطابق المعاينة */
+            /* 4. إلغاء أي قيود على الارتفاع أو التمرير في العناصر الأب */
+            html, body, #root, main, section {
+                height: auto !important;
+                overflow: visible !important;
+                display: block !important;
+            }
+
+            /* 5. تنسيقات خاصة بالقسائم (Vouchers) في الطباعة */
+            .vouchers-grid-print {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important; /* قسيمتين في كل صف */
+                gap: 15px !important;
+                width: 100% !important;
+            }
+
             .print-card {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
                 border: 2px solid #e2e8f0 !important;
-                border-radius: 50px !important;
-                padding: 50px !important;
-                margin: 0 auto !important;
-                width: 100% !important;
+                border-radius: 40px !important; /* الحواف المنحنية كما في الصورة */
+                padding: 30px !important;
+                margin-bottom: 15px !important;
                 box-shadow: none !important;
-            }
-
-            /* شبكة القسائم في الطباعة */
-            .vouchers-grid-print {
-                display: grid !important;
-                grid-template-columns: 1fr 1fr !important;
-                gap: 20px !important;
-                width: 100% !important;
-            }
-
-            .vouchers-grid-print > div {
-                border: 2px solid #e2e8f0 !important;
-                border-radius: 30px !important;
-                page-break-inside: avoid !important;
-            }
-
-            /* القسائم الفردية تظهر في الطباعة */
-            #print-area-target {
-                display: block !important;
-            }
-
-            /* ضمان ظهور الألوان الخلفية في الطباعة */
-            .bg-indigo-600 { background-color: #4f46e5 !important; color: white !important; }
-            .bg-indigo-900 { background-color: #1e1b4b !important; color: white !important; }
-            .bg-indigo-950 { background-color: #0f172a !important; color: white !important; }
-            .bg-slate-50 { background-color: #f8fafc !important; }
-            .bg-emerald-900\/40 { background-color: rgba(6, 78, 59, 0.4) !important; }
-            .bg-rose-900\/40 { background-color: rgba(159, 18, 57, 0.4) !important; }
-            .text-indigo-700 { color: #4338ca !important; }
-            .border-indigo-200 { border-color: #c7d2fe !important; }
-            
-            * {
+                background-color: white !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
+            }
+
+            /* ضمان ظهور الألوان الأساسية */
+            .bg-indigo-600 { background-color: #4f46e5 !important; color: white !important; }
+            .text-indigo-600 { color: #4f46e5 !important; }
+            .text-emerald-600 { color: #059669 !important; }
+            .text-rose-600 { color: #e11d48 !important; }
+            .border-indigo-950 { border-color: #0f172a !important; }
+            
+            /* إخفاء أزرار الإغلاق والتنفيذ داخل المعاينة أثناء الطباعة الفعلية */
+            .no-print {
+                display: none !important;
             }
         }
     </style>
