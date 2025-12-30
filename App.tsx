@@ -33,7 +33,6 @@ const App: React.FC = () => {
     saveDB(db);
   }, [db]);
 
-  // تحديث الكلاس على الـ body لضمان عمل CSS الطباعة
   useEffect(() => {
     if (individualPrintItem) {
       document.body.classList.add('is-printing-preview');
@@ -119,7 +118,7 @@ const App: React.FC = () => {
   const DocumentPrintCard = ({ title, type, data }: { title: string, type: PrintType, data: any }) => {
     const emp = db.employees.find(e => e.id === data.employeeId) || { name: data.employeeName || '.......', department: 'غير محدد' };
     return (
-      <div className="bg-white p-12 print-card w-full max-w-4xl mx-auto border-2 border-slate-100 shadow-sm relative overflow-hidden">
+      <div className="bg-white p-12 print-card w-full max-w-4xl mx-auto rounded-[4rem] border-2 border-slate-100 shadow-sm relative overflow-hidden">
         <PrintableHeader title={title} />
         <div className="space-y-12">
            <div className="flex justify-between items-center bg-slate-50 p-10 rounded-[2.5rem] border border-slate-100">
@@ -173,24 +172,24 @@ const App: React.FC = () => {
       {payrolls.map(p => {
         const emp = db.employees.find(e => e.id === p.employeeId);
         return (
-          <div key={p.id} className="print-card border-2 border-slate-100 p-8 rounded-[2.5rem] bg-white relative">
-            <div className="flex justify-between items-start border-b border-indigo-100 pb-4 mb-4">
+          <div key={p.id} className="print-card border-2 border-slate-100 p-12 rounded-[3.5rem] bg-white relative">
+            <div className="flex justify-between items-start border-b-2 border-indigo-100 pb-6 mb-6">
                <div className="text-right">
-                  <p className="text-[10px] font-black text-indigo-600 uppercase mb-0.5">قسيمة راتب الموظف</p>
-                  <h3 className="text-2xl font-black text-slate-900 leading-none">{emp?.name}</h3>
+                  <p className="text-[11px] font-black text-indigo-600 uppercase mb-1">قسيمة راتب الموظف</p>
+                  <h3 className="text-3xl font-black text-slate-900 leading-none">{emp?.name}</h3>
                </div>
-               <div className="text-left text-[10px] font-black text-slate-400">
-                  <p>التاريخ: {p.month} / {p.year}</p>
+               <div className="text-left text-[12px] font-black text-slate-400">
+                  <p>الفترة: {p.month} / {p.year}</p>
                </div>
             </div>
-            <div className="space-y-2 text-[12px] font-bold">
+            <div className="space-y-3 text-[14px] font-bold">
                <div className="flex justify-between text-slate-600"><span>الراتب الأساسي:</span> <span>{p.baseSalary.toLocaleString()}</span></div>
                <div className="flex justify-between text-indigo-600"><span>بدل المواصلات:</span> <span>+{p.transport.toLocaleString()}</span></div>
                <div className="flex justify-between text-emerald-600 font-black"><span>إضافي ساعات:</span> <span>+{p.overtimePay.toLocaleString()}</span></div>
                <div className="flex justify-between text-rose-600"><span>أقساط سلف:</span> <span>-{p.loanInstallment.toLocaleString()}</span></div>
                <div className="flex justify-between text-rose-700 font-black"><span>خصم تأخير:</span> <span>-{p.lateDeduction.toLocaleString()}</span></div>
-               <div className="flex justify-between text-xl font-black text-indigo-950 pt-4 mt-4 border-t-2 border-indigo-900">
-                 <span>صافي الراتب:</span> <span>{db.settings.currency} {p.netSalary.toLocaleString()}</span>
+               <div className="flex justify-between text-2xl font-black text-indigo-950 pt-6 mt-6 border-t-4 border-indigo-950">
+                 <span>صافي الراتب:</span> <span>{p.netSalary.toLocaleString()} <span className="text-sm">{db.settings.currency}</span></span>
                </div>
             </div>
           </div>
@@ -344,7 +343,7 @@ const App: React.FC = () => {
           <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 flex justify-between items-center no-print">
              <h2 className="text-3xl font-black text-indigo-700">مسير الرواتب - {currentMonth}/{currentYear}</h2>
              <div className="flex gap-3">
-                <button onClick={() => setIndividualPrintItem({ title: 'قسائم رواتب الموظفين المعتمدة', type: 'vouchers', data: currentPayrolls })} className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg"><ReceiptText size={20}/> القسائم</button>
+                <button onClick={() => setIndividualPrintItem({ title: 'قسائم رواتب الموظفين المعتمدة', type: 'vouchers', data: currentPayrolls })} className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2"><ReceiptText size={20}/> القسائم</button>
                 <button onClick={() => window.print()} className="bg-slate-950 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg"><Printer size={20}/> طباعة المسير الكامل</button>
              </div>
           </div>
@@ -411,13 +410,12 @@ const App: React.FC = () => {
       
       {individualPrintItem && (
         <div className="fixed inset-0 bg-slate-950/95 z-[500] flex items-center justify-center p-6 no-print overflow-y-auto">
-          <div className="bg-white p-12 w-full max-w-5xl shadow-2xl rounded-[4rem] border-4 border-white/20 transition-all overflow-hidden">
+          <div className="bg-white p-12 w-full max-w-5xl shadow-2xl rounded-[4rem] border-4 border-white/20 print-overlay transition-all">
              <div className="flex justify-between items-center mb-10 border-b-2 pb-8">
                 <h3 className="font-black text-indigo-800 text-4xl">مـعايـنة قـبـل الـطبـاعة</h3>
                 <button onClick={() => setIndividualPrintItem(null)} className="text-rose-500 p-3 hover:bg-rose-50 rounded-full transition transform hover:rotate-90"><X size={54}/></button>
              </div>
              
-             {/* منطقة الطباعة المستهدفة حصرياً بالـ ID */}
              <div id="print-area-target" className="bg-white overflow-hidden p-2">
                 {individualPrintItem.type === 'vouchers' 
                   ? <VouchersPrintGrid payrolls={individualPrintItem.data} />
@@ -425,7 +423,7 @@ const App: React.FC = () => {
              </div>
 
              <div className="flex gap-8 mt-14 no-print">
-                <button onClick={() => window.print()} className="flex-[2] bg-indigo-600 text-white py-8 rounded-[3rem] font-black text-4xl shadow-[0_20px_50px_rgba(79,70,229,0.3)] flex items-center justify-center gap-6 hover:bg-indigo-700 hover:scale-[1.02] active:scale-95 transition-all outline-none"><Printer size={48}/> تـنـفـيذ الـطـباعـة</button>
+                <button onClick={() => window.print()} className="flex-[2] bg-indigo-600 text-white py-8 rounded-[3rem] font-black text-4xl shadow-[0_20px_50px_rgba(79,70,229,0.3)] flex items-center justify-center gap-6 hover:bg-indigo-700 hover:scale-[1.02] active:scale-95 transition-all"><Printer size={48}/> تـنـفـيذ الـط_ب_اعـة</button>
                 <button onClick={() => setIndividualPrintItem(null)} className="flex-1 bg-slate-100 py-8 rounded-[3rem] font-black text-2xl text-slate-500 hover:bg-slate-200 transition">إلغاء وإغلاق</button>
              </div>
           </div>
