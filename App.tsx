@@ -63,7 +63,6 @@ const App: React.FC = () => {
     db.settings
   ), [currentMonth, currentYear, db]);
 
-  // حساب الإجماليات لكل أعمدة مسير الرواتب بما في ذلك الساعات
   const payrollTotals = useMemo(() => {
     return currentPayrolls.reduce((acc, curr) => ({
       base: acc.base + (curr.baseSalary || 0),
@@ -230,6 +229,7 @@ const App: React.FC = () => {
       case 'leaves': return (
         <GenericModule<LeaveRequest> 
           title="طلبات الإجازات" lang={db.settings.language} employees={db.employees} items={db.leaves} 
+          companyName={db.settings.name} logo={db.settings.logo}
           archiveMode={archiveModes.leaves} onToggleArchive={() => setArchiveModes(p => ({...p, leaves: !p.leaves}))} 
           onSave={i => updateList('leaves', i)} onDelete={id => deleteFromList('leaves', id)} 
           onPrintIndividual={i => setIndividualPrintItem({title: "إشعار إجازة رسمي", type: 'leave', data: i})} 
@@ -246,11 +246,20 @@ const App: React.FC = () => {
             </div>
           )} 
           renderRow={(i, name) => (<><td className="px-6 py-4 font-black">{name}</td><td className="px-6 py-4 font-bold">{leaveTypesAr[i.type]}</td><td className="px-6 py-4">{i.isPaid ? 'نعم' : 'لا'}</td><td className="px-6 py-4">{i.startDate}</td><td className="px-6 py-4">{i.endDate}</td></>)} 
+          renderFooter={(list) => (
+             <tr>
+               <td className="px-6 py-4">إجمالي طلبات الإجازة</td>
+               <td className="px-6 py-4 text-center text-lg">{list.length} طلب</td>
+               <td colSpan={3}></td>
+               <td className="no-print"></td>
+             </tr>
+          )}
         />
       );
       case 'loans': return (
         <GenericModule<Loan> 
           title="السلف والقروض" lang={db.settings.language} employees={db.employees} items={db.loans} 
+          companyName={db.settings.name} logo={db.settings.logo}
           archiveMode={archiveModes.loans} onToggleArchive={() => setArchiveModes(p => ({...p, loans: !p.loans}))} 
           onSave={i => updateList('loans', i)} onDelete={id => deleteFromList('loans', id)} 
           onPrintIndividual={i => setIndividualPrintItem({title: "سند سلفة موظف", type: 'loan', data: i})} 
@@ -288,11 +297,21 @@ const App: React.FC = () => {
             </div>
           )} 
           renderRow={(i, name) => (<><td className="px-6 py-4 font-black">{name}</td><td className="px-6 py-4 font-black">{i.amount.toLocaleString()}</td><td className="px-6 py-4 text-rose-600 font-black">{i.remainingAmount.toLocaleString()}</td><td className="px-6 py-4">{i.date}</td></>)} 
+          renderFooter={(list) => (
+             <tr>
+               <td className="px-6 py-4">إجمالي السلف</td>
+               <td className="px-6 py-4 text-center font-black">{list.reduce((acc,curr)=>acc+(curr.amount||0),0).toLocaleString()}</td>
+               <td className="px-6 py-4 text-center font-black text-emerald-300">{list.reduce((acc,curr)=>acc+(curr.remainingAmount||0),0).toLocaleString()}</td>
+               <td className="px-6 py-4"></td>
+               <td className="no-print"></td>
+             </tr>
+          )}
         />
       );
       case 'financials': return (
         <GenericModule<FinancialEntry> 
           title="السندات المالية" lang={db.settings.language} employees={db.employees} items={db.financials} 
+          companyName={db.settings.name} logo={db.settings.logo}
           archiveMode={archiveModes.financials} onToggleArchive={() => setArchiveModes(p => ({...p, financials: !p.financials}))} 
           onSave={i => updateList('financials', i)} onDelete={id => deleteFromList('financials', id)} 
           onPrintIndividual={i => setIndividualPrintItem({title: "سند مالي معتمد", type: 'financial', data: i})} 
@@ -307,9 +326,18 @@ const App: React.FC = () => {
             </div>
           )} 
           renderRow={(i, name) => (<><td className="px-6 py-4 font-black">{name}</td><td className="px-6 py-4 font-bold">{financialTypesAr[i.type || 'bonus']}</td><td className="px-6 py-4 font-black">{i.amount.toLocaleString()}</td><td className="px-6 py-4">{i.date}</td></>)} 
+          renderFooter={(list) => (
+             <tr>
+               <td className="px-6 py-4">إجمالي السندات</td>
+               <td className="px-6 py-4 text-center">-</td>
+               <td className="px-6 py-4 text-center font-black text-indigo-300">{list.reduce((acc,curr)=>acc+(curr.amount||0),0).toLocaleString()}</td>
+               <td className="px-6 py-4"></td>
+               <td className="no-print"></td>
+             </tr>
+          )}
         />
       );
-      case 'production': return <Production employees={db.employees} items={db.production || []} onSave={i => updateList('production', i)} onDelete={id => deleteFromList('production', id)} archiveMode={archiveModes.production} onToggleArchive={() => setArchiveModes(p => ({...p, production: !p.production}))} onPrintIndividual={i => setIndividualPrintItem({title: "إشعار إنتاجية موظف", type: 'production', data: i})} />;
+      case 'production': return <Production employees={db.employees} items={db.production || []} settings={db.settings} onSave={i => updateList('production', i)} onDelete={id => deleteFromList('production', id)} archiveMode={archiveModes.production} onToggleArchive={() => setArchiveModes(p => ({...p, production: !p.production}))} onPrintIndividual={i => setIndividualPrintItem({title: "إشعار إنتاجية موظف", type: 'production', data: i})} />;
       case 'payroll': return (
         <div className="space-y-8">
           <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 flex justify-between items-center no-print">
@@ -337,7 +365,7 @@ const App: React.FC = () => {
                    <th className="px-4 py-6 bg-[#0f172a] text-sm text-indigo-300">صافي الراتب</th>
                  </tr>
                </thead>
-               <tbody className="divide-y divide-slate-100">
+               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                  {currentPayrolls.map(p => (
                    <tr key={p.id} className="hover:bg-slate-50 transition font-bold text-xs">
                      <td className="px-4 py-6 text-right sticky right-0 bg-white dark:bg-slate-900 border-r">{db.employees.find(e => e.id === p.employeeId)?.name}</td>
@@ -395,7 +423,7 @@ const App: React.FC = () => {
              </div>
 
              <div className="flex gap-8 mt-14 no-print">
-                <button onClick={() => window.print()} className="flex-[2] bg-indigo-600 text-white py-8 rounded-[3rem] font-black text-4xl shadow-[0_20px_50px_rgba(79,70,229,0.3)] flex items-center justify-center gap-6 hover:bg-indigo-700 hover:scale-[1.02] active:scale-95 transition-all"><Printer size={48}/> تـنـفـيذ الـطـباعـة</button>
+                <button onClick={() => window.print()} className="flex-[2] bg-indigo-600 text-white py-8 rounded-[3rem] font-black text-4xl shadow-[0_20px_50px_rgba(79,70,229,0.3)] flex items-center justify-center gap-6 hover:bg-indigo-700 hover:scale-[1.02] active:scale-95 transition-all"><Printer size={48}/> تـنـفـيذ الـط_ب_اعـة</button>
                 <button onClick={() => setIndividualPrintItem(null)} className="flex-1 bg-slate-100 py-8 rounded-[3rem] font-black text-2xl text-slate-500 hover:bg-slate-200 transition">إلغاء وإغلاق</button>
              </div>
           </div>

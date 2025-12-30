@@ -1,12 +1,13 @@
 
 import React, { useState, useMemo } from 'react';
-import { Employee, ProductionEntry } from '../types';
+import { Employee, ProductionEntry, CompanySettings } from '../types';
 import { Zap, Plus, Trash2, Edit2, Search, FileDown, Printer, Calendar, Package, Archive, History, X } from 'lucide-react';
 import { exportToExcel } from '../utils/export';
 
 interface Props {
   employees: Employee[];
   items: ProductionEntry[];
+  settings: CompanySettings;
   onSave: (item: ProductionEntry) => void;
   onDelete: (id: string) => void;
   onPrintIndividual?: (item: ProductionEntry) => void;
@@ -14,7 +15,7 @@ interface Props {
   onToggleArchive: () => void;
 }
 
-const Production: React.FC<Props> = ({ employees, items, onSave, onDelete, onPrintIndividual, archiveMode, onToggleArchive }) => {
+const Production: React.FC<Props> = ({ employees, items, settings, onSave, onDelete, onPrintIndividual, archiveMode, onToggleArchive }) => {
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFrom, setDateFrom] = useState('');
@@ -44,6 +45,14 @@ const Production: React.FC<Props> = ({ employees, items, onSave, onDelete, onPri
       return true;
     }).sort((a,b) => b.date.localeCompare(a.date));
   }, [items, archiveMode, searchTerm, dateFrom, dateTo, employees]);
+
+  // حساب الإجماليات
+  const totals = useMemo(() => {
+    return filteredItems.reduce((acc, curr) => ({
+      pieces: acc.pieces + (curr.piecesCount || 0),
+      value: acc.value + (curr.totalValue || 0)
+    }), { pieces: 0, value: 0 });
+  }, [filteredItems]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,10 +97,21 @@ const Production: React.FC<Props> = ({ employees, items, onSave, onDelete, onPri
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border dark:border-slate-800 overflow-hidden overflow-x-auto relative">
-        <div className="print-only p-12 text-center border-b-4 border-slate-900 bg-slate-50">
-           <h1 className="text-3xl font-black text-indigo-900 uppercase">تقرير الإنتاجية {archiveMode ? '(الأرشيف)' : ''}</h1>
-           <p className="text-sm font-bold opacity-60">تاريخ الاستخراج: {new Date().toLocaleDateString('ar-EG')}</p>
+        {/* ترويسة الطباعة الموحدة */}
+        <div className="hidden print:flex justify-between items-start border-b-4 border-indigo-950 pb-6 mb-8 w-full p-12">
+          <div className="text-right">
+            <h1 className="text-3xl font-black text-indigo-950 leading-none">{settings.name}</h1>
+            <p className="text-sm font-black text-indigo-700 mt-2">تقرير إنتاجية الموظفين {archiveMode ? '(الأرشيف التاريخي)' : ''}</p>
+          </div>
+          <div className="flex flex-col items-center">
+            {settings.logo && <img src={settings.logo} className="h-20 w-auto object-contain mb-2" />}
+          </div>
+          <div className="text-left">
+            <p className="text-[10px] font-black text-slate-400">تاريخ الاستخراج: {new Date().toLocaleDateString('ar-EG')}</p>
+            <p className="text-[10px] font-black text-slate-400">توقيت التقرير: {new Date().toLocaleTimeString('ar-EG')}</p>
+          </div>
         </div>
+
         <table className="w-full text-right text-sm">
           <thead className="bg-slate-50 dark:bg-slate-800 border-b">
             <tr className="text-slate-900 dark:text-slate-100 font-black text-xs uppercase">
@@ -125,6 +145,16 @@ const Production: React.FC<Props> = ({ employees, items, onSave, onDelete, onPri
               </tr>
             ))}
           </tbody>
+          <tfoot className="bg-indigo-950 text-white font-black text-xs uppercase border-t-4 border-indigo-900">
+             <tr>
+               <td className="px-6 py-6 text-right">إجمالي القائمة</td>
+               <td className="px-6 py-6 text-center">{totals.pieces.toLocaleString()} قطعة</td>
+               <td className="px-6 py-6 text-center">-</td>
+               <td className="px-6 py-6 text-center text-lg text-emerald-300">{totals.value.toLocaleString()} {settings.currency}</td>
+               <td className="px-6 py-6"></td>
+               <td className="no-print"></td>
+             </tr>
+          </tfoot>
         </table>
       </div>
 

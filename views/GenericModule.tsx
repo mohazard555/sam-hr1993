@@ -16,12 +16,15 @@ interface GenericModuleProps<T> {
   onToggleArchive: () => void;
   renderForm: (formData: Partial<T>, setFormData: React.Dispatch<React.SetStateAction<Partial<T>>>) => React.ReactNode;
   renderRow: (item: T, employeeName: string) => React.ReactNode;
+  renderFooter?: (filteredItems: T[]) => React.ReactNode;
   tableHeaders: string[];
   initialData: Partial<T>;
+  companyName: string;
+  logo?: string;
 }
 
 export function GenericModule<T extends { id: string; employeeId: string; date?: string; startDate?: string; endDate?: string; isArchived?: boolean }>({ 
-  title, lang, employees, items, onSave, onDelete, onPrintIndividual, archiveMode, onToggleArchive, renderForm, renderRow, tableHeaders, initialData 
+  title, lang, employees, items, onSave, onDelete, onPrintIndividual, archiveMode, onToggleArchive, renderForm, renderRow, renderFooter, tableHeaders, initialData, companyName, logo 
 }: GenericModuleProps<T>) {
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState<Partial<T>>(initialData);
@@ -64,7 +67,22 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border overflow-hidden overflow-x-auto">
+      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border overflow-hidden overflow-x-auto relative">
+        {/* ترويسة الطباعة الموحدة */}
+        <div className="hidden print:flex justify-between items-start border-b-4 border-indigo-950 pb-6 mb-8 w-full p-8">
+          <div className="text-right">
+            <h1 className="text-3xl font-black text-indigo-950 leading-none">{companyName}</h1>
+            <p className="text-sm font-black text-indigo-700 mt-2">{title} {archiveMode ? '(سجل الأرشيف)' : ''}</p>
+          </div>
+          <div className="flex flex-col items-center">
+            {logo && <img src={logo} className="h-16 w-auto object-contain mb-2" />}
+          </div>
+          <div className="text-left">
+            <p className="text-[10px] font-black text-slate-400">تاريخ الاستخراج: {new Date().toLocaleDateString('ar-EG')}</p>
+            <p className="text-[10px] font-black text-slate-400">توقيت التقرير: {new Date().toLocaleTimeString('ar-EG')}</p>
+          </div>
+        </div>
+
         <table className="w-full text-right text-sm">
           <thead className="bg-slate-50 dark:bg-slate-800 border-b">
             <tr className="text-slate-900 dark:text-slate-100 font-black text-xs uppercase">
@@ -86,6 +104,11 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
               </tr>
             ))}
           </tbody>
+          {renderFooter && (
+            <tfoot className="bg-indigo-950 text-white font-black text-xs border-t-4 border-indigo-900">
+               {renderFooter(filteredItems)}
+            </tfoot>
+          )}
         </table>
       </div>
 
