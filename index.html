@@ -31,15 +31,15 @@
         }
         
         @media print {
-            /* 1. إظهار جذر التطبيق وعدم إخفائه */
+            /* إظهار محتوى React */
             #root { display: block !important; }
             
-            /* 2. إخفاء العناصر غير الضرورية (القائمة، الأزرار، الهيدر) */
+            /* إخفاء واجهة الموقع (القوائم والأزرار) */
             .no-print, aside, header, button, .modal-backdrop-bg { 
                 display: none !important; 
             }
             
-            /* 3. عندما تكون المعاينة مفتوحة، نخفي المحتوى الخلفي بالكامل */
+            /* إخفاء كل شيء داخل main ما عدا حاوية المعاينة إذا كانت مفتوحة */
             body.is-printing-preview main > section > *:not(.print-overlay) {
                 display: none !important;
             }
@@ -48,17 +48,23 @@
                 background: white !important; 
                 margin: 0 !important;
                 padding: 0 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
 
+            /* تصميم بطاقات الطباعة لتطابق المعاينة */
             .print-card {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
-                border: 1px solid #ddd !important;
-                border-radius: 20px !important;
-                padding: 30px !important;
-                margin-bottom: 20px !important;
+                border: 2px solid #e2e8f0 !important;
+                border-radius: 50px !important;
+                padding: 50px !important;
+                margin: 0 auto !important;
+                width: 100% !important;
+                box-shadow: none !important;
             }
 
+            /* شبكة القسائم في الطباعة */
             .vouchers-grid-print {
                 display: grid !important;
                 grid-template-columns: 1fr 1fr !important;
@@ -66,6 +72,27 @@
                 width: 100% !important;
             }
 
+            .vouchers-grid-print > div {
+                border: 2px solid #e2e8f0 !important;
+                border-radius: 30px !important;
+                page-break-inside: avoid !important;
+            }
+
+            /* القسائم الفردية تظهر في الطباعة */
+            #print-area-target {
+                display: block !important;
+            }
+
+            /* ضمان ظهور الألوان الخلفية في الطباعة */
+            .bg-indigo-600 { background-color: #4f46e5 !important; color: white !important; }
+            .bg-indigo-900 { background-color: #1e1b4b !important; color: white !important; }
+            .bg-indigo-950 { background-color: #0f172a !important; color: white !important; }
+            .bg-slate-50 { background-color: #f8fafc !important; }
+            .bg-emerald-900\/40 { background-color: rgba(6, 78, 59, 0.4) !important; }
+            .bg-rose-900\/40 { background-color: rgba(159, 18, 57, 0.4) !important; }
+            .text-indigo-700 { color: #4338ca !important; }
+            .border-indigo-200 { border-color: #c7d2fe !important; }
+            
             * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
