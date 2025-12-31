@@ -12,11 +12,11 @@ import Production from './views/Production';
 import PrintForms from './views/PrintForms';
 import { GenericModule } from './views/GenericModule';
 import { loadDB, saveDB, DB } from './db/store';
-import { Employee, PayrollRecord, FinancialEntry, Loan, LeaveRequest, ProductionEntry, AttendanceRecord } from './types';
+import { Employee, PayrollRecord, FinancialEntry, Loan, LeaveRequest, ProductionEntry, AttendanceRecord, Warning } from './types';
 import { generateMonthlyPayroll, calculateTimeDiffMinutes } from './utils/calculations';
-import { Printer, X, ReceiptText, CalendarDays, Loader2, FileText, CheckCircle, Info } from 'lucide-react';
+import { Printer, X, ReceiptText, CalendarDays, Loader2, FileText, CheckCircle, Info, ShieldAlert } from 'lucide-react';
 
-type PrintType = 'production' | 'loan' | 'leave' | 'financial' | 'document' | 'vouchers' | 'report_attendance' | 'report_financial';
+type PrintType = 'production' | 'loan' | 'leave' | 'financial' | 'document' | 'vouchers' | 'report_attendance' | 'report_financial' | 'warning';
 
 const App: React.FC = () => {
   const [db, setDb] = useState<DB>(loadDB());
@@ -93,6 +93,12 @@ const App: React.FC = () => {
     'bonus': 'مكافأة', 'deduction': 'خصم إداري', 'production_incentive': 'حافز إنتاج', 'payment': 'سند صرف'
   };
 
+  const warningTypesAr: Record<string, string> = {
+    'verbal': 'إنذار شفهي',
+    'written': 'إنذار خطي',
+    'final': 'إنذار نهائي وفصل'
+  };
+
   const PrintableHeader = ({ title }: { title: string }) => (
     <div className="flex justify-between items-start border-b-4 border-indigo-900 pb-6 mb-8 w-full text-indigo-950">
       <div className="text-right">
@@ -114,7 +120,6 @@ const App: React.FC = () => {
     
     return (
       <div className="bg-white print-card w-full max-w-4xl mx-auto shadow-none relative overflow-hidden">
-        {/* Watermark effect */}
         <div className="absolute inset-0 opacity-[0.03] flex items-center justify-center pointer-events-none rotate-12">
             <h1 className="text-[10rem] font-black whitespace-nowrap">{db.settings.name}</h1>
         </div>
@@ -133,7 +138,6 @@ const App: React.FC = () => {
              </div>
            </div>
 
-           {/* محتوى متخصص حسب النوع */}
            {type === 'loan' ? (
              <div className="grid grid-cols-2 gap-6">
                 <div className="bg-indigo-950 text-white p-8 rounded-[2rem] shadow-xl text-center">
@@ -159,6 +163,22 @@ const App: React.FC = () => {
                    </div>
                 </div>
              </div>
+           ) : type === 'warning' ? (
+              <div className="border-4 border-rose-200 rounded-[2.5rem] p-8 bg-rose-50/30 relative">
+                <div className="flex items-center gap-8">
+                   <div className="bg-rose-700 text-white p-8 rounded-[2rem] shadow-xl text-center min-w-[180px]">
+                      <ShieldAlert size={40} className="mx-auto mb-2 opacity-50"/>
+                      <p className="text-[9px] opacity-70 mb-2 font-black uppercase tracking-widest">درجة العقوبة</p>
+                      <p className="text-2xl font-black">{warningTypesAr[data.type] || 'إجراء تأديبي'}</p>
+                   </div>
+                   <div className="flex-1 text-right space-y-4">
+                      <p className="text-xl font-black text-slate-800">تاريخ المخالفة: {data.date}</p>
+                      <div className="p-6 bg-white rounded-[1.5rem] italic font-bold text-lg text-rose-900 leading-relaxed border border-rose-100 shadow-sm">
+                         {data.reason || "لم يتم تحديد تفاصيل إضافية للمخالفة."}
+                      </div>
+                   </div>
+                </div>
+              </div>
            ) : type === 'report_attendance' ? (
              <div className="border-2 border-slate-100 rounded-[2rem] overflow-hidden">
                 <table className="w-full text-right text-xs">
@@ -181,6 +201,9 @@ const App: React.FC = () => {
                            <td className={`p-3 text-center ${r.overtimeMinutes > 0 ? 'text-emerald-600 font-black' : ''}`}>{r.overtimeMinutes}</td>
                         </tr>
                       ))}
+                      {(!data.records || data.records.length === 0) && (
+                        <tr><td colSpan={5} className="p-10 text-center text-slate-400 italic">لا توجد سجلات حضور للفترة المختارة</td></tr>
+                      )}
                    </tbody>
                 </table>
              </div>
@@ -209,16 +232,16 @@ const App: React.FC = () => {
 
         <div className="grid grid-cols-3 gap-8 mt-16 text-center border-t-2 pt-10 text-[12px] font-black opacity-60">
            <div className="flex flex-col gap-4">
-              <span>توقيع الموظف</span>
+              <span>توقيع الموظف المعني</span>
               <span className="text-slate-300">.......................</span>
            </div>
            <div className="flex flex-col gap-4">
-              <span>المحاسب المسؤول</span>
+              <span>المسؤول المباشر</span>
               <span className="text-slate-300">.......................</span>
            </div>
            <div className="flex flex-col gap-4">
               <span>الختم الإداري</span>
-              <div className="w-24 h-24 border-2 border-dashed border-slate-200 rounded-full mx-auto flex items-center justify-center text-[10px] text-slate-300">STAMP HERE</div>
+              <div className="w-24 h-24 border-2 border-dashed border-slate-200 rounded-full mx-auto flex items-center justify-center text-[10px] text-slate-300">OFFICIAL STAMP</div>
            </div>
         </div>
       </div>
@@ -329,7 +352,7 @@ const App: React.FC = () => {
           onSave={i => updateList('loans', i)} onDelete={id => deleteFromList('loans', id)} 
           onPrintIndividual={i => setIndividualPrintItem({title: "سند سلفة موظف", type: 'loan', data: i})} 
           initialData={{ amount: 0, installmentsCount: 1, monthlyInstallment: 0, remainingAmount: 0, date: new Date().toISOString().split('T')[0], collectionDate: new Date().toISOString().split('T')[0] }} 
-          tableHeaders={['الموظف', 'المبلغ', 'القسط', 'البداية']} 
+          tableHeaders={['الموظف', 'المبلغ', 'الأقساط', 'قيمة القسط', 'بداية التحصيل']} 
           renderForm={(data, set) => (
             <div className="space-y-6">
                <div className="grid grid-cols-2 gap-4">
@@ -341,26 +364,26 @@ const App: React.FC = () => {
                    }} />
                  </div>
                  <div>
-                   <label className="text-[10px] font-black text-slate-400 mb-1 block">عدد الأشهر</label>
+                   <label className="text-[10px] font-black text-slate-400 mb-1 block">عدد الأشهر (الأقساط)</label>
                    <input type="number" className="w-full p-4 border rounded-xl font-black" value={data.installmentsCount || ''} onChange={e => {
                      const inst = Number(e.target.value);
                      set({...data, installmentsCount: inst, monthlyInstallment: Math.round((data.amount || 0) / (inst || 1))});
                    }} />
                  </div>
                  <div>
-                    <label className="text-[10px] font-black text-slate-400 mb-1 block">بداية التحصيل</label>
+                    <label className="text-[10px] font-black text-slate-400 mb-1 block">تاريخ بداية التحصيل</label>
                     <input type="date" className="w-full p-4 border rounded-xl font-black" value={data.collectionDate || ''} onChange={e => set({...data, collectionDate: e.target.value})} />
                  </div>
                  <div className="bg-indigo-50 p-4 rounded-xl flex flex-col justify-center">
-                    <p className="text-[9px] font-black text-indigo-400 uppercase">القسط المقترح</p>
+                    <p className="text-[9px] font-black text-indigo-400 uppercase">القسط الشهري</p>
                     <p className="text-xl font-black text-indigo-700">{data.monthlyInstallment?.toLocaleString()}</p>
                  </div>
                </div>
             </div>
           )} 
-          renderRow={(i, name) => (<><td className="px-6 py-4 font-black">{name}</td><td className="px-6 py-4 font-black">{i.amount.toLocaleString()}</td><td className="px-6 py-4 text-rose-600 font-black">{i.monthlyInstallment.toLocaleString()}</td><td className="px-6 py-4 text-[10px]">{i.collectionDate}</td></>)} 
+          renderRow={(i, name) => (<><td className="px-6 py-4 font-black">{name}</td><td className="px-6 py-4 font-black">{i.amount.toLocaleString()}</td><td className="px-6 py-4 text-center font-bold">{i.installmentsCount} شهر</td><td className="px-6 py-4 text-rose-600 font-black">{i.monthlyInstallment.toLocaleString()}</td><td className="px-6 py-4 text-[10px] font-bold text-slate-500">{i.collectionDate}</td></>)} 
           renderFooter={(list) => (
-             <tr><td className="px-6 py-4 text-right">الإجماليات</td><td className="px-6 py-4 text-center font-black">{list.reduce((acc,curr)=>acc+(curr.amount||0),0).toLocaleString()}</td><td className="px-6 py-4 text-center font-black text-emerald-300">{list.reduce((acc,curr)=>acc+(curr.remainingAmount||0),0).toLocaleString()}</td><td className="px-6 py-4"></td><td className="no-print"></td></tr>
+             <tr><td className="px-6 py-4 text-right">الإجماليات</td><td className="px-6 py-4 text-center font-black">{list.reduce((acc,curr)=>acc+(curr.amount||0),0).toLocaleString()}</td><td colSpan={2}></td><td className="px-6 py-4 text-center font-black text-emerald-300">{list.reduce((acc,curr)=>acc+(curr.remainingAmount||0),0).toLocaleString()}</td><td className="no-print"></td></tr>
           )}
         />
       );
@@ -446,6 +469,8 @@ const App: React.FC = () => {
           employees={db.employees} 
           attendance={db.attendance} 
           financials={db.financials} 
+          warnings={db.warnings}
+          leaves={db.leaves}
           settings={db.settings} 
           onPrint={(doc) => setIndividualPrintItem(doc as any)} 
         />

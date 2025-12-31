@@ -1,21 +1,23 @@
 
 import React, { useState, useMemo } from 'react';
-import { Employee, CompanySettings, AttendanceRecord, FinancialEntry } from '../types';
+import { Employee, CompanySettings, AttendanceRecord, FinancialEntry, Warning, LeaveRequest } from '../types';
 import { 
   Printer, FileText, User, ClipboardList, AlertTriangle, 
   CheckCircle2, Calendar, Wallet, Zap, Star, Search, Filter, 
-  ChevronRight, ArrowRight, History
+  ChevronRight, ArrowRight, History, ShieldAlert, Award
 } from 'lucide-react';
 
 interface Props {
   employees: Employee[];
   attendance: AttendanceRecord[];
   financials: FinancialEntry[];
+  warnings: Warning[];
+  leaves: LeaveRequest[];
   settings: CompanySettings;
   onPrint: (doc: { title: string, type: string, data: any }) => void;
 }
 
-const PrintForms: React.FC<Props> = ({ employees, attendance, financials, settings, onPrint }) => {
+const PrintForms: React.FC<Props> = ({ employees, attendance, financials, warnings, leaves, settings, onPrint }) => {
   const [selectedEmp, setSelectedEmp] = useState('');
   const [activeCategory, setActiveCategory] = useState<'admin' | 'finance' | 'reports'>('admin');
   const [dateFrom, setDateFrom] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]);
@@ -29,13 +31,13 @@ const PrintForms: React.FC<Props> = ({ employees, attendance, financials, settin
   ];
 
   const templates = [
-    { id: 'leave', title: 'طلب إجازة رسمي', cat: 'admin', icon: Calendar, desc: 'نموذج إجازة سنوية أو مرضية جاهز للتوقيع' },
-    { id: 'permission', title: 'إذن مغادرة / انصراف', cat: 'admin', icon: CheckCircle2, desc: 'تصريح خروج موثق لمهمة عمل أو عذر' },
-    { id: 'warning', title: 'إنذار / لفت نظر', cat: 'admin', icon: AlertTriangle, desc: 'وثيقة توبيخ رسمية لمخالفة اللوائح' },
-    { id: 'bonus', title: 'سند مكافأة استحقاق', cat: 'finance', icon: Star, desc: 'إشعار مالي بصرف حوافز أو مكافأة أداء' },
-    { id: 'payment', title: 'سند صرف داخلي', cat: 'finance', icon: Wallet, desc: 'توثيق مدفوعات نقدية أو عينية للموظف' },
-    { id: 'att_summary', title: 'سجل حضور وانصراف', cat: 'reports', icon: History, desc: 'تقرير مفصل بمواعيد الدوام لفترة محددة' },
-    { id: 'evaluation', title: 'تقييم الأداء السنوي', cat: 'reports', icon: Zap, desc: 'شهادة تقدير أو تقرير تقييم كفاءة مهني' }
+    { id: 'leave', title: 'سجل إجازات الموظف', cat: 'admin', icon: Calendar, desc: 'تقرير مفصل بكافة الإجازات السنوية والطبية' },
+    { id: 'permission', title: 'أذونات العمل', cat: 'admin', icon: CheckCircle2, desc: 'سجل تصاريح الخروج والمهمات الخارجية' },
+    { id: 'warning', title: 'عقوبات الموظف', cat: 'admin', icon: ShieldAlert, desc: 'سجل الإنذارات الرسمية والإجراءات التأديبية' },
+    { id: 'bonus', title: 'المكافآت والحوافز', cat: 'finance', icon: Award, desc: 'بيان بالمكافآت المالية والتحفيزية المستحقة' },
+    { id: 'payment', title: 'سند صرف داخلي', cat: 'finance', icon: Wallet, desc: 'توثيق أي مدفوعات نقدية خارج مسير الرواتب' },
+    { id: 'att_summary', title: 'سجل الحضور والانصراف', cat: 'reports', icon: History, desc: 'تقرير شامل لمواعيد الدوام لفترة محددة' },
+    { id: 'evaluation', title: 'التقييم السنوي للآداء', cat: 'reports', icon: Zap, desc: 'شهادة تقييم مهنية بناءً على مؤشرات الأداء' }
   ];
 
   const filteredEmployees = useMemo(() => {
@@ -46,7 +48,7 @@ const PrintForms: React.FC<Props> = ({ employees, attendance, financials, settin
   }, [employees, searchTerm]);
 
   const handleGenerate = (templateId: string) => {
-    if (!selectedEmp) return alert('يرجى اختيار موظف من القائمة أولاً');
+    if (!selectedEmp) return alert('يرجى اختيار موظف من القائمة الجانبية أولاً');
     
     const emp = employees.find(e => e.id === selectedEmp);
     const template = templates.find(t => t.id === templateId);
@@ -62,12 +64,30 @@ const PrintForms: React.FC<Props> = ({ employees, attendance, financials, settin
     if (templateId === 'att_summary') {
       type = 'report_attendance';
       data.records = attendance.filter(a => a.employeeId === selectedEmp && a.date >= dateFrom && a.date <= dateTo);
+    } else if (templateId === 'warning') {
+      type = 'warning';
+      const lastWarning = warnings.filter(w => w.employeeId === selectedEmp).sort((a,b) => b.date.localeCompare(a.date))[0];
+      if (!lastWarning) {
+          alert('لا توجد سجلات عقوبات لهذا الموظف لإصدار وثيقة حالياً.');
+          return;
+      }
+      data = { ...data, ...lastWarning };
+    } else if (templateId === 'leave') {
+       type = 'document';
+       const empLeaves = leaves.filter(l => l.employeeId === selectedEmp && l.status === 'approved');
+       data.notes = `سجل الإجازات المعتمدة للموظف للفترة الحالية يشمل ${empLeaves.length} إجازة. الرصيد المتبقي هو ${emp?.vacationBalance || 0} يوم.`;
     } else if (templateId === 'evaluation') {
-       data.notes = "بناءً على مراجعة الأداء للفترة المنصرمة، تم تقييم أداء الموظف بمستوى ممتاز، مع التنويه على كفاءته في تنفيذ المهام الموكلة إليه والالتزام باللوائح الداخلية للمؤسسة.";
+       data.notes = "إقرار أداء: بناءً على مراجعة الكفاءة للفترة المنقضية، نؤكد أن الموظف المذكور قد استوفى معايير الأداء المؤسسي بمستوى (جيد جداً)، مع التوصية بالاستمرار في تطوير مهارات القيادة والعمل الجماعي.";
+    } else if (templateId === 'bonus') {
+       type = 'financial';
+       const empBonuses = financials.filter(f => f.employeeId === selectedEmp && f.type === 'bonus');
+       data.type = 'bonus';
+       data.amount = empBonuses.reduce((sum, b) => sum + b.amount, 0);
+       data.notes = `إجمالي الحوافز والمكافآت التي تم رصدها للموظف خلال الفترة المختارة تبلغ ${data.amount.toLocaleString()} ${settings.currency}.`;
     }
 
     onPrint({
-      title: template?.title || 'مستند رسمي',
+      title: template?.title || 'وثيقة رسمية',
       type: type,
       data: data
     });
@@ -75,19 +95,18 @@ const PrintForms: React.FC<Props> = ({ employees, attendance, financials, settin
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-700 pb-20">
-      {/* Header Section */}
-      <div className="bg-white dark:bg-slate-900 p-10 rounded-[3.5rem] shadow-xl border dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-10">
+      <div className="bg-white dark:bg-slate-900 p-10 rounded-[3.5rem] shadow-xl border dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-10 no-print">
         <div className="flex items-center gap-6 text-right">
            <div className="p-6 bg-indigo-600 text-white rounded-[2rem] shadow-2xl shadow-indigo-500/40">
               <Printer size={40}/>
            </div>
            <div>
-              <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">مركز الوثائق الذكي</h2>
-              <p className="text-sm font-bold text-slate-400 mt-2">توليد تقارير ونماذج احترافية بضغطة زر واحدة</p>
+              <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">نظام الوثائق المتكامل</h2>
+              <p className="text-sm font-bold text-slate-400 mt-2">إصدار كافة التقارير والنماذج الرسمية بلمسة واحدة</p>
            </div>
         </div>
 
-        <div className="flex gap-4 bg-slate-100 dark:bg-slate-800 p-2 rounded-[2.5rem] no-print">
+        <div className="flex gap-4 bg-slate-100 dark:bg-slate-800 p-2 rounded-[2.5rem]">
            {categories.map(cat => (
              <button 
                key={cat.id} 
@@ -101,23 +120,23 @@ const PrintForms: React.FC<Props> = ({ employees, attendance, financials, settin
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        {/* Step 1: Employee Selection */}
+        {/* الموظفين والبحث */}
         <div className="lg:col-span-1 space-y-6 no-print">
            <div className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] shadow-2xl border dark:border-slate-800">
               <h3 className="text-xl font-black mb-6 text-indigo-700 flex items-center gap-2">
-                <User size={24}/> الموظف المستهدف
+                <Search size={24}/> اختيار الموظف
               </h3>
               <div className="relative mb-6">
-                 <Search className="absolute right-4 top-3.5 text-slate-400" size={18}/>
                  <input 
                    type="text" 
-                   placeholder="بحث باسم الموظف..." 
-                   className="w-full pr-12 p-4 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 rounded-2xl font-bold transition-all outline-none" 
+                   placeholder="بحث بالاسم أو القسم..." 
+                   className="w-full pr-6 pl-12 p-4 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 rounded-2xl font-bold transition-all outline-none text-right" 
                    value={searchTerm}
                    onChange={e => setSearchTerm(e.target.value)}
                  />
+                 <Search className="absolute left-4 top-4 text-slate-400" size={18}/>
               </div>
-              <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+              <div className="space-y-2 max-h-[450px] overflow-y-auto pr-2 custom-scrollbar rtl">
                  {filteredEmployees.map(emp => (
                    <button 
                      key={emp.id} 
@@ -131,29 +150,30 @@ const PrintForms: React.FC<Props> = ({ employees, attendance, financials, settin
                       {selectedEmp === emp.id && <ArrowRight size={20}/>}
                    </button>
                  ))}
+                 {filteredEmployees.length === 0 && <p className="text-center py-10 text-slate-400 italic">لا يوجد نتائج للبحث</p>}
               </div>
            </div>
 
            {activeCategory === 'reports' && (
              <div className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] shadow-2xl border dark:border-slate-800 animate-in slide-in-from-bottom-4">
                 <h3 className="text-xl font-black mb-6 text-emerald-600 flex items-center gap-2">
-                   <Filter size={24}/> نطاق الفترة الزمنية
+                   <Filter size={24}/> تحديد النطاق الزمني
                 </h3>
                 <div className="space-y-4">
-                   <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">من تاريخ</label>
-                      <input type="date" className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-xl font-bold" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+                   <div className="text-right">
+                      <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">تاريخ البداية</label>
+                      <input type="date" className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-xl font-bold text-center" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
                    </div>
-                   <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">إلى تاريخ</label>
-                      <input type="date" className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-xl font-bold" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+                   <div className="text-right">
+                      <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">تاريخ النهاية</label>
+                      <input type="date" className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-xl font-bold text-center" value={dateTo} onChange={e => setDateTo(e.target.value)} />
                    </div>
                 </div>
              </div>
            )}
         </div>
 
-        {/* Step 2: Templates Selection */}
+        {/* القوالب المتاحة */}
         <div className="lg:col-span-2">
            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {templates.filter(t => t.cat === activeCategory).map(template => (
@@ -165,12 +185,12 @@ const PrintForms: React.FC<Props> = ({ employees, attendance, financials, settin
                    <div className={`p-5 rounded-3xl ${categories.find(c => c.id === activeCategory)?.bg} transition-transform group-hover:rotate-12`}>
                       <template.icon size={32} className={categories.find(c => c.id === activeCategory)?.color}/>
                    </div>
-                   <div>
+                   <div className="w-full">
                       <h4 className="text-2xl font-black text-slate-900 dark:text-white">{template.title}</h4>
                       <p className="text-xs font-bold text-slate-400 mt-2 leading-relaxed">{template.desc}</p>
                    </div>
-                   <div className="mt-auto pt-6 w-full flex justify-between items-center">
-                      <span className="text-[10px] font-black uppercase text-indigo-500 tracking-widest">توليد فوري</span>
+                   <div className="mt-auto pt-6 w-full flex justify-between items-center border-t border-slate-50 dark:border-slate-800">
+                      <span className="text-[10px] font-black uppercase text-indigo-500 tracking-widest">توليد تقرير احترافي</span>
                       <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all">
                          <ChevronRight size={24}/>
                       </div>
@@ -179,17 +199,17 @@ const PrintForms: React.FC<Props> = ({ employees, attendance, financials, settin
               ))}
            </div>
 
-           {/* Quick Guide Card */}
+           {/* تلميحات احترافية */}
            <div className="mt-10 bg-slate-900 text-white p-10 rounded-[3.5rem] shadow-2xl flex items-center gap-10">
               <div className="hidden md:block">
-                 <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center animate-pulse">
-                    <Star size={40} className="text-amber-400"/>
+                 <div className="w-24 h-24 bg-indigo-500/20 rounded-full flex items-center justify-center animate-pulse">
+                    <FileText size={40} className="text-indigo-400"/>
                  </div>
               </div>
               <div className="text-right">
-                 <h5 className="text-xl font-black mb-2">هل تعلم؟</h5>
+                 <h5 className="text-xl font-black mb-2">معلومات النظام الذكي</h5>
                  <p className="text-sm font-bold text-slate-400 leading-relaxed">
-                   يقوم نظام SAM بسحب البيانات التاريخية للموظف تلقائياً ودمجها في الوثائق. عند اختيار "سجل الحضور"، ستحصل على جدول كامل يغطي الفترة المختارة دون تدخل يدوي.
+                   عند إصدار "عقوبات الموظف"، سيقوم النظام بسحب آخر إجراء تأديبي مسجل بشكل آلي. أما بالنسبة "لسجل الحضور"، فإنه يقوم بإنشاء جدول زمني مفصل يغطي كامل الفترة الزمنية المحددة في الفلتر، شاملاً حسابات التأخير والإضافي.
                  </p>
               </div>
            </div>
