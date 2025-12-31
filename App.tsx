@@ -14,7 +14,7 @@ import { GenericModule } from './views/GenericModule';
 import { loadDB, saveDB, DB } from './db/store';
 import { Employee, PayrollRecord, FinancialEntry, Loan, LeaveRequest, ProductionEntry } from './types';
 import { generateMonthlyPayroll } from './utils/calculations';
-import { Printer, X, ReceiptText, CalendarDays } from 'lucide-react';
+import { Printer, X, ReceiptText, CalendarDays, Loader2 } from 'lucide-react';
 
 type PrintType = 'production' | 'loan' | 'leave' | 'financial' | 'document' | 'vouchers';
 
@@ -25,6 +25,7 @@ const App: React.FC = () => {
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [showForgotHint, setShowForgotHint] = useState(false);
   const [individualPrintItem, setIndividualPrintItem] = useState<{title: string, type: PrintType, data: any} | null>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
   
   const [archiveModes, setArchiveModes] = useState<Record<string, boolean>>({
     leaves: false, financials: false, loans: false, production: false
@@ -111,7 +112,7 @@ const App: React.FC = () => {
   const DocumentPrintCard = ({ title, type, data }: { title: string, type: PrintType, data: any }) => {
     const emp = db.employees.find(e => e.id === data.employeeId) || { name: data.employeeName || '.......', department: 'غير محدد' };
     return (
-      <div className="bg-white print-card w-full max-w-4xl mx-auto">
+      <div className="bg-white print-card w-full max-w-4xl mx-auto shadow-none">
         <PrintableHeader title={title} />
         <div className="space-y-10">
            <div className="flex justify-between items-center bg-slate-50 p-10 rounded-[2.5rem] border border-slate-100 text-right">
@@ -161,11 +162,11 @@ const App: React.FC = () => {
   };
 
   const VouchersPrintGrid = ({ payrolls }: { payrolls: PayrollRecord[] }) => (
-    <div className="vouchers-grid-print">
+    <div className="vouchers-grid-print space-y-8">
       {payrolls.map(p => {
         const emp = db.employees.find(e => e.id === p.employeeId);
         return (
-          <div key={p.id} className="print-card border-2 border-slate-200 p-8 bg-white relative">
+          <div key={p.id} className="print-card border-2 border-slate-200 p-8 bg-white relative mb-8">
             <div className="flex justify-between items-start border-b border-indigo-100 pb-4 mb-4">
                <div className="text-right">
                   <p className="text-[10px] font-black text-indigo-400 uppercase mb-0.5">قسيمة راتب الموظف</p>
@@ -195,15 +196,25 @@ const App: React.FC = () => {
     </div>
   );
 
+  // منطق تنفيذ الطباعة الموثوق
+  const executePrintAction = () => {
+    setIsPrinting(true);
+    // ننتظر قليلاً لضمان أن الـ Portal قد قام بتحديث الـ DOM
+    setTimeout(() => {
+      window.print();
+      setIsPrinting(false);
+    }, 500);
+  };
+
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 font-cairo" dir="rtl">
         <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl w-full max-w-md border dark:border-slate-800 overflow-hidden">
-          <div className="bg-indigo-600 p-12 text-white text-center">
+          <div className="bg-indigo-600 p-10 text-white text-center">
             <h1 className="text-4xl font-black tracking-tighter">SAM PRO</h1>
             <p className="text-[10px] font-bold mt-2 opacity-80 uppercase tracking-widest">نظام إدارة الموارد البشرية</p>
           </div>
-          <form onSubmit={handleLogin} className="p-10 space-y-6 text-right">
+          <form onSubmit={handleLogin} className="p-8 space-y-6 text-right">
             <input className="w-full py-4 px-6 bg-slate-50 dark:bg-slate-800 rounded-2xl font-black border-2 border-transparent focus:border-indigo-600 outline-none" placeholder="Username" value={loginForm.username} onChange={e => setLoginForm({...loginForm, username: e.target.value})} required />
             <input type="password" className="w-full py-4 px-6 bg-slate-50 dark:bg-slate-800 rounded-2xl font-black border-2 border-transparent focus:border-indigo-600 outline-none" placeholder="Password" value={loginForm.password} onChange={e => setLoginForm({...loginForm, password: e.target.value})} required />
             <button className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black text-lg shadow-xl hover:bg-indigo-700 transition">دخول النظام</button>
@@ -367,16 +378,18 @@ const App: React.FC = () => {
     }
   };
 
-  // المكون الذي يظهر في Portal الطباعة
+  // المكون الذي يظهر في Portal الطباعة - تم تحديثه لضمان الاستقرار
   const PrintPortalContent = () => {
-    if (!individualPrintItem) return null;
+    const portalNode = document.getElementById('sam-print-portal');
+    if (!individualPrintItem || !portalNode) return null;
+    
     return ReactDOM.createPortal(
-      <div className="print-isolated-wrapper text-right" dir="rtl">
+      <div className="print-isolated-wrapper text-right w-full" dir="rtl">
         {individualPrintItem.type === 'vouchers' 
           ? <VouchersPrintGrid payrolls={individualPrintItem.data} />
           : <DocumentPrintCard title={individualPrintItem.title} type={individualPrintItem.type} data={individualPrintItem.data} />}
       </div>,
-      document.getElementById('sam-print-portal')!
+      portalNode
     );
   };
 
@@ -390,25 +403,31 @@ const App: React.FC = () => {
           <div className="bg-white p-10 w-full max-w-5xl shadow-2xl rounded-[3.5rem] border-4 border-white/20 transition-all">
              <div className="flex justify-between items-center mb-10 border-b-2 pb-6 text-right">
                 <h3 className="font-black text-indigo-800 text-3xl">معاينة المستند قبل الطباعة</h3>
-                <button onClick={() => setIndividualPrintItem(null)} className="text-rose-500 p-2 hover:bg-rose-50 rounded-full transition transform hover:rotate-90"><X size={44}/></button>
+                <button onClick={() => setIndividualPrintItem(null)} className="text-rose-500 p-2 hover:bg-rose-50 rounded-full transition transform hover:rotate-90" disabled={isPrinting}><X size={44}/></button>
              </div>
              
-             {/* عرض المعاينة داخل المودال */}
-             <div className="bg-white rounded-[2rem] text-right">
+             <div className="bg-white rounded-[2rem] text-right overflow-hidden">
                 {individualPrintItem.type === 'vouchers' 
                   ? <VouchersPrintGrid payrolls={individualPrintItem.data} />
                   : <DocumentPrintCard title={individualPrintItem.title} type={individualPrintItem.type} data={individualPrintItem.data} />}
              </div>
 
              <div className="flex gap-6 mt-12 no-print">
-                <button onClick={() => window.print()} className="flex-[2] bg-indigo-600 text-white py-6 rounded-[2.5rem] font-black text-3xl shadow-xl flex items-center justify-center gap-4 hover:bg-indigo-700 hover:scale-[1.02] active:scale-95 transition-all outline-none"><Printer size={32}/> تـنـفـيذ الـطـباعـة</button>
+                <button 
+                  onClick={executePrintAction} 
+                  disabled={isPrinting}
+                  className="flex-[2] bg-indigo-600 text-white py-6 rounded-[2.5rem] font-black text-3xl shadow-xl flex items-center justify-center gap-4 hover:bg-indigo-700 hover:scale-[1.02] active:scale-95 transition-all outline-none disabled:opacity-50"
+                >
+                  {isPrinting ? <Loader2 className="animate-spin" size={32}/> : <Printer size={32}/>}
+                  {isPrinting ? 'جاري التحضير...' : 'تـنـفـيذ الـطـباعـة'}
+                </button>
                 <button onClick={() => setIndividualPrintItem(null)} className="flex-1 bg-slate-100 py-6 rounded-[2.5rem] font-black text-xl text-slate-500 hover:bg-slate-200 transition">إلغاء وإغلاق</button>
              </div>
           </div>
         </div>
       )}
 
-      {/* المحتوى الفعلي الذي سيصل للطابعة عبر Portal */}
+      {/* المحتوى الفعلي الذي سيصل للطابعة عبر Portal - دائماً متاح عند وجود عنصر */}
       <PrintPortalContent />
     </Layout>
   );
