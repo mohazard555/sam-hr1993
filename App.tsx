@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import ReactDOM from 'react-dom';
+import { createPortal } from 'react-dom';
 import Layout from './components/Layout';
 import Dashboard from './views/Dashboard';
 import Employees from './views/Employees';
@@ -13,7 +13,7 @@ import PrintForms from './views/PrintForms';
 import { GenericModule } from './views/GenericModule';
 import { loadDB, saveDB, DB } from './db/store';
 import { Employee, PayrollRecord, FinancialEntry, Loan, LeaveRequest, ProductionEntry, AttendanceRecord, Warning } from './types';
-import { generateMonthlyPayroll, calculateTimeDiffMinutes } from './utils/calculations';
+import { generateMonthlyPayroll } from './utils/calculations';
 import { Printer, X, ReceiptText, CalendarDays, Loader2, FileText, CheckCircle, Info, ShieldAlert } from 'lucide-react';
 
 type PrintType = 'production' | 'loan' | 'leave' | 'financial' | 'document' | 'vouchers' | 'report_attendance' | 'report_financial' | 'warning';
@@ -72,17 +72,27 @@ const App: React.FC = () => {
 
   const updateList = <K extends keyof DB>(key: K, item: any) => {
     setDb(prev => {
-      const list = (prev[key] || []) as any[];
-      const exists = list.find(i => i.id === item.id);
-      return { 
-        ...prev, 
-        [key]: exists ? list.map(i => i.id === item.id ? item : i) : [...list, item] 
-      };
+      const currentVal = prev[key];
+      if (Array.isArray(currentVal)) {
+        const list = currentVal as any[];
+        const exists = list.find(i => i.id === item.id);
+        return { 
+          ...prev, 
+          [key]: exists ? list.map(i => i.id === item.id ? item : i) : [...list, item] 
+        };
+      }
+      return { ...prev, [key]: item };
     });
   };
 
   const deleteFromList = <K extends keyof DB>(key: K, id: string) => {
-    setDb(prev => ({ ...prev, [key]: (prev[key] as any[]).filter((i:any) => id !== i.id) }));
+    setDb(prev => {
+      const currentVal = prev[key];
+      if (Array.isArray(currentVal)) {
+        return { ...prev, [key]: (currentVal as any[]).filter((i:any) => id !== i.id) };
+      }
+      return prev;
+    });
   };
 
   const leaveTypesAr: Record<string, string> = {
@@ -106,7 +116,7 @@ const App: React.FC = () => {
         <p className="text-sm font-black text-indigo-700 mt-2">{title}</p>
       </div>
       <div className="flex flex-col items-center">
-        {db.settings.logo && <img src={db.settings.logo} className="h-20 w-auto object-contain mb-2" />}
+        {db.settings.logo && <img src={db.settings.logo} className="h-20 w-auto object-contain mb-2" alt="Logo" />}
       </div>
       <div className="text-left">
         <p className="text-[10px] font-black text-slate-400">تاريخ الاستخراج: {new Date().toLocaleDateString('ar-EG')}</p>
@@ -291,6 +301,20 @@ const App: React.FC = () => {
     }, 600);
   };
 
+  const PrintPortalContent = () => {
+    const portalNode = document.getElementById('sam-print-portal');
+    if (!individualPrintItem || !portalNode) return null;
+    
+    return createPortal(
+      <div className="print-isolated-wrapper text-right w-full" dir="rtl">
+        {individualPrintItem.type === 'vouchers' 
+          ? <VouchersPrintGrid payrolls={individualPrintItem.data} />
+          : <DocumentPrintCard title={individualPrintItem.title} type={individualPrintItem.type} data={individualPrintItem.data} />}
+      </div>,
+      portalNode
+    );
+  };
+
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 font-cairo" dir="rtl">
@@ -330,7 +354,7 @@ const App: React.FC = () => {
           tableHeaders={['الموظف', 'النوع', 'مأجورة', 'من', 'إلى']} 
           renderForm={(data, set) => (
             <div className="grid grid-cols-2 gap-4">
-              <select className="w-full p-4 border rounded-xl font-black" value={data.type} onChange={e => set({...data, type: e.target.value as any})}>
+              <select className="w-full p-4 border rounded-xl font-black" value={data.type} onChange={e => set({...data, type: (e.target.value as any)})}>
                 {Object.entries(leaveTypesAr).map(([k,v]) => <option key={k} value={k}>{v}</option>)}
               </select>
               <div className="flex items-center gap-2 px-4 border rounded-xl font-bold"><input type="checkbox" checked={data.isPaid} onChange={e => set({...data, isPaid: e.target.checked})} /> مأجورة</div>
@@ -357,21 +381,21 @@ const App: React.FC = () => {
             <div className="space-y-6">
                <div className="grid grid-cols-2 gap-4">
                  <div>
-                   <label className="text-[10px] font-black text-slate-400 mb-1 block">إجمالي السلفة</label>
+                   <label className="text-[10px] font-black text-slate-500 uppercase mb-1 block">إجمالي السلفة</label>
                    <input type="number" className="w-full p-4 border rounded-xl font-black" value={data.amount || ''} onChange={e => {
                      const amt = Number(e.target.value);
                      set({...data, amount: amt, remainingAmount: amt, monthlyInstallment: Math.round(amt / (data.installmentsCount || 1))});
                    }} />
                  </div>
                  <div>
-                   <label className="text-[10px] font-black text-slate-400 mb-1 block">عدد الأشهر (الأقساط)</label>
+                   <label className="text-[10px] font-black text-slate-500 uppercase mb-1 block">عدد الأشهر (الأقساط)</label>
                    <input type="number" className="w-full p-4 border rounded-xl font-black" value={data.installmentsCount || ''} onChange={e => {
                      const inst = Number(e.target.value);
                      set({...data, installmentsCount: inst, monthlyInstallment: Math.round((data.amount || 0) / (inst || 1))});
                    }} />
                  </div>
                  <div>
-                    <label className="text-[10px] font-black text-slate-400 mb-1 block">تاريخ بداية التحصيل</label>
+                    <label className="text-[10px] font-black text-slate-500 uppercase mb-1 block">تاريخ بداية التحصيل</label>
                     <input type="date" className="w-full p-4 border rounded-xl font-black" value={data.collectionDate || ''} onChange={e => set({...data, collectionDate: e.target.value})} />
                  </div>
                  <div className="bg-indigo-50 p-4 rounded-xl flex flex-col justify-center">
@@ -398,7 +422,7 @@ const App: React.FC = () => {
           tableHeaders={['الموظف', 'النوع', 'المبلغ', 'التاريخ']} 
           renderForm={(data, set) => (
             <div className="grid grid-cols-2 gap-4">
-              <select className="w-full p-4 border rounded-xl font-black" value={data.type} onChange={e => set({...data, type: e.target.value as any})}>
+              <select className="w-full p-4 border rounded-xl font-black" value={data.type} onChange={e => set({...data, type: (e.target.value as any)})}>
                 {Object.entries(financialTypesAr).map(([k,v]) => <option key={k} value={k}>{v}</option>)}
               </select>
               <input type="number" placeholder="المبلغ" className="p-4 border rounded-xl font-black" value={data.amount} onChange={e => set({...data, amount: Number(e.target.value)})} />
@@ -466,11 +490,11 @@ const App: React.FC = () => {
       );
       case 'documents': return (
         <PrintForms 
-          employees={db.employees} 
-          attendance={db.attendance} 
-          financials={db.financials} 
-          warnings={db.warnings}
-          leaves={db.leaves}
+          employees={db.employees || []} 
+          attendance={db.attendance || []} 
+          financials={db.financials || []} 
+          warnings={db.warnings || []}
+          leaves={db.leaves || []}
           settings={db.settings} 
           onPrint={(doc) => setIndividualPrintItem(doc as any)} 
         />
@@ -479,20 +503,6 @@ const App: React.FC = () => {
       case 'reports': return <ReportsView db={db} payrolls={currentPayrolls} lang={db.settings.language} onPrint={() => window.print()} />;
       default: return null;
     }
-  };
-
-  const PrintPortalContent = () => {
-    const portalNode = document.getElementById('sam-print-portal');
-    if (!individualPrintItem || !portalNode) return null;
-    
-    return ReactDOM.createPortal(
-      <div className="print-isolated-wrapper text-right w-full" dir="rtl">
-        {individualPrintItem.type === 'vouchers' 
-          ? <VouchersPrintGrid payrolls={individualPrintItem.data} />
-          : <DocumentPrintCard title={individualPrintItem.title} type={individualPrintItem.type} data={individualPrintItem.data} />}
-      </div>,
-      portalNode
-    );
   };
 
   return (

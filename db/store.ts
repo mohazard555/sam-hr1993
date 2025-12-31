@@ -78,15 +78,42 @@ export const loadDB = (): DB => {
     saveDB(initialDB);
     return initialDB;
   }
-  const parsed = JSON.parse(data);
-  if (!parsed.departments) parsed.departments = [];
-  if (!parsed.payrollHistory) parsed.payrollHistory = [];
-  if (!parsed.production) parsed.production = [];
-  if (!parsed.settings.salaryCycle) parsed.settings.salaryCycle = 'monthly';
-  if (!parsed.settings.passwordHint) parsed.settings.passwordHint = DEFAULT_SETTINGS.passwordHint;
-  if (parsed.settings.archiveRetentionDays === undefined) parsed.settings.archiveRetentionDays = 90;
-  if (!parsed.settings.archiveLogs) parsed.settings.archiveLogs = [];
-  return parsed;
+  
+  try {
+    const parsed = JSON.parse(data);
+    
+    // ضمان وجود كافة المصفوفات والحقول الأساسية لمنع أخطاء TypeScript
+    return {
+      settings: { ...DEFAULT_SETTINGS, ...parsed.settings },
+      users: parsed.users || [INITIAL_USER],
+      employees: parsed.employees || [],
+      attendance: parsed.attendance || [],
+      loans: parsed.loans || [],
+      leaves: parsed.leaves || [],
+      financials: parsed.financials || [],
+      production: parsed.production || [],
+      warnings: parsed.warnings || [],
+      payrolls: parsed.payrolls || [],
+      payrollHistory: parsed.payrollHistory || [],
+      departments: parsed.departments || ['الإدارة العامة', 'المحاسبة', 'الموارد البشرية', 'الإنتاج', 'المبيعات']
+    };
+  } catch (e) {
+    console.error("Failed to parse DB", e);
+    return {
+      settings: DEFAULT_SETTINGS,
+      users: [INITIAL_USER],
+      employees: [],
+      attendance: [],
+      loans: [],
+      leaves: [],
+      financials: [],
+      production: [],
+      warnings: [],
+      payrolls: [],
+      payrollHistory: [],
+      departments: ['الإدارة العامة', 'المحاسبة', 'الموارد البشرية', 'الإنتاج', 'المبيعات']
+    };
+  }
 };
 
 export const saveDB = (db: DB) => {

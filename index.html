@@ -30,19 +30,16 @@
             color: #020617;
         }
 
-        /* حاوية الطباعة المعزولة - مخفية في المتصفح */
         #sam-print-portal {
             display: none;
         }
         
         @media print {
-            /* 1. إخفاء كل العناصر المباشرة داخل body باستثناء حاوية الطباعة */
             body > *:not(#sam-print-portal) {
                 display: none !important;
                 visibility: hidden !important;
             }
 
-            /* 2. تهيئة الصفحة للطباعة النظيفة */
             html, body {
                 height: auto !important;
                 overflow: visible !important;
@@ -51,7 +48,6 @@
                 padding: 0 !important;
             }
 
-            /* 3. إظهار حاوية الطباعة المعزولة بصرامة */
             #sam-print-portal {
                 display: block !important;
                 visibility: visible !important;
@@ -63,13 +59,11 @@
                 z-index: 9999999 !important;
             }
 
-            /* 4. فرض الألوان والتنسيقات الجمالية */
             * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
 
-            /* 5. تصميم البطاقة (Card) في الطباعة */
             .print-card {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
@@ -81,7 +75,6 @@
                 box-shadow: none !important;
             }
 
-            /* 6. تنسيق قسائم الرواتب */
             .vouchers-grid-print {
                 display: block !important;
                 width: 100% !important;
@@ -98,12 +91,13 @@
 <script type="importmap">
 {
   "imports": {
-    "react-dom/": "https://esm.sh/react-dom@19.0.0/",
-    "lucide-react": "https://esm.sh/lucide-react@0.460.0",
     "react": "https://esm.sh/react@19.0.0",
     "react/": "https://esm.sh/react@19.0.0/",
+    "react-dom": "https://esm.sh/react-dom@19.0.0",
+    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
+    "lucide-react": "https://esm.sh/lucide-react@0.460.0",
     "xlsx": "https://esm.sh/xlsx@0.18.5",
-    "react-dom": "https://esm.sh/react-dom@^19.2.3"
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
   }
 }
 </script>
