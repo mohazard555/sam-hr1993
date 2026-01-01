@@ -14,7 +14,7 @@ import { GenericModule } from './views/GenericModule';
 import { loadDB, saveDB, DB } from './db/store';
 import { Employee, PayrollRecord, FinancialEntry, Loan, LeaveRequest, ProductionEntry, AttendanceRecord, Warning } from './types';
 import { generateMonthlyPayroll } from './utils/calculations';
-import { Printer, X, ReceiptText, CalendarDays, Loader2, FileText, CheckCircle, Info, ShieldAlert } from 'lucide-react';
+import { Printer, X, ReceiptText, CalendarDays, Loader2, FileText, CheckCircle, Info, ShieldAlert, Package, Layers } from 'lucide-react';
 
 type PrintType = 'production' | 'loan' | 'leave' | 'financial' | 'document' | 'vouchers' | 'report_attendance' | 'report_financial' | 'warning';
 
@@ -30,6 +30,15 @@ const App: React.FC = () => {
   const [archiveModes, setArchiveModes] = useState<Record<string, boolean>>({
     leaves: false, financials: false, loans: false, production: false
   });
+
+  // إضافة كلاس للـ body عند طباعة مستند فردي للتحكم بـ CSS الطباعة
+  useEffect(() => {
+    if (individualPrintItem) {
+      document.body.classList.add('printing-individual');
+    } else {
+      document.body.classList.remove('printing-individual');
+    }
+  }, [individualPrintItem]);
 
   useEffect(() => {
     saveDB(db);
@@ -173,6 +182,28 @@ const App: React.FC = () => {
                    </div>
                 </div>
              </div>
+           ) : type === 'production' ? (
+              <div className="border-4 border-indigo-100 rounded-[2.5rem] p-8 bg-indigo-50/20 relative">
+                <div className="grid grid-cols-3 gap-6">
+                   <div className="bg-indigo-950 text-white p-6 rounded-[1.5rem] shadow-lg text-center">
+                      <p className="text-[9px] opacity-70 mb-2 font-black uppercase">كمية الإنتاج</p>
+                      <p className="text-3xl font-black">{data.piecesCount} قطعة</p>
+                   </div>
+                   <div className="bg-white p-6 rounded-[1.5rem] border border-indigo-100 text-center">
+                      <p className="text-[9px] text-slate-400 mb-2 font-black uppercase">سعر القطعة</p>
+                      <p className="text-2xl font-black text-slate-800">{data.valuePerPiece?.toLocaleString()}</p>
+                   </div>
+                   <div className="bg-emerald-600 text-white p-6 rounded-[1.5rem] shadow-lg text-center">
+                      <p className="text-[9px] opacity-70 mb-2 font-black uppercase">إجمالي الاستحقاق</p>
+                      <p className="text-3xl font-black">{data.totalValue?.toLocaleString()}</p>
+                   </div>
+                </div>
+                {data.notes && (
+                  <div className="mt-6 p-4 bg-white/50 border border-indigo-50 rounded-xl text-sm italic font-bold text-slate-600">
+                    ملاحظات: {data.notes}
+                  </div>
+                )}
+              </div>
            ) : type === 'warning' ? (
               <div className="border-4 border-rose-200 rounded-[2.5rem] p-8 bg-rose-50/30 relative">
                 <div className="flex items-center gap-8">
@@ -259,31 +290,31 @@ const App: React.FC = () => {
   };
 
   const VouchersPrintGrid = ({ payrolls }: { payrolls: PayrollRecord[] }) => (
-    <div className="vouchers-grid-print space-y-8">
+    <div className="vouchers-grid-print grid grid-cols-2 gap-4">
       {payrolls.map(p => {
         const emp = db.employees.find(e => e.id === p.employeeId);
         return (
-          <div key={p.id} className="print-card border-2 border-slate-200 p-8 bg-white relative mb-8">
-            <div className="flex justify-between items-start border-b border-indigo-100 pb-4 mb-4">
+          <div key={p.id} className="print-card border border-slate-200 p-6 bg-white relative mb-4">
+            <div className="flex justify-between items-start border-b border-indigo-100 pb-2 mb-2">
                <div className="text-right">
-                  <p className="text-[10px] font-black text-indigo-400 uppercase mb-0.5">قسيمة راتب الموظف</p>
-                  <h3 className="text-xl font-black text-slate-900 leading-none">{emp?.name}</h3>
+                  <p className="text-[8px] font-black text-indigo-400 uppercase">قسيمة راتب الموظف</p>
+                  <h3 className="text-lg font-black text-slate-900 leading-none">{emp?.name}</h3>
                </div>
-               <div className="text-left text-[10px] font-black text-slate-400">
+               <div className="text-left text-[8px] font-black text-slate-400">
                   <p>الفترة: {p.month} / {p.year}</p>
                </div>
             </div>
-            <div className="space-y-2 text-[11px] font-bold">
-               <div className="flex justify-between text-slate-600"><span>الراتب الأساسي:</span> <span>{p.baseSalary.toLocaleString()}</span></div>
-               <div className="flex justify-between text-indigo-600"><span>بدل المواصلات:</span> <span>+{p.transport.toLocaleString()}</span></div>
+            <div className="space-y-1 text-[10px] font-bold">
+               <div className="flex justify-between text-slate-600"><span>الأساسي:</span> <span>{p.baseSalary.toLocaleString()}</span></div>
+               <div className="flex justify-between text-indigo-600"><span>المواصلات:</span> <span>+{p.transport.toLocaleString()}</span></div>
                <div className="flex justify-between text-emerald-600 font-black"><span>إضافي ساعات:</span> <span>+{p.overtimePay.toLocaleString()}</span></div>
                <div className="flex justify-between text-rose-600"><span>أقساط سلف:</span> <span>-{p.loanInstallment.toLocaleString()}</span></div>
-               <div className="flex justify-between text-rose-700 font-black"><span>خصم تأخير:</span> <span>-{p.lateDeduction.toLocaleString()}</span></div>
-               <div className="flex justify-between text-lg font-black text-indigo-950 pt-4 mt-4 border-t-2 border-indigo-900 items-baseline">
-                 <span>صافي الراتب:</span>
+               <div className="flex justify-between text-rose-700 font-black"><span>تأخير:</span> <span>-{p.lateDeduction.toLocaleString()}</span></div>
+               <div className="flex justify-between text-base font-black text-indigo-950 pt-2 mt-2 border-t border-indigo-900 items-baseline">
+                 <span>الصافي:</span>
                  <div className="text-right">
-                    <span className="text-[10px] mr-1 opacity-60 font-black">{db.settings.currency}</span>
-                    <span className="text-2xl">{p.netSalary.toLocaleString()}</span>
+                    <span className="text-[8px] mr-1 opacity-60 font-black">{db.settings.currency}</span>
+                    <span className="text-xl">{p.netSalary.toLocaleString()}</span>
                  </div>
                </div>
             </div>
@@ -440,7 +471,7 @@ const App: React.FC = () => {
           <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 flex justify-between items-center no-print text-right">
              <h2 className="text-3xl font-black text-indigo-700">مسير الرواتب - {currentMonth}/{currentYear}</h2>
              <div className="flex gap-3">
-                <button onClick={() => setIndividualPrintItem({ title: 'قسائم رواتب الموظفين المعتمدة', type: 'vouchers', data: currentPayrolls })} className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg"><ReceiptText size={20}/> القسائم</button>
+                <button onClick={() => setIndividualPrintItem({ title: 'قسائم رواتب الموظفين المعتمدة', type: 'vouchers', data: currentPayrolls })} className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg"><ReceiptText size={20}/> القسائم (6 بالصفحة)</button>
                 <button onClick={() => window.print()} className="bg-slate-950 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg"><Printer size={20}/> طباعة المسير الكامل</button>
              </div>
           </div>
@@ -515,10 +546,10 @@ const App: React.FC = () => {
              <div className="flex justify-between items-center mb-10 border-b-2 pb-6 text-right">
                 <div className="flex items-center gap-4">
                    <div className="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center text-indigo-600">
-                      <FileText size={32}/>
+                      {individualPrintItem.type === 'vouchers' ? <Layers size={32}/> : <FileText size={32}/>}
                    </div>
                    <div>
-                      <h3 className="font-black text-indigo-800 text-2xl">معاينة المستند الرسمي</h3>
+                      <h3 className="font-black text-indigo-800 text-2xl">{individualPrintItem.type === 'vouchers' ? 'معاينة قسائم الرواتب (6/صفحة)' : 'معاينة المستند الرسمي'}</h3>
                       <p className="text-xs font-bold text-slate-400">يرجى التحقق من صحة البيانات قبل الطباعة</p>
                    </div>
                 </div>

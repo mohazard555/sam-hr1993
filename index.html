@@ -35,9 +35,23 @@
         }
         
         @media print {
-            body > *:not(#sam-print-portal) {
+            /* إذا كان الجسم يحمل كلاس الطباعة المنفردة، نخفي كل شيء عدا البوابة */
+            body.printing-individual > *:not(#sam-print-portal) {
                 display: none !important;
                 visibility: hidden !important;
+            }
+
+            /* إذا لم نكن نطبع فرداً، نخفي فقط العناصر التي لا نريدها (الأزرار، القوائم الجانبية) */
+            body:not(.printing-individual) .no-print {
+                display: none !important;
+            }
+
+            body:not(.printing-individual) aside {
+                display: none !important;
+            }
+
+            body:not(.printing-individual) header {
+                display: none !important;
             }
 
             html, body {
@@ -52,6 +66,9 @@
                 display: block !important;
                 visibility: visible !important;
                 width: 100% !important;
+            }
+
+            .printing-individual #sam-print-portal {
                 position: absolute !important;
                 top: 0 !important;
                 left: 0 !important;
@@ -67,22 +84,19 @@
             .print-card {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
-                border: 2px solid #e2e8f0 !important;
-                border-radius: 30px !important;
+                border: 1px solid #e2e8f0 !important;
+                border-radius: 20px !important;
                 background-color: #ffffff !important;
-                margin-bottom: 20px !important;
-                padding: 30px !important;
+                margin-bottom: 10px !important;
+                padding: 20px !important;
                 box-shadow: none !important;
             }
 
             .vouchers-grid-print {
-                display: block !important;
+                display: grid !important;
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 15px !important;
                 width: 100% !important;
-            }
-            
-            .vouchers-grid-print > div {
-                page-break-after: always !important;
-                margin-bottom: 20px !important;
             }
             
             a[href]:after { content: none !important; }
