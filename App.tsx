@@ -39,7 +39,6 @@ const App: React.FC = () => {
     }
   }, [individualPrintItem]);
 
-  // ضمان حفظ البيانات في كل مرة يتغير فيها الـ DB
   useEffect(() => {
     saveDB(db);
   }, [db]);
@@ -55,6 +54,27 @@ const App: React.FC = () => {
     }
   };
 
+  const handleClearData = () => {
+    if (confirm('هل أنت متأكد تماماً؟ سيتم حذف كافة الموظفين، السجلات، المالية، والحضور نهائياً ولا يمكن التراجع!')) {
+      const resetDB: DB = {
+        ...db,
+        employees: [],
+        attendance: [],
+        loans: [],
+        leaves: [],
+        financials: [],
+        production: [],
+        warnings: [],
+        payrolls: [],
+        payrollHistory: [],
+        departments: ['الإدارة العامة', 'المحاسبة', 'الموارد البشرية', 'الإنتاج', 'المبيعات']
+      };
+      setDb(resetDB);
+      saveDB(resetDB);
+      alert('تم مسح كافة البيانات بنجاح.');
+    }
+  };
+
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
 
@@ -67,21 +87,18 @@ const App: React.FC = () => {
     db.settings
   ), [currentMonth, currentYear, db]);
 
-  // تحديث دالة الـ updateList لتكون أكثر صرامة في منع التكرار
   const updateList = <K extends keyof DB>(key: K, item: any) => {
     setDb(prev => {
       const currentVal = prev[key];
       if (Array.isArray(currentVal)) {
         const list = [...currentVal];
         const index = list.findIndex((i: any) => i.id === item.id);
-        
         let newList;
         if (index !== -1) {
           newList = list.map((i: any) => i.id === item.id ? { ...i, ...item } : i);
         } else {
           newList = [...list, item];
         }
-        
         return { ...prev, [key]: newList };
       }
       return { ...prev, [key]: item };
@@ -131,6 +148,7 @@ const App: React.FC = () => {
 
   const DocumentPrintCard = ({ title, type, data }: { title: string, type: PrintType, data: any }) => {
     const emp = db.employees.find(e => e.id === data.employeeId) || { name: data.employeeName || '.......', department: 'غير محدد' };
+    
     return (
       <div className="bg-white print-card w-full max-w-4xl mx-auto shadow-none relative overflow-hidden">
         <div className="absolute inset-0 opacity-[0.03] flex items-center justify-center pointer-events-none rotate-12">
@@ -148,14 +166,39 @@ const App: React.FC = () => {
                 <span className="text-lg font-bold text-indigo-700">{emp.department}</span>
              </div>
            </div>
+
            <div className="p-8 border-4 border-dashed border-slate-200 rounded-[2rem] text-right">
-              <p className="text-lg font-bold leading-relaxed">
-                {type === 'loan' ? `نقر نحن إدارة ${db.settings.name} بصرف سلفة مالية للموظف المذكور أعلاه بقيمة ${data.amount.toLocaleString()} ${db.settings.currency}، على أن يتم تحصيلها على ${data.installmentsCount} أقساط شهرياً.` : 
-                 type === 'leave' ? `تمت الموافقة على طلب الإجازة الـ ${leaveTypesAr[data.type] || ''} للموظف المذكور للفترة من ${data.startDate} إلى ${data.endDate}.` :
-                 type === 'financial' ? `سند مالي: ${financialTypesAr[data.type]} بمبلغ ${data.amount.toLocaleString()} ${db.settings.currency} للموظف المذكور أعلاه.` :
-                 type === 'production' ? `تقرير إنتاجية: إنجاز ${data.piecesCount} قطعة بقيمة إجمالي ${data.totalValue.toLocaleString()} ${db.settings.currency}.` :
-                 data.notes || 'بيان إداري معتمد'}
-              </p>
+              {type === 'production' ? (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                      <span className="text-[10px] font-black text-slate-400 block mb-1">الكمية المنجزة:</span>
+                      <span className="text-xl font-black text-slate-900">{data.piecesCount} قطعة</span>
+                    </div>
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                      <span className="text-[10px] font-black text-slate-400 block mb-1">سعر القطعة الواحدة:</span>
+                      <span className="text-xl font-black text-slate-900">{data.valuePerPiece?.toLocaleString()} {db.settings.currency}</span>
+                    </div>
+                  </div>
+                  <div className="p-6 bg-indigo-50 rounded-3xl border-2 border-indigo-100 flex justify-between items-center">
+                    <span className="text-lg font-black text-indigo-900">إجمالي قيمة الاستحقاق:</span>
+                    <span className="text-3xl font-black text-indigo-700">{data.totalValue?.toLocaleString()} {db.settings.currency}</span>
+                  </div>
+                  {data.notes && (
+                    <div className="p-4 border border-slate-100 rounded-2xl bg-slate-50/30">
+                      <span className="text-[10px] font-black text-slate-400 block mb-1">ملاحظات إضافية:</span>
+                      <p className="text-sm font-bold text-slate-700 leading-relaxed italic">"{data.notes}"</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-lg font-bold leading-relaxed">
+                  {type === 'loan' ? `نقر نحن إدارة ${db.settings.name} بصرف سلفة مالية للموظف المذكور أعلاه بقيمة ${data.amount.toLocaleString()} ${db.settings.currency}، على أن يتم تحصيلها على ${data.installmentsCount} أقساط شهرياً.` : 
+                   type === 'leave' ? `تمت الموافقة على طلب الإجازة الـ ${leaveTypesAr[data.type] || ''} للموظف المذكور للفترة من ${data.startDate} إلى ${data.endDate}.` :
+                   type === 'financial' ? `سند مالي: ${financialTypesAr[data.type]} بمبلغ ${data.amount.toLocaleString()} ${db.settings.currency} للموظف المذكور أعلاه.` :
+                   data.notes || 'بيان إداري معتمد'}
+                </p>
+              )}
            </div>
         </div>
         <div className="grid grid-cols-3 gap-8 mt-20 text-center border-t-2 pt-10 text-[10px] font-black opacity-60">
@@ -366,7 +409,7 @@ const App: React.FC = () => {
         </div>
       );
       case 'documents': return <PrintForms employees={db.employees || []} attendance={db.attendance || []} financials={db.financials || []} warnings={db.warnings || []} leaves={db.leaves || []} settings={db.settings} onPrint={(doc) => setIndividualPrintItem(doc as any)} />;
-      case 'settings': return <SettingsView settings={db.settings} admin={db.users[0]} db={db} onUpdateSettings={s => setDb(p => ({...p, settings: {...p.settings, ...s}}))} onUpdateAdmin={u => setDb(p => ({...p, users: [{...p.users[0], ...u}, ...p.users.slice(1)]}))} onImport={json => setDb(json)} onRunArchive={() => {}} />;
+      case 'settings': return <SettingsView settings={db.settings} admin={db.users[0]} db={db} onUpdateSettings={s => setDb(p => ({...p, settings: {...p.settings, ...s}}))} onUpdateAdmin={u => setDb(p => ({...p, users: [{...p.users[0], ...u}, ...p.users.slice(1)]}))} onImport={json => setDb(json)} onRunArchive={() => {}} onClearData={handleClearData} />;
       case 'reports': return <ReportsView db={db} payrolls={currentPayrolls} lang={db.settings.language} onPrint={() => window.print()} />;
       default: return null;
     }

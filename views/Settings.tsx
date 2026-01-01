@@ -12,9 +12,10 @@ interface Props {
   onUpdateAdmin: (u: Partial<User>) => void;
   onImport: (db: DB) => void;
   onRunArchive: () => void;
+  onClearData: () => void;
 }
 
-const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, onUpdateAdmin, onImport, onRunArchive }) => {
+const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, onUpdateAdmin, onImport, onRunArchive, onClearData }) => {
   const [adminForm, setAdminForm] = useState({ username: admin.username, password: admin.password || '' });
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -163,7 +164,7 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
             <input type="file" className="hidden" accept=".json" onChange={handleImport} />
           </label>
 
-          <button onClick={() => {if(confirm('سيتم حذف كل شيء! هل أنت متأكد؟')) alert('تم المسح');}} className="w-full bg-rose-50 text-rose-600 py-4 rounded-2xl font-black border-2 border-dashed border-rose-200 hover:bg-rose-100 transition">
+          <button onClick={onClearData} className="w-full bg-rose-50 text-rose-600 py-4 rounded-2xl font-black border-2 border-dashed border-rose-200 hover:bg-rose-100 transition">
             <Trash2 size={20}/> مسح شامل للبيانات
           </button>
         </div>
