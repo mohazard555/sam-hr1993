@@ -46,7 +46,6 @@ const Production: React.FC<Props> = ({ employees, items, settings, onSave, onDel
     }).sort((a,b) => b.date.localeCompare(a.date));
   }, [items, archiveMode, searchTerm, dateFrom, dateTo, employees]);
 
-  // حساب الإجماليات
   const totals = useMemo(() => {
     return filteredItems.reduce((acc, curr) => ({
       pieces: acc.pieces + (curr.piecesCount || 0),
@@ -96,7 +95,6 @@ const Production: React.FC<Props> = ({ employees, items, settings, onSave, onDel
         </div>
       </div>
 
-      {/* Advanced Filter Bar */}
       <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-lg border dark:border-slate-800 grid grid-cols-1 md:grid-cols-4 gap-4 no-print text-right">
          <div className="relative">
             <Search className="absolute right-3 top-3.5 text-slate-400" size={18}/>
@@ -115,51 +113,69 @@ const Production: React.FC<Props> = ({ employees, items, settings, onSave, onDel
          </button>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border dark:border-slate-800 overflow-hidden overflow-x-auto relative">
-        <table className="w-full text-right text-sm">
-          <thead className="bg-slate-50 dark:bg-slate-800 border-b">
-            <tr className="text-slate-900 dark:text-slate-100 font-black text-xs uppercase">
-              <th className="px-6 py-5">الموظف / التاريخ</th>
-              <th className="px-6 py-5 text-center">كمية الإنتاج (قطع)</th>
-              <th className="px-6 py-5 text-center">سعر القطعة</th>
-              <th className="px-6 py-5 text-center">إجمالي الاستحقاق</th>
-              <th className="px-6 py-5">الملاحظات</th>
-              <th className="px-6 py-5 no-print text-center">إجراءات</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {filteredItems.map(item => (
-              <tr key={item.id} className="hover:bg-indigo-50/20 transition font-bold">
-                <td className="px-6 py-5">
-                   <p className="font-black text-slate-900 dark:text-white">{employees.find(e => e.id === item.employeeId)?.name}</p>
-                   <p className="text-[10px] text-slate-400 font-bold">{item.date}</p>
-                </td>
-                <td className="px-6 py-5 text-center font-black">{item.piecesCount} قطعة</td>
-                <td className="px-6 py-5 text-center">{item.valuePerPiece?.toLocaleString()}</td>
-                <td className="px-6 py-5 text-center font-black text-emerald-600 bg-emerald-50/10">{(item.totalValue || 0).toLocaleString()}</td>
-                <td className="px-6 py-5 text-xs text-slate-500 italic max-w-xs truncate">{item.notes || '-'}</td>
-                <td className="px-6 py-5 text-center no-print">
-                   <div className="flex justify-center gap-2">
-                    <button onClick={() => onPrintIndividual?.(item)} className="p-2 text-indigo-600 rounded-lg hover:bg-indigo-50 transition"><Printer size={18}/></button>
-                    {!archiveMode && <button onClick={() => handleArchive(item)} className="p-2 text-amber-600 rounded-lg hover:bg-amber-50 transition"><Archive size={18}/></button>}
-                    <button onClick={() => { setFormData(item); setShowModal(true); }} className="p-2 text-slate-400 rounded-lg hover:bg-slate-100 transition"><Edit2 size={16}/></button>
-                    <button onClick={() => onDelete(item.id)} className="p-2 text-rose-600 rounded-lg hover:bg-rose-50 transition"><Trash2 size={16}/></button>
-                   </div>
-                </td>
+      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border dark:border-slate-800 overflow-hidden relative">
+        {/* ترويسة مطبوعة رسمية */}
+        <div className="hidden print:flex justify-between items-start border-b-4 border-indigo-900 pb-6 mb-8 w-full text-indigo-950 p-8">
+          <div className="text-right">
+            <h1 className="text-3xl font-black leading-none">{settings.name}</h1>
+            <p className="text-sm font-black text-indigo-700 mt-2">سجل إنتاجية الموظفين {archiveMode ? '- الأرشيف العام' : ''}</p>
+            {(dateFrom || dateTo) && <p className="text-[10px] font-bold text-slate-600">الفترة من {dateFrom || '...'} إلى {dateTo || '...'}</p>}
+          </div>
+          <div className="flex flex-col items-center">
+            {settings.logo && <img src={settings.logo} className="h-16 w-auto object-contain mb-2" alt="Logo" />}
+          </div>
+          <div className="text-left">
+            <p className="text-[10px] font-black text-slate-400">تاريخ الطباعة: {new Date().toLocaleDateString('ar-EG')}</p>
+            <p className="text-[10px] font-black text-slate-400">ساعة الطباعة: {new Date().toLocaleTimeString('ar-EG')}</p>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-right text-sm">
+            <thead className="bg-slate-50 dark:bg-slate-800 border-b">
+              <tr className="text-slate-900 dark:text-slate-100 font-black text-xs uppercase">
+                <th className="px-6 py-5">الموظف / التاريخ</th>
+                <th className="px-6 py-5 text-center">كمية الإنتاج (قطع)</th>
+                <th className="px-6 py-5 text-center">سعر القطعة</th>
+                <th className="px-6 py-5 text-center">إجمالي الاستحقاق</th>
+                <th className="px-6 py-5">الملاحظات</th>
+                <th className="px-6 py-5 no-print text-center">إجراءات</th>
               </tr>
-            ))}
-          </tbody>
-          <tfoot className="bg-indigo-950 text-white font-black text-xs uppercase border-t-4 border-indigo-900">
-             <tr>
-               <td className="px-6 py-6 text-right">إجمالي القائمة</td>
-               <td className="px-6 py-6 text-center">{totals.pieces.toLocaleString()} قطعة</td>
-               <td className="px-6 py-6 text-center">-</td>
-               <td className="px-6 py-6 text-center text-lg text-emerald-300">{totals.value.toLocaleString()} {settings.currency}</td>
-               <td className="px-6 py-6"></td>
-               <td className="no-print"></td>
-             </tr>
-          </tfoot>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {filteredItems.map(item => (
+                <tr key={item.id} className="hover:bg-indigo-50/20 transition font-bold">
+                  <td className="px-6 py-5">
+                     <p className="font-black text-slate-900 dark:text-white">{employees.find(e => e.id === item.employeeId)?.name}</p>
+                     <p className="text-[10px] text-slate-400 font-bold">{item.date}</p>
+                  </td>
+                  <td className="px-6 py-5 text-center font-black">{item.piecesCount} قطعة</td>
+                  <td className="px-6 py-5 text-center">{item.valuePerPiece?.toLocaleString()}</td>
+                  <td className="px-6 py-5 text-center font-black text-emerald-600 bg-emerald-50/10">{(item.totalValue || 0).toLocaleString()}</td>
+                  <td className="px-6 py-5 text-xs text-slate-500 italic max-w-xs truncate">{item.notes || '-'}</td>
+                  <td className="px-6 py-5 text-center no-print">
+                     <div className="flex justify-center gap-2">
+                      <button onClick={() => onPrintIndividual?.(item)} className="p-2 text-indigo-600 rounded-lg hover:bg-indigo-50 transition"><Printer size={18}/></button>
+                      {!archiveMode && <button onClick={() => handleArchive(item)} className="p-2 text-amber-600 rounded-lg hover:bg-amber-50 transition"><Archive size={18}/></button>}
+                      <button onClick={() => { setFormData(item); setShowModal(true); }} className="p-2 text-slate-400 rounded-lg hover:bg-slate-100 transition"><Edit2 size={16}/></button>
+                      <button onClick={() => onDelete(item.id)} className="p-2 text-rose-600 rounded-lg hover:bg-rose-50 transition"><Trash2 size={16}/></button>
+                     </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot className="bg-indigo-950 text-white font-black text-xs uppercase border-t-4 border-indigo-900">
+               <tr>
+                 <td className="px-6 py-6 text-right">إجمالي القائمة</td>
+                 <td className="px-6 py-6 text-center">{totals.pieces.toLocaleString()} قطعة</td>
+                 <td className="px-6 py-6 text-center">-</td>
+                 <td className="px-6 py-6 text-center text-lg text-emerald-300">{totals.value.toLocaleString()} {settings.currency}</td>
+                 <td className="px-6 py-6"></td>
+                 <td className="no-print"></td>
+               </tr>
+            </tfoot>
+          </table>
+        </div>
       </div>
 
       {showModal && (

@@ -29,7 +29,6 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState<Partial<T>>(initialData);
   
-  // States for advanced filtering in archive
   const [archiveSearch, setArchiveSearch] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -81,7 +80,6 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
         </div>
       </div>
 
-      {/* Advanced Filter for Archive Mode */}
       {archiveMode && (
         <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-lg border dark:border-slate-800 grid grid-cols-1 md:grid-cols-4 gap-4 no-print animate-in fade-in duration-300">
            <div className="relative">
@@ -94,7 +92,7 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
            </div>
            <div className="relative">
               <Calendar className="absolute right-3 top-3.5 text-slate-400" size={18}/>
-              <input type="date" className="w-full pr-10 p-3 bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold text-center" value={dateTo} onChange={e => setArchiveSearch(e.target.value)} />
+              <input type="date" className="w-full pr-10 p-3 bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold text-center" value={dateTo} onChange={e => setDateTo(e.target.value)} />
            </div>
            <button onClick={() => exportToExcel(filteredItems, title + "_Archive")} className="bg-emerald-600 text-white font-black rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-700 transition">
               <FileDown size={18}/> تصدير Excel
@@ -102,34 +100,54 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
         </div>
       )}
 
-      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border overflow-hidden overflow-x-auto relative">
-        <table className="w-full text-right text-sm">
-          <thead className="bg-slate-50 dark:bg-slate-800 border-b">
-            <tr className="text-slate-900 dark:text-slate-100 font-black text-xs uppercase">
-              {tableHeaders.map((h, i) => <th key={i} className="px-6 py-5">{h}</th>)}
-              <th className="px-6 py-5 text-center no-print">إجراءات</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {filteredItems.map(item => (
-              <tr key={item.id} className="hover:bg-slate-50 transition font-bold text-xs">
-                {renderRow(item, employees.find(e => e.id === item.employeeId)?.name || 'Unknown')}
-                <td className="px-6 py-5 text-center no-print">
-                  <div className="flex justify-center gap-2">
-                    {onPrintIndividual && <button onClick={() => onPrintIndividual(item)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition"><Printer size={16}/></button>}
-                    <button onClick={() => { setFormData(item); setShowModal(true); }} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition"><Edit2 size={16}/></button>
-                    <button onClick={() => { if(confirm('حذف السجل؟')) onDelete(item.id); }} className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition"><Trash2 size={16}/></button>
-                  </div>
-                </td>
+      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border overflow-hidden relative">
+        {/* الترويسة المخصصة للطباعة فقط */}
+        <div className="hidden print:flex justify-between items-start border-b-4 border-indigo-900 pb-6 mb-8 w-full text-indigo-950 p-8">
+          <div className="text-right">
+            <h1 className="text-3xl font-black leading-none">{companyName}</h1>
+            <p className="text-sm font-black text-indigo-700 mt-2">{title} {archiveMode ? '- أرشيف السجلات' : ''}</p>
+            {(dateFrom || dateTo) && (
+              <p className="text-[10px] font-bold mt-1 text-slate-600">الفترة: {dateFrom || '...'} إلى {dateTo || '...'}</p>
+            )}
+          </div>
+          <div className="flex flex-col items-center">
+            {logo && <img src={logo} className="h-16 w-auto object-contain mb-2" alt="Logo" />}
+          </div>
+          <div className="text-left">
+            <p className="text-[10px] font-black text-slate-400 uppercase">تاريخ الطباعة: {new Date().toLocaleDateString('ar-EG')}</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase">ساعة الطباعة: {new Date().toLocaleTimeString('ar-EG')}</p>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-right text-sm">
+            <thead className="bg-slate-50 dark:bg-slate-800 border-b">
+              <tr className="text-slate-900 dark:text-slate-100 font-black text-xs uppercase">
+                {tableHeaders.map((h, i) => <th key={i} className="px-6 py-5">{h}</th>)}
+                <th className="px-6 py-5 text-center no-print">إجراءات</th>
               </tr>
-            ))}
-          </tbody>
-          {renderFooter && (
-            <tfoot className="bg-indigo-950 text-white font-black text-xs border-t-4 border-indigo-900">
-               {renderFooter(filteredItems)}
-            </tfoot>
-          )}
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredItems.map(item => (
+                <tr key={item.id} className="hover:bg-slate-50 transition font-bold text-xs">
+                  {renderRow(item, employees.find(e => e.id === item.employeeId)?.name || 'Unknown')}
+                  <td className="px-6 py-5 text-center no-print">
+                    <div className="flex justify-center gap-2">
+                      {onPrintIndividual && <button onClick={() => onPrintIndividual(item)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition"><Printer size={16}/></button>}
+                      <button onClick={() => { setFormData(item); setShowModal(true); }} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition"><Edit2 size={16}/></button>
+                      <button onClick={() => { if(confirm('حذف السجل؟')) onDelete(item.id); }} className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition"><Trash2 size={16}/></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            {renderFooter && (
+              <tfoot className="bg-indigo-950 text-white font-black text-xs border-t-4 border-indigo-900">
+                 {renderFooter(filteredItems)}
+              </tfoot>
+            )}
+          </table>
+        </div>
       </div>
 
       {showModal && (

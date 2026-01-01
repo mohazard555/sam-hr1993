@@ -31,7 +31,6 @@ const App: React.FC = () => {
     leaves: false, financials: false, loans: false, production: false
   });
 
-  // إضافة كلاس للـ body عند طباعة مستند فردي للتحكم بـ CSS الطباعة
   useEffect(() => {
     if (individualPrintItem) {
       document.body.classList.add('printing-individual');
@@ -376,7 +375,7 @@ const App: React.FC = () => {
       case 'attendance': return <Attendance employees={db.employees} records={db.attendance} settings={db.settings} onSaveRecord={r => updateList('attendance', r)} onDeleteRecord={id => deleteFromList('attendance', id)} lang={db.settings.language} onPrint={() => window.print()} />;
       case 'leaves': return (
         <GenericModule<LeaveRequest> 
-          title="طلبات الإجازات" lang={db.settings.language} employees={db.employees} items={db.leaves} 
+          title="سجل طلبات الإجازات" lang={db.settings.language} employees={db.employees} items={db.leaves} 
           companyName={db.settings.name} logo={db.settings.logo}
           archiveMode={archiveModes.leaves} onToggleArchive={() => setArchiveModes(p => ({...p, leaves: !p.leaves}))} 
           onSave={i => updateList('leaves', i)} onDelete={id => deleteFromList('leaves', id)} 
@@ -395,13 +394,13 @@ const App: React.FC = () => {
           )} 
           renderRow={(i, name) => (<><td className="px-6 py-4 font-black">{name}</td><td className="px-6 py-4 font-bold">{leaveTypesAr[i.type]}</td><td className="px-6 py-4">{i.isPaid ? 'نعم' : 'لا'}</td><td className="px-6 py-4">{i.startDate}</td><td className="px-6 py-4">{i.endDate}</td></>)} 
           renderFooter={(list) => (
-             <tr><td className="px-6 py-4 text-right">إجمالي سجلات الأرشيف</td><td className="px-6 py-4 text-center text-lg">{list.length} سجل</td><td colSpan={3}></td><td className="no-print"></td></tr>
+             <tr><td className="px-6 py-4 text-right">إجمالي السجلات</td><td className="px-6 py-4 text-center text-lg">{list.length} سجل</td><td colSpan={3}></td><td className="no-print"></td></tr>
           )}
         />
       );
       case 'loans': return (
         <GenericModule<Loan> 
-          title="السلف والقروض" lang={db.settings.language} employees={db.employees} items={db.loans} 
+          title="سجل السلف والقروض" lang={db.settings.language} employees={db.employees} items={db.loans} 
           companyName={db.settings.name} logo={db.settings.logo}
           archiveMode={archiveModes.loans} onToggleArchive={() => setArchiveModes(p => ({...p, loans: !p.loans}))} 
           onSave={i => updateList('loans', i)} onDelete={id => deleteFromList('loans', id)} 
@@ -444,7 +443,7 @@ const App: React.FC = () => {
       );
       case 'financials': return (
         <GenericModule<FinancialEntry> 
-          title="السندات المالية" lang={db.settings.language} employees={db.employees} items={db.financials} 
+          title="سجل السندات المالية" lang={db.settings.language} employees={db.employees} items={db.financials} 
           companyName={db.settings.name} logo={db.settings.logo}
           archiveMode={archiveModes.financials} onToggleArchive={() => setArchiveModes(p => ({...p, financials: !p.financials}))} 
           onSave={i => updateList('financials', i)} onDelete={id => deleteFromList('financials', id)} 
@@ -475,47 +474,65 @@ const App: React.FC = () => {
                 <button onClick={() => window.print()} className="bg-slate-950 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg"><Printer size={20}/> طباعة المسير الكامل</button>
              </div>
           </div>
-          <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl border overflow-x-auto relative">
-             <table className="w-full text-center text-[10px] border-collapse">
-               <thead className="text-white font-black uppercase">
-                 <tr>
-                   <th className="px-4 py-6 text-right sticky right-0 bg-indigo-950 z-20">الموظف</th>
-                   <th className="px-2 py-6 bg-indigo-950 border-r border-white/5">الأساسي</th>
-                   <th className="px-2 py-6 bg-indigo-950 border-r border-white/5">مواصلات</th>
-                   <th className="px-2 py-6 bg-slate-900 text-indigo-300 border-r border-white/5">س. فعلية</th>
-                   <th className="px-2 py-6 bg-[#064e3b] text-emerald-100 border-r border-white/5">إضافي($)</th>
-                   <th className="px-2 py-6 bg-[#7f1d1d] text-rose-100 border-r border-white/5">تأخير($)</th>
-                   <th className="px-2 py-6 bg-indigo-950 text-rose-300 border-r border-white/5">سلف</th>
-                   <th className="px-4 py-6 bg-[#0f172a] text-sm text-indigo-300">صافي الراتب</th>
-                 </tr>
-               </thead>
-               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                 {currentPayrolls.map(p => (
-                   <tr key={p.id} className="hover:bg-slate-50 transition font-bold text-xs">
-                     <td className="px-4 py-6 text-right sticky right-0 bg-white dark:bg-slate-900 border-r">{db.employees.find(e => e.id === p.employeeId)?.name}</td>
-                     <td className="px-2 py-6">{p.baseSalary.toLocaleString()}</td>
-                     <td className="px-2 py-6 text-indigo-500">{p.transport.toLocaleString()}</td>
-                     <td className="px-2 py-6 font-black">{p.workingHours} س</td>
-                     <td className="px-2 py-6 text-emerald-600 bg-emerald-50/20 font-black">{p.overtimePay.toLocaleString()}</td>
-                     <td className="px-2 py-6 text-rose-500 bg-rose-50/20 font-black">{p.lateDeduction.toLocaleString()}</td>
-                     <td className="px-2 py-6 text-rose-700 font-black">-{p.loanInstallment.toLocaleString()}</td>
-                     <td className="px-4 py-6 font-black text-indigo-950 bg-indigo-50/30 text-base">{p.netSalary.toLocaleString()}</td>
+          <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl border overflow-hidden relative">
+             {/* ترويسة مطبوعة لمسير الرواتب */}
+             <div className="hidden print:flex justify-between items-start border-b-4 border-indigo-900 pb-6 mb-8 w-full text-indigo-950 p-8">
+               <div className="text-right">
+                 <h1 className="text-3xl font-black leading-none">{db.settings.name}</h1>
+                 <p className="text-sm font-black text-indigo-700 mt-2">مسير رواتب الموظفين المعتمد</p>
+                 <p className="text-[10px] font-bold mt-1 text-slate-600 tracking-widest uppercase">الفترة: شهر {currentMonth} / سنة {currentYear}</p>
+               </div>
+               <div className="flex flex-col items-center">
+                 {db.settings.logo && <img src={db.settings.logo} className="h-16 w-auto object-contain mb-2" alt="Logo" />}
+               </div>
+               <div className="text-left">
+                 <p className="text-[10px] font-black text-slate-400">تاريخ الإصدار: {new Date().toLocaleDateString('ar-EG')}</p>
+                 <p className="text-[10px] font-black text-slate-400">ساعة الطباعة: {new Date().toLocaleTimeString('ar-EG')}</p>
+               </div>
+             </div>
+
+             <div className="overflow-x-auto">
+               <table className="w-full text-center text-[10px] border-collapse">
+                 <thead className="text-white font-black uppercase">
+                   <tr>
+                     <th className="px-4 py-6 text-right sticky right-0 bg-indigo-950 z-20">الموظف</th>
+                     <th className="px-2 py-6 bg-indigo-950 border-r border-white/5">الأساسي</th>
+                     <th className="px-2 py-6 bg-indigo-950 border-r border-white/5">مواصلات</th>
+                     <th className="px-2 py-6 bg-slate-900 text-indigo-300 border-r border-white/5">س. فعلية</th>
+                     <th className="px-2 py-6 bg-[#064e3b] text-emerald-100 border-r border-white/5">إضافي($)</th>
+                     <th className="px-2 py-6 bg-[#7f1d1d] text-rose-100 border-r border-white/5">تأخير($)</th>
+                     <th className="px-2 py-6 bg-indigo-950 text-rose-300 border-r border-white/5">سلف</th>
+                     <th className="px-4 py-6 bg-[#0f172a] text-sm text-indigo-300">صافي الراتب</th>
                    </tr>
-                 ))}
-               </tbody>
-               <tfoot className="bg-indigo-950 text-white font-black text-xs uppercase border-t-4 border-indigo-900">
-                 <tr>
-                   <td className="px-4 py-6 text-right sticky right-0 bg-indigo-950 z-20">الإجمالي الكلي</td>
-                   <td className="px-2 py-6 bg-indigo-900/50">{payrollTotals.base.toLocaleString()}</td>
-                   <td className="px-2 py-6 bg-indigo-900/50">{payrollTotals.transport.toLocaleString()}</td>
-                   <td className="px-2 py-6 bg-slate-900/80 text-indigo-300">{payrollTotals.actualHours} س</td>
-                   <td className="px-2 py-6 bg-emerald-900/60">{payrollTotals.overtime.toLocaleString()}</td>
-                   <td className="px-2 py-6 bg-rose-900/60">-{payrollTotals.late.toLocaleString()}</td>
-                   <td className="px-2 py-6 bg-indigo-900/50">-{payrollTotals.loans.toLocaleString()}</td>
-                   <td className="px-4 py-6 bg-slate-900 text-lg text-indigo-400">{payrollTotals.net.toLocaleString()} {db.settings.currency}</td>
-                 </tr>
-               </tfoot>
-             </table>
+                 </thead>
+                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                   {currentPayrolls.map(p => (
+                     <tr key={p.id} className="hover:bg-slate-50 transition font-bold text-xs">
+                       <td className="px-4 py-6 text-right sticky right-0 bg-white dark:bg-slate-900 border-r">{db.employees.find(e => e.id === p.employeeId)?.name}</td>
+                       <td className="px-2 py-6">{p.baseSalary.toLocaleString()}</td>
+                       <td className="px-2 py-6 text-indigo-500">{p.transport.toLocaleString()}</td>
+                       <td className="px-2 py-6 font-black">{p.workingHours} س</td>
+                       <td className="px-2 py-6 text-emerald-600 bg-emerald-50/20 font-black">{p.overtimePay.toLocaleString()}</td>
+                       <td className="px-2 py-6 text-rose-500 bg-rose-50/20 font-black">{p.lateDeduction.toLocaleString()}</td>
+                       <td className="px-2 py-6 text-rose-700 font-black">-{p.loanInstallment.toLocaleString()}</td>
+                       <td className="px-4 py-6 font-black text-indigo-950 bg-indigo-50/30 text-base">{p.netSalary.toLocaleString()}</td>
+                     </tr>
+                   ))}
+                 </tbody>
+                 <tfoot className="bg-indigo-950 text-white font-black text-xs uppercase border-t-4 border-indigo-900">
+                   <tr>
+                     <td className="px-4 py-6 text-right sticky right-0 bg-indigo-950 z-20">الإجمالي الكلي</td>
+                     <td className="px-2 py-6 bg-indigo-900/50">{payrollTotals.base.toLocaleString()}</td>
+                     <td className="px-2 py-6 bg-indigo-900/50">{payrollTotals.transport.toLocaleString()}</td>
+                     <td className="px-2 py-6 bg-slate-900/80 text-indigo-300">{payrollTotals.actualHours} س</td>
+                     <td className="px-2 py-6 bg-emerald-900/60">{payrollTotals.overtime.toLocaleString()}</td>
+                     <td className="px-2 py-6 bg-rose-900/60">-{payrollTotals.late.toLocaleString()}</td>
+                     <td className="px-2 py-6 bg-indigo-900/50">-{payrollTotals.loans.toLocaleString()}</td>
+                     <td className="px-4 py-6 bg-slate-900 text-lg text-indigo-400">{payrollTotals.net.toLocaleString()} {db.settings.currency}</td>
+                   </tr>
+                 </tfoot>
+               </table>
+             </div>
           </div>
         </div>
       );

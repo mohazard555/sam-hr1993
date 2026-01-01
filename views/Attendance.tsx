@@ -188,46 +188,57 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
               </div>
            </div>
 
-           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border dark:border-slate-800 shadow-2xl overflow-hidden overflow-x-auto">
-             <div className="print-only p-10 text-center border-b-4 border-slate-900 bg-slate-50">
-                <div className="flex justify-between items-center mb-6">
-                   <h1 className="text-3xl font-black text-indigo-900">سجل أرشيف الحضور والانصراف</h1>
-                   <p className="text-sm font-bold bg-white px-4 py-2 border rounded-xl">الفترة: {dateFrom} - {dateTo}</p>
-                </div>
-                {archiveEmpId && <p className="text-xl font-black text-slate-700">الموظف المعني: {employees.find(e => e.id === archiveEmpId)?.name}</p>}
+           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border dark:border-slate-800 shadow-2xl overflow-hidden">
+             {/* ترويسة الطباعة الرسمية */}
+             <div className="hidden print:flex justify-between items-start border-b-4 border-indigo-900 pb-6 mb-8 w-full text-indigo-950 p-8">
+               <div className="text-right">
+                 <h1 className="text-3xl font-black leading-none">{settings.name}</h1>
+                 <p className="text-sm font-black text-indigo-700 mt-2">سجل أرشيف الحضور والانصراف التاريخي</p>
+                 <p className="text-[10px] font-bold mt-1 text-slate-600">الفترة من: {dateFrom} إلى: {dateTo}</p>
+                 {archiveEmpId && <p className="text-[10px] font-black text-emerald-600">تصفية للموظف: {employees.find(e => e.id === archiveEmpId)?.name}</p>}
+               </div>
+               <div className="flex flex-col items-center">
+                 {settings.logo && <img src={settings.logo} className="h-16 w-auto object-contain mb-2" alt="Logo" />}
+               </div>
+               <div className="text-left">
+                 <p className="text-[10px] font-black text-slate-400">تاريخ الاستخراج: {new Date().toLocaleDateString('ar-EG')}</p>
+                 <p className="text-[10px] font-black text-slate-400">ساعة الطباعة: {new Date().toLocaleTimeString('ar-EG')}</p>
+               </div>
              </div>
 
-             <table className="w-full text-right text-sm">
-                <thead className="bg-slate-100 dark:bg-slate-900 border-b">
-                  <tr className="text-slate-500 font-black text-xs uppercase">
-                    <th className="px-8 py-4">التاريخ</th>
-                    <th className="px-8 py-4">الموظف</th>
-                    <th className="text-center py-4">الحضور</th>
-                    <th className="text-center py-4">الانصراف</th>
-                    <th className="text-center py-4">الساعات الفعلية</th>
-                    <th className="text-center py-4">تأخير (د)</th>
-                    <th className="text-center py-4 no-print">إجراءات</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {archivedRecords.map(r => (
-                    <tr key={r.id} className="hover:bg-slate-50 transition font-bold">
-                      <td className="px-8 py-4 text-slate-500">{r.date}</td>
-                      <td className="px-8 py-4">{employees.find(e => e.id === r.employeeId)?.name}</td>
-                      <td className="text-center">{r.checkIn}</td>
-                      <td className="text-center">{r.checkOut}</td>
-                      <td className="text-center font-black text-indigo-700">{formatHours(calculateTimeDiffMinutes(r.checkOut, r.checkIn))}</td>
-                      <td className={`text-center ${r.lateMinutes > 0 ? 'text-rose-600 font-black' : ''}`}>{r.lateMinutes}</td>
-                      <td className="text-center no-print">
-                         <div className="flex justify-center gap-2">
-                           <button onClick={() => handleEdit(r)} title="تعديل السجل" className="p-2 text-indigo-600 rounded-lg hover:bg-indigo-50"><Edit2 size={16}/></button>
-                           <button onClick={() => onDeleteRecord(r.id)} title="حذف نهائي" className="p-2 text-rose-600 rounded-lg hover:bg-rose-50"><Trash2 size={16}/></button>
-                         </div>
-                      </td>
+             <div className="overflow-x-auto">
+               <table className="w-full text-right text-sm">
+                  <thead className="bg-slate-100 dark:bg-slate-900 border-b">
+                    <tr className="text-slate-500 font-black text-xs uppercase">
+                      <th className="px-8 py-4">التاريخ</th>
+                      <th className="px-8 py-4">الموظف</th>
+                      <th className="text-center py-4">الحضور</th>
+                      <th className="text-center py-4">الانصراف</th>
+                      <th className="text-center py-4">الساعات الفعلية</th>
+                      <th className="text-center py-4">تأخير (د)</th>
+                      <th className="text-center py-4 no-print">إجراءات</th>
                     </tr>
-                  ))}
-                </tbody>
-             </table>
+                  </thead>
+                  <tbody className="divide-y">
+                    {archivedRecords.map(r => (
+                      <tr key={r.id} className="hover:bg-slate-50 transition font-bold">
+                        <td className="px-8 py-4 text-slate-500">{r.date}</td>
+                        <td className="px-8 py-4">{employees.find(e => e.id === r.employeeId)?.name}</td>
+                        <td className="text-center">{r.checkIn}</td>
+                        <td className="text-center">{r.checkOut}</td>
+                        <td className="text-center font-black text-indigo-700">{formatHours(calculateTimeDiffMinutes(r.checkOut, r.checkIn))}</td>
+                        <td className={`text-center ${r.lateMinutes > 0 ? 'text-rose-600 font-black' : ''}`}>{r.lateMinutes}</td>
+                        <td className="text-center no-print">
+                           <div className="flex justify-center gap-2">
+                             <button onClick={() => handleEdit(r)} title="تعديل السجل" className="p-2 text-indigo-600 rounded-lg hover:bg-indigo-50"><Edit2 size={16}/></button>
+                             <button onClick={() => onDeleteRecord(r.id)} title="حذف نهائي" className="p-2 text-rose-600 rounded-lg hover:bg-rose-50"><Trash2 size={16}/></button>
+                           </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+               </table>
+             </div>
            </div>
         </div>
       )}
