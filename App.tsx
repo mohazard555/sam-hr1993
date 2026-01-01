@@ -39,6 +39,7 @@ const App: React.FC = () => {
     }
   }, [individualPrintItem]);
 
+  // ضمان حفظ البيانات في كل مرة يتغير فيها الـ DB
   useEffect(() => {
     saveDB(db);
   }, [db]);
@@ -66,22 +67,29 @@ const App: React.FC = () => {
     db.settings
   ), [currentMonth, currentYear, db]);
 
+  // تحديث دالة الـ updateList لتكون أكثر صرامة في منع التكرار
   const updateList = <K extends keyof DB>(key: K, item: any) => {
     setDb(prev => {
       const currentVal = prev[key];
       if (Array.isArray(currentVal)) {
-        const list = currentVal as any[];
-        const exists = list.find(i => i.id === item.id);
-        return { 
-          ...prev, 
-          [key]: exists ? list.map(i => i.id === item.id ? item : i) : [...list, item] 
-        };
+        const list = [...currentVal];
+        const index = list.findIndex((i: any) => i.id === item.id);
+        
+        let newList;
+        if (index !== -1) {
+          newList = list.map((i: any) => i.id === item.id ? { ...i, ...item } : i);
+        } else {
+          newList = [...list, item];
+        }
+        
+        return { ...prev, [key]: newList };
       }
       return { ...prev, [key]: item };
     });
   };
 
   const deleteFromList = <K extends keyof DB>(key: K, id: string) => {
+    if(!confirm('هل أنت متأكد من حذف هذا السجل نهائياً؟')) return;
     setDb(prev => {
       const currentVal = prev[key];
       if (Array.isArray(currentVal)) {
@@ -115,8 +123,8 @@ const App: React.FC = () => {
         {db.settings.logo && <img src={db.settings.logo} className="h-16 w-auto object-contain mb-2" alt="Logo" />}
       </div>
       <div className="text-left">
-        <p className="text-[10px] font-black text-slate-400 uppercase">تاريخ: {new Date().toLocaleDateString('ar-EG')}</p>
-        <p className="text-[10px] font-black text-slate-400 uppercase">ساعة: {new Date().toLocaleTimeString('ar-EG')}</p>
+        <p className="text-[10px] font-black text-slate-400 uppercase">تاريخ الاستخراج: {new Date().toLocaleDateString('ar-EG')}</p>
+        <p className="text-[10px] font-black text-slate-400 uppercase">الساعة: {new Date().toLocaleTimeString('ar-EG')}</p>
       </div>
     </div>
   );
@@ -172,6 +180,7 @@ const App: React.FC = () => {
                </div>
                <div className="text-left text-[10px] font-black text-slate-400">
                   <p>الفترة: {p.month} / {p.year}</p>
+                  <p>تاريخ: {new Date().toLocaleDateString()}</p>
                </div>
             </div>
             

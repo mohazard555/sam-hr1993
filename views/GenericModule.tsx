@@ -65,6 +65,23 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
 
   return (
     <div className="space-y-6">
+      {/* ترويسة تقرير رسمية للطباعة */}
+      <div className="hidden print:flex justify-between items-start border-b-4 border-indigo-900 pb-6 mb-8 w-full text-indigo-950">
+        <div className="text-right">
+          <h1 className="text-3xl font-black leading-none">{companyName}</h1>
+          <p className="text-sm font-black text-indigo-700 mt-2">تقرير {title} {archiveMode ? '(الأرشيف التاريخي)' : ''}</p>
+          {(dateFrom || dateTo) && <p className="text-[10px] font-bold mt-1 text-slate-600 uppercase">الفترة: {dateFrom || '...'} إلى {dateTo || '...'}</p>}
+        </div>
+        <div className="flex flex-col items-center">
+          {logo && <img src={logo} className="h-14 w-auto object-contain mb-2" alt="Logo" />}
+        </div>
+        <div className="text-left text-[10px] font-black text-slate-400">
+          <p>تاريخ الطباعة: {new Date().toLocaleDateString('ar-EG')}</p>
+          <p>الوقت: {new Date().toLocaleTimeString('ar-EG')}</p>
+          <p>عدد السجلات: {filteredItems.length}</p>
+        </div>
+      </div>
+
       <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 no-print text-right">
         <div className="flex items-center gap-4">
            <div className={`p-4 rounded-2xl ${archiveMode ? 'bg-amber-100 text-amber-600' : 'bg-indigo-100 text-indigo-600'}`}>
@@ -81,27 +98,25 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
         </div>
       </div>
 
-      {archiveMode && (
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-lg border dark:border-slate-800 grid grid-cols-1 md:grid-cols-4 gap-4 no-print animate-in fade-in duration-300">
-           <div className="relative">
-              <Search className="absolute right-3 top-3.5 text-slate-400" size={18}/>
-              <input type="text" placeholder="بحث باسم الموظف..." className="w-full pr-10 p-3 bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold" value={archiveSearch} onChange={e => setArchiveSearch(e.target.value)} />
-           </div>
-           <div className="relative">
-              <Calendar className="absolute right-3 top-3.5 text-slate-400" size={18}/>
-              <input type="date" className="w-full pr-10 p-3 bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold text-center" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
-           </div>
-           <div className="relative">
-              <Calendar className="absolute right-3 top-3.5 text-slate-400" size={18}/>
-              <input type="date" className="w-full pr-10 p-3 bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold text-center" value={dateTo} onChange={e => setDateTo(e.target.value)} />
-           </div>
-           <button onClick={() => exportToExcel(filteredItems, title + "_Archive")} className="bg-emerald-600 text-white font-black rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-700 transition">
-              <FileDown size={18}/> تصدير Excel
-           </button>
-        </div>
-      )}
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-lg border dark:border-slate-800 grid grid-cols-1 md:grid-cols-4 gap-4 no-print text-right animate-in fade-in duration-300">
+         <div className="relative">
+            <Search className="absolute right-3 top-3.5 text-slate-400" size={18}/>
+            <input type="text" placeholder="بحث باسم الموظف..." className="w-full pr-10 p-3 bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold" value={archiveSearch} onChange={e => setArchiveSearch(e.target.value)} />
+         </div>
+         <div className="relative">
+            <Calendar className="absolute right-3 top-3.5 text-slate-400" size={18}/>
+            <input type="date" className="w-full pr-10 p-3 bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold text-center" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+         </div>
+         <div className="relative">
+            <Calendar className="absolute right-3 top-3.5 text-slate-400" size={18}/>
+            <input type="date" className="w-full pr-10 p-3 bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold text-center" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+         </div>
+         <button onClick={() => exportToExcel(filteredItems, title + "_Archive")} className="bg-emerald-600 text-white font-black rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-700 transition">
+            <FileDown size={18}/> تصدير Excel
+         </button>
+      </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border overflow-hidden relative">
+      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border dark:border-slate-800 overflow-hidden relative">
         <div className="overflow-x-auto">
           <table className="w-full text-right text-sm">
             <thead className="bg-slate-50 dark:bg-slate-800 border-b">
@@ -110,7 +125,7 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
                 <th className="px-6 py-5 text-center no-print">إجراءات</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {filteredItems.map(item => (
                 <tr key={item.id} className="hover:bg-slate-50 transition font-bold text-xs">
                   {renderRow(item, employees.find(e => e.id === item.employeeId)?.name || 'Unknown')}
@@ -119,7 +134,7 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
                       {onPrintIndividual && <button onClick={() => onPrintIndividual(item)} title="طباعة مستند" className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition"><Printer size={16}/></button>}
                       {!archiveMode && onArchive && <button onClick={() => onArchive(item)} title="نقل للأرشيف" className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition"><Archive size={16}/></button>}
                       <button onClick={() => { setFormData(item); setShowModal(true); }} title="تعديل" className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition"><Edit2 size={16}/></button>
-                      <button onClick={() => { if(confirm('حذف السجل نهائياً؟')) onDelete(item.id); }} title="حذف" className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition"><Trash2 size={16}/></button>
+                      <button onClick={() => onDelete(item.id)} title="حذف" className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition"><Trash2 size={16}/></button>
                     </div>
                   </td>
                 </tr>
