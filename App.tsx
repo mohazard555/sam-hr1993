@@ -14,7 +14,7 @@ import { GenericModule } from './views/GenericModule';
 import { loadDB, saveDB, DB } from './db/store';
 import { Employee, PayrollRecord, FinancialEntry, Loan, LeaveRequest, ProductionEntry, AttendanceRecord, Warning } from './types';
 import { generateMonthlyPayroll } from './utils/calculations';
-import { Printer, X, ReceiptText, CalendarDays, Loader2, FileText, CheckCircle, Info, ShieldAlert, Package, Layers } from 'lucide-react';
+import { Printer, X, ReceiptText, CalendarDays, Loader2, FileText, CheckCircle, Info, ShieldAlert, Package, Layers, Clock, TrendingUp, Lock, HelpCircle } from 'lucide-react';
 
 type PrintType = 'production' | 'loan' | 'leave' | 'financial' | 'document' | 'vouchers' | 'report_attendance' | 'report_financial' | 'warning';
 
@@ -23,7 +23,7 @@ const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
-  const [showForgotHint, setShowForgotHint] = useState(false);
+  const [showHint, setShowHint] = useState(false);
   const [individualPrintItem, setIndividualPrintItem] = useState<{title: string, type: PrintType, data: any} | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
   
@@ -48,6 +48,7 @@ const App: React.FC = () => {
     const user = db.users.find(u => u.username === loginForm.username && u.password === loginForm.password);
     if (user) {
       setCurrentUser(user);
+      setShowHint(false);
     } else {
       alert('خطأ في اسم المستخدم أو كلمة المرور');
     }
@@ -58,25 +59,12 @@ const App: React.FC = () => {
 
   const currentPayrolls = useMemo(() => generateMonthlyPayroll(
     currentMonth, currentYear, db.employees || [], 
-    db.attendance?.filter(a => !a.isArchived) || [], 
-    db.loans?.filter(l => !l.isArchived) || [], 
-    db.financials?.filter(f => !f.isArchived) || [], 
-    db.production?.filter(p => !p.isArchived) || [], 
+    db.attendance || [], 
+    db.loans || [], 
+    db.financials || [], 
+    db.production || [], 
     db.settings
   ), [currentMonth, currentYear, db]);
-
-  const payrollTotals = useMemo(() => {
-    return currentPayrolls.reduce((acc, curr) => ({
-      base: acc.base + (curr.baseSalary || 0),
-      transport: acc.transport + (curr.transport || 0),
-      actualHours: acc.actualHours + (curr.workingHours || 0),
-      dueHours: acc.dueHours + ((curr.workingDays || 0) * 8),
-      overtime: acc.overtime + (curr.overtimePay || 0),
-      late: acc.late + (curr.lateDeduction || 0),
-      loans: acc.loans + (curr.loanInstallment || 0),
-      net: acc.net + (curr.netSalary || 0)
-    }), { base: 0, transport: 0, actualHours: 0, dueHours: 0, overtime: 0, late: 0, loans: 0, net: 0 });
-  }, [currentPayrolls]);
 
   const updateList = <K extends keyof DB>(key: K, item: any) => {
     setDb(prev => {
@@ -103,18 +91,18 @@ const App: React.FC = () => {
     });
   };
 
+  const archiveItem = <K extends keyof DB>(key: K, item: any) => {
+    if (confirm('هل تريد نقل هذا السجل إلى الأرشيف التاريخي؟')) {
+      updateList(key, { ...item, isArchived: true });
+    }
+  };
+
   const leaveTypesAr: Record<string, string> = {
     'annual': 'سنوية', 'sick': 'مرضية', 'unpaid': 'بلا راتب', 'emergency': 'طارئة', 'marriage': 'زواج', 'death': 'وفاة', 'maternity': 'أمومة', 'hajj': 'حج'
   };
 
   const financialTypesAr: Record<string, string> = {
     'bonus': 'مكافأة', 'deduction': 'خصم إداري', 'production_incentive': 'حافز إنتاج', 'payment': 'سند صرف'
-  };
-
-  const warningTypesAr: Record<string, string> = {
-    'verbal': 'إنذار شفهي',
-    'written': 'إنذار خطي',
-    'final': 'إنذار نهائي وفصل'
   };
 
   const PrintableHeader = ({ title }: { title: string }) => (
@@ -124,198 +112,92 @@ const App: React.FC = () => {
         <p className="text-sm font-black text-indigo-700 mt-2">{title}</p>
       </div>
       <div className="flex flex-col items-center">
-        {db.settings.logo && <img src={db.settings.logo} className="h-20 w-auto object-contain mb-2" alt="Logo" />}
+        {db.settings.logo && <img src={db.settings.logo} className="h-16 w-auto object-contain mb-2" alt="Logo" />}
       </div>
       <div className="text-left">
-        <p className="text-[10px] font-black text-slate-400">تاريخ الاستخراج: {new Date().toLocaleDateString('ar-EG')}</p>
-        <p className="text-[10px] font-black text-slate-400">توقيت التقرير: {new Date().toLocaleTimeString('ar-EG')}</p>
+        <p className="text-[10px] font-black text-slate-400 uppercase">تاريخ: {new Date().toLocaleDateString('ar-EG')}</p>
+        <p className="text-[10px] font-black text-slate-400 uppercase">ساعة: {new Date().toLocaleTimeString('ar-EG')}</p>
       </div>
     </div>
   );
 
   const DocumentPrintCard = ({ title, type, data }: { title: string, type: PrintType, data: any }) => {
     const emp = db.employees.find(e => e.id === data.employeeId) || { name: data.employeeName || '.......', department: 'غير محدد' };
-    
     return (
       <div className="bg-white print-card w-full max-w-4xl mx-auto shadow-none relative overflow-hidden">
         <div className="absolute inset-0 opacity-[0.03] flex items-center justify-center pointer-events-none rotate-12">
-            <h1 className="text-[10rem] font-black whitespace-nowrap">{db.settings.name}</h1>
+            <h1 className="text-[8rem] font-black whitespace-nowrap">{db.settings.name}</h1>
         </div>
-
         <PrintableHeader title={title} />
-        
         <div className="space-y-8 relative z-10">
            <div className="flex justify-between items-center bg-slate-50 p-8 rounded-[2rem] border border-slate-100 text-right">
              <div className="text-right flex-1">
                 <span className="text-[10px] font-black text-indigo-400 block uppercase mb-1">اسم الموظف:</span>
-                <span className="text-3xl font-black text-slate-900 leading-tight">{emp.name}</span>
+                <span className="text-2xl font-black text-slate-900 leading-tight">{emp.name}</span>
              </div>
              <div className="text-left flex-1">
                 <span className="text-[10px] font-black text-slate-400 block uppercase mb-1">القسم / الوحدة:</span>
-                <span className="text-xl font-bold text-indigo-700">{emp.department}</span>
+                <span className="text-lg font-bold text-indigo-700">{emp.department}</span>
              </div>
            </div>
-
-           {type === 'loan' ? (
-             <div className="grid grid-cols-2 gap-6">
-                <div className="bg-indigo-950 text-white p-8 rounded-[2rem] shadow-xl text-center">
-                   <p className="text-[10px] opacity-70 mb-3 font-black uppercase tracking-widest">إجمالي السلفة</p>
-                   <p className="text-4xl font-black mb-1">{data.amount?.toLocaleString()}</p>
-                   <span className="text-sm opacity-60 font-bold">{db.settings.currency}</span>
-                </div>
-                <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-200 grid grid-cols-2 gap-4 text-center">
-                   <div>
-                      <p className="text-[10px] text-slate-400 font-black uppercase mb-1">عدد الأقساط</p>
-                      <p className="text-xl font-black text-slate-800">{data.installmentsCount} شهر</p>
-                   </div>
-                   <div>
-                      <p className="text-[10px] text-indigo-400 font-black uppercase mb-1">القسط الشهري</p>
-                      <p className="text-xl font-black text-indigo-600">{data.monthlyInstallment?.toLocaleString()}</p>
-                   </div>
-                   <div className="col-span-2 pt-4 border-t border-slate-200 mt-2">
-                      <p className="text-[10px] text-rose-400 font-black uppercase mb-1">تاريخ بداية التحصيل</p>
-                      <p className="text-lg font-black text-slate-700 flex items-center justify-center gap-2">
-                        <CalendarDays size={18} className="text-rose-500"/>
-                        {data.collectionDate || 'غير محدد'}
-                      </p>
-                   </div>
-                </div>
-             </div>
-           ) : type === 'production' ? (
-              <div className="border-4 border-indigo-100 rounded-[2.5rem] p-8 bg-indigo-50/20 relative">
-                <div className="grid grid-cols-3 gap-6">
-                   <div className="bg-indigo-950 text-white p-6 rounded-[1.5rem] shadow-lg text-center">
-                      <p className="text-[9px] opacity-70 mb-2 font-black uppercase">كمية الإنتاج</p>
-                      <p className="text-3xl font-black">{data.piecesCount} قطعة</p>
-                   </div>
-                   <div className="bg-white p-6 rounded-[1.5rem] border border-indigo-100 text-center">
-                      <p className="text-[9px] text-slate-400 mb-2 font-black uppercase">سعر القطعة</p>
-                      <p className="text-2xl font-black text-slate-800">{data.valuePerPiece?.toLocaleString()}</p>
-                   </div>
-                   <div className="bg-emerald-600 text-white p-6 rounded-[1.5rem] shadow-lg text-center">
-                      <p className="text-[9px] opacity-70 mb-2 font-black uppercase">إجمالي الاستحقاق</p>
-                      <p className="text-3xl font-black">{data.totalValue?.toLocaleString()}</p>
-                   </div>
-                </div>
-                {data.notes && (
-                  <div className="mt-6 p-4 bg-white/50 border border-indigo-50 rounded-xl text-sm italic font-bold text-slate-600">
-                    ملاحظات: {data.notes}
-                  </div>
-                )}
-              </div>
-           ) : type === 'warning' ? (
-              <div className="border-4 border-rose-200 rounded-[2.5rem] p-8 bg-rose-50/30 relative">
-                <div className="flex items-center gap-8">
-                   <div className="bg-rose-700 text-white p-8 rounded-[2rem] shadow-xl text-center min-w-[180px]">
-                      <ShieldAlert size={40} className="mx-auto mb-2 opacity-50"/>
-                      <p className="text-[9px] opacity-70 mb-2 font-black uppercase tracking-widest">درجة العقوبة</p>
-                      <p className="text-2xl font-black">{warningTypesAr[data.type] || 'إجراء تأديبي'}</p>
-                   </div>
-                   <div className="flex-1 text-right space-y-4">
-                      <p className="text-xl font-black text-slate-800">تاريخ المخالفة: {data.date}</p>
-                      <div className="p-6 bg-white rounded-[1.5rem] italic font-bold text-lg text-rose-900 leading-relaxed border border-rose-100 shadow-sm">
-                         {data.reason || "لم يتم تحديد تفاصيل إضافية للمخالفة."}
-                      </div>
-                   </div>
-                </div>
-              </div>
-           ) : type === 'report_attendance' ? (
-             <div className="border-2 border-slate-100 rounded-[2rem] overflow-hidden">
-                <table className="w-full text-right text-xs">
-                   <thead className="bg-indigo-50 font-black text-indigo-900">
-                      <tr>
-                        <th className="p-4 border-b">التاريخ</th>
-                        <th className="p-4 border-b text-center">الحضور</th>
-                        <th className="p-4 border-b text-center">الانصراف</th>
-                        <th className="p-4 border-b text-center">تأخير (د)</th>
-                        <th className="p-4 border-b text-center">إضافي (د)</th>
-                      </tr>
-                   </thead>
-                   <tbody>
-                      {data.records?.map((r: any) => (
-                        <tr key={r.id} className="border-b last:border-0">
-                           <td className="p-3 font-bold">{r.date}</td>
-                           <td className="p-3 text-center">{r.checkIn}</td>
-                           <td className="p-3 text-center">{r.checkOut}</td>
-                           <td className={`p-3 text-center ${r.lateMinutes > 0 ? 'text-rose-600 font-black' : ''}`}>{r.lateMinutes}</td>
-                           <td className={`p-3 text-center ${r.overtimeMinutes > 0 ? 'text-emerald-600 font-black' : ''}`}>{r.overtimeMinutes}</td>
-                        </tr>
-                      ))}
-                      {(!data.records || data.records.length === 0) && (
-                        <tr><td colSpan={5} className="p-10 text-center text-slate-400 italic">لا توجد سجلات حضور للفترة المختارة</td></tr>
-                      )}
-                   </tbody>
-                </table>
-             </div>
-           ) : (
-             <div className="border-4 border-dashed border-indigo-200 rounded-[2.5rem] p-8 bg-white relative">
-                <span className="absolute -top-4 right-10 bg-indigo-600 px-6 py-1 text-[10px] font-black text-white uppercase rounded-full shadow-md">بيان معتمد</span>
-                <div className="flex items-center gap-8">
-                   <div className="bg-indigo-950 text-white p-8 rounded-[2rem] shadow-xl text-center min-w-[180px]">
-                      <p className="text-[9px] opacity-70 mb-2 font-black uppercase">نوع المستند</p>
-                      <p className="text-2xl font-black">
-                         {type === 'leave' ? leaveTypesAr[data.type] : 
-                          type === 'financial' ? financialTypesAr[data.type] : 
-                          'مستند إداري'}
-                      </p>
-                   </div>
-                   <div className="flex-1 text-right space-y-4">
-                      {data.date && <p className="text-xl font-black text-slate-800">تاريخ الإصدار: {data.date}</p>}
-                      <div className="p-6 bg-slate-50 rounded-[1.5rem] italic font-bold text-lg text-slate-600 leading-relaxed border border-slate-100">
-                         {data.notes || data.reason || "لا توجد ملاحظات إضافية مسجلة."}
-                      </div>
-                   </div>
-                </div>
-             </div>
-           )}
+           <div className="p-8 border-4 border-dashed border-slate-200 rounded-[2rem] text-right">
+              <p className="text-lg font-bold leading-relaxed">
+                {type === 'loan' ? `نقر نحن إدارة ${db.settings.name} بصرف سلفة مالية للموظف المذكور أعلاه بقيمة ${data.amount.toLocaleString()} ${db.settings.currency}، على أن يتم تحصيلها على ${data.installmentsCount} أقساط شهرياً.` : 
+                 type === 'leave' ? `تمت الموافقة على طلب الإجازة الـ ${leaveTypesAr[data.type] || ''} للموظف المذكور للفترة من ${data.startDate} إلى ${data.endDate}.` :
+                 type === 'financial' ? `سند مالي: ${financialTypesAr[data.type]} بمبلغ ${data.amount.toLocaleString()} ${db.settings.currency} للموظف المذكور أعلاه.` :
+                 type === 'production' ? `تقرير إنتاجية: إنجاز ${data.piecesCount} قطعة بقيمة إجمالي ${data.totalValue.toLocaleString()} ${db.settings.currency}.` :
+                 data.notes || 'بيان إداري معتمد'}
+              </p>
+           </div>
         </div>
-
-        <div className="grid grid-cols-3 gap-8 mt-16 text-center border-t-2 pt-10 text-[12px] font-black opacity-60">
-           <div className="flex flex-col gap-4">
-              <span>توقيع الموظف المعني</span>
-              <span className="text-slate-300">.......................</span>
-           </div>
-           <div className="flex flex-col gap-4">
-              <span>المسؤول المباشر</span>
-              <span className="text-slate-300">.......................</span>
-           </div>
-           <div className="flex flex-col gap-4">
-              <span>الختم الإداري</span>
-              <div className="w-24 h-24 border-2 border-dashed border-slate-200 rounded-full mx-auto flex items-center justify-center text-[10px] text-slate-300">OFFICIAL STAMP</div>
-           </div>
+        <div className="grid grid-cols-3 gap-8 mt-20 text-center border-t-2 pt-10 text-[10px] font-black opacity-60">
+           <div>توقيع الموظف</div>
+           <div>المسؤول المباشر</div>
+           <div>الختم الرسمي</div>
         </div>
       </div>
     );
   };
 
   const VouchersPrintGrid = ({ payrolls }: { payrolls: PayrollRecord[] }) => (
-    <div className="vouchers-grid-print grid grid-cols-2 gap-4">
+    <div className="vouchers-grid-print grid grid-cols-2 gap-4 p-4">
       {payrolls.map(p => {
         const emp = db.employees.find(e => e.id === p.employeeId);
         return (
-          <div key={p.id} className="print-card border border-slate-200 p-6 bg-white relative mb-4">
-            <div className="flex justify-between items-start border-b border-indigo-100 pb-2 mb-2">
+          <div key={p.id} className="print-card border-2 border-slate-200 p-8 bg-white relative mb-4 rounded-[2rem] shadow-sm">
+            <div className="flex justify-between items-start border-b-2 border-indigo-100 pb-4 mb-4">
                <div className="text-right">
-                  <p className="text-[8px] font-black text-indigo-400 uppercase">قسيمة راتب الموظف</p>
-                  <h3 className="text-lg font-black text-slate-900 leading-none">{emp?.name}</h3>
+                  <p className="text-[10px] font-black text-indigo-500 uppercase">قسيمة راتب معتمدة</p>
+                  <h3 className="text-xl font-black text-slate-900 leading-none">{emp?.name}</h3>
                </div>
-               <div className="text-left text-[8px] font-black text-slate-400">
+               <div className="text-left text-[10px] font-black text-slate-400">
                   <p>الفترة: {p.month} / {p.year}</p>
                </div>
             </div>
-            <div className="space-y-1 text-[10px] font-bold">
-               <div className="flex justify-between text-slate-600"><span>الأساسي:</span> <span>{p.baseSalary.toLocaleString()}</span></div>
-               <div className="flex justify-between text-indigo-600"><span>المواصلات:</span> <span>+{p.transport.toLocaleString()}</span></div>
-               <div className="flex justify-between text-emerald-600 font-black"><span>إضافي ساعات:</span> <span>+{p.overtimePay.toLocaleString()}</span></div>
-               <div className="flex justify-between text-rose-600"><span>أقساط سلف:</span> <span>-{p.loanInstallment.toLocaleString()}</span></div>
-               <div className="flex justify-between text-rose-700 font-black"><span>تأخير:</span> <span>-{p.lateDeduction.toLocaleString()}</span></div>
-               <div className="flex justify-between text-base font-black text-indigo-950 pt-2 mt-2 border-t border-indigo-900 items-baseline">
-                 <span>الصافي:</span>
+            
+            <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-[11px] font-bold">
+               <div className="flex justify-between text-slate-600 border-b border-slate-50 pb-1"><span>الراتب الأساسي:</span> <span>{p.baseSalary.toLocaleString()}</span></div>
+               <div className="flex justify-between text-emerald-600 border-b border-slate-50 pb-1"><span>المواصلات:</span> <span>+{p.transport.toLocaleString()}</span></div>
+               <div className="flex justify-between text-emerald-600 border-b border-slate-50 pb-1"><span>العمل الإضافي:</span> <span>+{p.overtimePay.toLocaleString()}</span></div>
+               <div className="flex justify-between text-emerald-600 border-b border-slate-50 pb-1"><span>المكافآت والإنتاج:</span> <span>+{(p.bonuses + p.production).toLocaleString()}</span></div>
+               
+               <div className="col-span-2 my-2 border-t pt-2 opacity-50">الاستقطاعات:</div>
+               
+               <div className="flex justify-between text-rose-600 border-b border-slate-50 pb-1"><span>تأخير غياب:</span> <span>-{p.lateDeduction.toLocaleString()}</span></div>
+               <div className="flex justify-between text-rose-600 border-b border-slate-50 pb-1"><span>أقساط سلف:</span> <span>-{p.loanInstallment.toLocaleString()}</span></div>
+               <div className="flex justify-between text-rose-600 border-b border-slate-50 pb-1"><span>خصومات أخرى:</span> <span>-{p.manualDeductions.toLocaleString()}</span></div>
+               
+               <div className="col-span-2 flex justify-between text-lg font-black text-indigo-950 pt-4 mt-4 border-t-2 border-indigo-900 items-baseline">
+                 <span>صافي الراتب المستحق:</span>
                  <div className="text-right">
-                    <span className="text-[8px] mr-1 opacity-60 font-black">{db.settings.currency}</span>
-                    <span className="text-xl">{p.netSalary.toLocaleString()}</span>
+                    <span className="text-2xl">{p.netSalary.toLocaleString()}</span>
+                    <span className="text-[10px] mr-2 opacity-60 font-black">{db.settings.currency}</span>
                  </div>
                </div>
+            </div>
+            <div className="mt-6 flex justify-between items-center text-[8px] font-black opacity-40">
+               <p>توقيع المحاسب المختص</p>
+               <p>توقيع الموظف بالاستلام</p>
             </div>
           </div>
         );
@@ -331,43 +213,7 @@ const App: React.FC = () => {
     }, 600);
   };
 
-  const PrintPortalContent = () => {
-    const portalNode = document.getElementById('sam-print-portal');
-    if (!individualPrintItem || !portalNode) return null;
-    
-    return createPortal(
-      <div className="print-isolated-wrapper text-right w-full" dir="rtl">
-        {individualPrintItem.type === 'vouchers' 
-          ? <VouchersPrintGrid payrolls={individualPrintItem.data} />
-          : <DocumentPrintCard title={individualPrintItem.title} type={individualPrintItem.type} data={individualPrintItem.data} />}
-      </div>,
-      portalNode
-    );
-  };
-
-  if (!currentUser) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 font-cairo" dir="rtl">
-        <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl w-full max-w-md border dark:border-slate-800 overflow-hidden">
-          <div className="bg-indigo-600 p-10 text-white text-center">
-            <h1 className="text-4xl font-black tracking-tighter">SAM PRO</h1>
-            <p className="text-[10px] font-bold mt-2 opacity-80 uppercase tracking-widest">نظام إدارة الموارد البشرية</p>
-          </div>
-          <form onSubmit={handleLogin} className="p-8 space-y-6 text-right">
-            <input className="w-full py-4 px-6 bg-slate-50 dark:bg-slate-800 rounded-2xl font-black border-2 border-transparent focus:border-indigo-600 outline-none" placeholder="Username" value={loginForm.username} onChange={e => setLoginForm({...loginForm, username: e.target.value})} required />
-            <input type="password" className="w-full py-4 px-6 bg-slate-50 dark:bg-slate-800 rounded-2xl font-black border-2 border-transparent focus:border-indigo-600 outline-none" placeholder="Password" value={loginForm.password} onChange={e => setLoginForm({...loginForm, password: e.target.value})} required />
-            <button className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black text-lg shadow-xl hover:bg-indigo-700 transition">دخول النظام</button>
-            <div className="text-center mt-2">
-               <button type="button" onClick={() => setShowForgotHint(!showForgotHint)} className="text-xs font-black text-indigo-500 underline decoration-indigo-200">هل نسيت بيانات الدخول؟</button>
-            </div>
-            {showForgotHint && <div className="p-4 bg-amber-50 rounded-2xl text-xs font-bold text-amber-700 mt-2 border border-amber-100 animate-in fade-in slide-in-from-top-2">تلميح المسؤول: {db.settings.passwordHint}</div>}
-          </form>
-        </div>
-      </div>
-    );
-  }
-
-  const renderContent = () => {
+  const renderActiveTab = () => {
     switch (activeTab) {
       case 'dashboard': return <Dashboard employeesCount={db.employees.length} todayAttendance={db.attendance.filter(a => a.date === new Date().toISOString().split('T')[0]).length} totalLoans={db.loans.reduce((acc, l) => acc + (l.remainingAmount || 0), 0)} totalSalaryBudget={currentPayrolls.reduce((acc, p) => acc + p.netSalary, 0)} />;
       case 'employees': return <Employees employees={db.employees} departments={db.departments} settings={db.settings} onAdd={e => updateList('employees', e)} onDelete={id => deleteFromList('employees', id)} />;
@@ -378,9 +224,9 @@ const App: React.FC = () => {
           title="سجل طلبات الإجازات" lang={db.settings.language} employees={db.employees} items={db.leaves} 
           companyName={db.settings.name} logo={db.settings.logo}
           archiveMode={archiveModes.leaves} onToggleArchive={() => setArchiveModes(p => ({...p, leaves: !p.leaves}))} 
-          onSave={i => updateList('leaves', i)} onDelete={id => deleteFromList('leaves', id)} 
+          onSave={i => updateList('leaves', i)} onDelete={id => deleteFromList('leaves', id)} onArchive={i => archiveItem('leaves', i)}
           onPrintIndividual={i => setIndividualPrintItem({title: "إشعار إجازة رسمي", type: 'leave', data: i})} 
-          initialData={{ type: 'annual', status: 'pending', isPaid: true, startDate: new Date().toISOString().split('T')[0], endDate: new Date().toISOString().split('T')[0] }} 
+          initialData={{ type: 'annual', status: 'approved', isPaid: true, startDate: new Date().toISOString().split('T')[0], endDate: new Date().toISOString().split('T')[0] }} 
           tableHeaders={['الموظف', 'النوع', 'مأجورة', 'من', 'إلى']} 
           renderForm={(data, set) => (
             <div className="grid grid-cols-2 gap-4">
@@ -393,9 +239,6 @@ const App: React.FC = () => {
             </div>
           )} 
           renderRow={(i, name) => (<><td className="px-6 py-4 font-black">{name}</td><td className="px-6 py-4 font-bold">{leaveTypesAr[i.type]}</td><td className="px-6 py-4">{i.isPaid ? 'نعم' : 'لا'}</td><td className="px-6 py-4">{i.startDate}</td><td className="px-6 py-4">{i.endDate}</td></>)} 
-          renderFooter={(list) => (
-             <tr><td className="px-6 py-4 text-right">إجمالي السجلات</td><td className="px-6 py-4 text-center text-lg">{list.length} سجل</td><td colSpan={3}></td><td className="no-print"></td></tr>
-          )}
         />
       );
       case 'loans': return (
@@ -403,42 +246,17 @@ const App: React.FC = () => {
           title="سجل السلف والقروض" lang={db.settings.language} employees={db.employees} items={db.loans} 
           companyName={db.settings.name} logo={db.settings.logo}
           archiveMode={archiveModes.loans} onToggleArchive={() => setArchiveModes(p => ({...p, loans: !p.loans}))} 
-          onSave={i => updateList('loans', i)} onDelete={id => deleteFromList('loans', id)} 
+          onSave={i => updateList('loans', i)} onDelete={id => deleteFromList('loans', id)} onArchive={i => archiveItem('loans', i)}
           onPrintIndividual={i => setIndividualPrintItem({title: "سند سلفة موظف", type: 'loan', data: i})} 
           initialData={{ amount: 0, installmentsCount: 1, monthlyInstallment: 0, remainingAmount: 0, date: new Date().toISOString().split('T')[0], collectionDate: new Date().toISOString().split('T')[0] }} 
           tableHeaders={['الموظف', 'المبلغ', 'الأقساط', 'قيمة القسط', 'بداية التحصيل']} 
           renderForm={(data, set) => (
-            <div className="space-y-6">
-               <div className="grid grid-cols-2 gap-4">
-                 <div>
-                   <label className="text-[10px] font-black text-slate-500 uppercase mb-1 block">إجمالي السلفة</label>
-                   <input type="number" className="w-full p-4 border rounded-xl font-black" value={data.amount || ''} onChange={e => {
-                     const amt = Number(e.target.value);
-                     set({...data, amount: amt, remainingAmount: amt, monthlyInstallment: Math.round(amt / (data.installmentsCount || 1))});
-                   }} />
-                 </div>
-                 <div>
-                   <label className="text-[10px] font-black text-slate-500 uppercase mb-1 block">عدد الأشهر (الأقساط)</label>
-                   <input type="number" className="w-full p-4 border rounded-xl font-black" value={data.installmentsCount || ''} onChange={e => {
-                     const inst = Number(e.target.value);
-                     set({...data, installmentsCount: inst, monthlyInstallment: Math.round((data.amount || 0) / (inst || 1))});
-                   }} />
-                 </div>
-                 <div>
-                    <label className="text-[10px] font-black text-slate-500 uppercase mb-1 block">تاريخ بداية التحصيل</label>
-                    <input type="date" className="w-full p-4 border rounded-xl font-black" value={data.collectionDate || ''} onChange={e => set({...data, collectionDate: e.target.value})} />
-                 </div>
-                 <div className="bg-indigo-50 p-4 rounded-xl flex flex-col justify-center">
-                    <p className="text-[9px] font-black text-indigo-400 uppercase">القسط الشهري</p>
-                    <p className="text-xl font-black text-indigo-700">{data.monthlyInstallment?.toLocaleString()}</p>
-                 </div>
-               </div>
+            <div className="grid grid-cols-2 gap-4">
+              <input type="number" placeholder="المبلغ" className="p-4 border rounded-xl font-black" value={data.amount || ''} onChange={e => set({...data, amount: Number(e.target.value), remainingAmount: Number(e.target.value)})} />
+              <input type="number" placeholder="الأقساط" className="p-4 border rounded-xl font-black" value={data.installmentsCount || ''} onChange={e => set({...data, installmentsCount: Number(e.target.value), monthlyInstallment: Number(data.amount || 0) / Number(e.target.value || 1)})} />
             </div>
           )} 
-          renderRow={(i, name) => (<><td className="px-6 py-4 font-black">{name}</td><td className="px-6 py-4 font-black">{i.amount.toLocaleString()}</td><td className="px-6 py-4 text-center font-bold">{i.installmentsCount} شهر</td><td className="px-6 py-4 text-rose-600 font-black">{i.monthlyInstallment.toLocaleString()}</td><td className="px-6 py-4 text-[10px] font-bold text-slate-500">{i.collectionDate}</td></>)} 
-          renderFooter={(list) => (
-             <tr><td className="px-6 py-4 text-right">الإجماليات</td><td className="px-6 py-4 text-center font-black">{list.reduce((acc,curr)=>acc+(curr.amount||0),0).toLocaleString()}</td><td colSpan={2}></td><td className="px-6 py-4 text-center font-black text-emerald-300">{list.reduce((acc,curr)=>acc+(curr.remainingAmount||0),0).toLocaleString()}</td><td className="no-print"></td></tr>
-          )}
+          renderRow={(i, name) => (<><td className="px-6 py-4 font-black">{name}</td><td className="px-6 py-4">{i.amount.toLocaleString()}</td><td className="px-6 py-4">{i.installmentsCount}</td><td className="px-6 py-4">{Math.round(i.monthlyInstallment).toLocaleString()}</td><td className="px-6 py-4">{i.collectionDate}</td></>)} 
         />
       );
       case 'financials': return (
@@ -446,156 +264,215 @@ const App: React.FC = () => {
           title="سجل السندات المالية" lang={db.settings.language} employees={db.employees} items={db.financials} 
           companyName={db.settings.name} logo={db.settings.logo}
           archiveMode={archiveModes.financials} onToggleArchive={() => setArchiveModes(p => ({...p, financials: !p.financials}))} 
-          onSave={i => updateList('financials', i)} onDelete={id => deleteFromList('financials', id)} 
+          onSave={i => updateList('financials', i)} onDelete={id => deleteFromList('financials', id)} onArchive={i => archiveItem('financials', i)}
           onPrintIndividual={i => setIndividualPrintItem({title: "سند مالي معتمد", type: 'financial', data: i})} 
           initialData={{ type: 'bonus', amount: 0, date: new Date().toISOString().split('T')[0], reason: '' }} 
           tableHeaders={['الموظف', 'النوع', 'المبلغ', 'التاريخ']} 
           renderForm={(data, set) => (
             <div className="grid grid-cols-2 gap-4">
-              <select className="w-full p-4 border rounded-xl font-black" value={data.type} onChange={e => set({...data, type: (e.target.value as any)})}>
+              <select className="p-4 border rounded-xl font-black" value={data.type} onChange={e => set({...data, type: (e.target.value as any)})}>
                 {Object.entries(financialTypesAr).map(([k,v]) => <option key={k} value={k}>{v}</option>)}
               </select>
-              <input type="number" placeholder="المبلغ" className="p-4 border rounded-xl font-black" value={data.amount} onChange={e => set({...data, amount: Number(e.target.value)})} />
+              <input type="number" className="p-4 border rounded-xl font-black" value={data.amount} onChange={e => set({...data, amount: Number(e.target.value)})} />
             </div>
           )} 
-          renderRow={(i, name) => (<><td className="px-6 py-4 font-black">{name}</td><td className="px-6 py-4 font-bold">{financialTypesAr[i.type || 'bonus']}</td><td className="px-6 py-4 font-black">{i.amount.toLocaleString()}</td><td className="px-6 py-4">{i.date}</td></>)} 
-          renderFooter={(list) => (
-             <tr><td className="px-6 py-4 text-right">إجمالي السندات</td><td className="px-6 py-4 text-center">-</td><td className="px-6 py-4 text-center font-black text-indigo-300">{list.reduce((acc,curr)=>acc+(curr.amount||0),0).toLocaleString()}</td><td className="px-6 py-4"></td><td className="no-print"></td></tr>
-          )}
+          renderRow={(i, name) => (<><td className="px-6 py-4 font-black">{name}</td><td className="px-6 py-4 font-bold">{financialTypesAr[i.type || 'bonus']}</td><td className="px-6 py-4 font-black text-indigo-700">{i.amount.toLocaleString()}</td><td className="px-6 py-4">{i.date}</td></>)} 
         />
       );
       case 'production': return <Production employees={db.employees} items={db.production || []} settings={db.settings} onSave={i => updateList('production', i)} onDelete={id => deleteFromList('production', id)} archiveMode={archiveModes.production} onToggleArchive={() => setArchiveModes(p => ({...p, production: !p.production}))} onPrintIndividual={i => setIndividualPrintItem({title: "إشعار إنتاجية موظف", type: 'production', data: i})} />;
       case 'payroll': return (
-        <div className="space-y-8">
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 flex justify-between items-center no-print text-right">
-             <h2 className="text-3xl font-black text-indigo-700">مسير الرواتب - {currentMonth}/{currentYear}</h2>
+        <div className="space-y-8 animate-in fade-in duration-700">
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 flex flex-col md:flex-row justify-between items-center no-print text-right gap-4">
+             <div>
+                <h2 className="text-3xl font-black text-indigo-700">مسير رواتب الموظفين - {currentMonth}/{currentYear}</h2>
+                <p className="text-slate-400 font-bold mt-1 text-sm">يتم توليد هذا الجدول بناءً على سجلات الحضور والمالية الجارية حصراً.</p>
+             </div>
              <div className="flex gap-3">
-                <button onClick={() => setIndividualPrintItem({ title: 'قسائم رواتب الموظفين المعتمدة', type: 'vouchers', data: currentPayrolls })} className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg"><ReceiptText size={20}/> القسائم (6 بالصفحة)</button>
-                <button onClick={() => window.print()} className="bg-slate-950 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg"><Printer size={20}/> طباعة المسير الكامل</button>
+                <button onClick={() => setIndividualPrintItem({ title: 'قسائم رواتب الموظفين', type: 'vouchers', data: currentPayrolls })} className="bg-indigo-100 text-indigo-700 px-8 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-indigo-200 transition"><ReceiptText size={20}/> القسائم</button>
+                <button onClick={() => window.print()} className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg"><Printer size={20}/> طباعة المسير</button>
              </div>
           </div>
-          <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl border overflow-hidden relative">
-             {/* ترويسة مطبوعة لمسير الرواتب */}
+          
+          <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl border dark:border-slate-800 overflow-hidden relative">
              <div className="hidden print:flex justify-between items-start border-b-4 border-indigo-900 pb-6 mb-8 w-full text-indigo-950 p-8">
                <div className="text-right">
                  <h1 className="text-3xl font-black leading-none">{db.settings.name}</h1>
-                 <p className="text-sm font-black text-indigo-700 mt-2">مسير رواتب الموظفين المعتمد</p>
-                 <p className="text-[10px] font-bold mt-1 text-slate-600 tracking-widest uppercase">الفترة: شهر {currentMonth} / سنة {currentYear}</p>
+                 <p className="text-sm font-black text-indigo-700 mt-2">سجل مسير الرواتب المعتمد</p>
+                 <p className="text-[10px] font-bold mt-1 text-slate-600 uppercase">الفترة: شهر {currentMonth} سنة {currentYear}</p>
                </div>
                <div className="flex flex-col items-center">
-                 {db.settings.logo && <img src={db.settings.logo} className="h-16 w-auto object-contain mb-2" alt="Logo" />}
+                 {db.settings.logo && <img src={db.settings.logo} className="h-14 w-auto object-contain mb-2" alt="Logo" />}
                </div>
-               <div className="text-left">
-                 <p className="text-[10px] font-black text-slate-400">تاريخ الإصدار: {new Date().toLocaleDateString('ar-EG')}</p>
-                 <p className="text-[10px] font-black text-slate-400">ساعة الطباعة: {new Date().toLocaleTimeString('ar-EG')}</p>
+               <div className="text-left text-[10px] font-black text-slate-400">
+                 <p>تاريخ الاستخراج: {new Date().toLocaleDateString('ar-EG')}</p>
+                 <p>عدد الموظفين: {currentPayrolls.length}</p>
                </div>
              </div>
-
+             
              <div className="overflow-x-auto">
-               <table className="w-full text-center text-[10px] border-collapse">
-                 <thead className="text-white font-black uppercase">
+               <table className="w-full text-center text-[9px] font-bold">
+                 <thead className="bg-indigo-950 text-white font-black text-[10px] uppercase">
                    <tr>
-                     <th className="px-4 py-6 text-right sticky right-0 bg-indigo-950 z-20">الموظف</th>
-                     <th className="px-2 py-6 bg-indigo-950 border-r border-white/5">الأساسي</th>
-                     <th className="px-2 py-6 bg-indigo-950 border-r border-white/5">مواصلات</th>
-                     <th className="px-2 py-6 bg-slate-900 text-indigo-300 border-r border-white/5">س. فعلية</th>
-                     <th className="px-2 py-6 bg-[#064e3b] text-emerald-100 border-r border-white/5">إضافي($)</th>
-                     <th className="px-2 py-6 bg-[#7f1d1d] text-rose-100 border-r border-white/5">تأخير($)</th>
-                     <th className="px-2 py-6 bg-indigo-950 text-rose-300 border-r border-white/5">سلف</th>
-                     <th className="px-4 py-6 bg-[#0f172a] text-sm text-indigo-300">صافي الراتب</th>
+                     <th className="px-4 py-4 text-right">الموظف</th>
+                     <th className="px-2 py-4">أيام الدوام</th>
+                     <th className="px-2 py-4">ساعات العمل</th>
+                     <th className="px-2 py-4">تأخير (د)</th>
+                     <th className="px-2 py-4">إضافي (د)</th>
+                     <th className="px-2 py-4">الأساسي</th>
+                     <th className="px-2 py-4">المواصلات</th>
+                     <th className="px-2 py-4">إضافات</th>
+                     <th className="px-2 py-4">خصومات</th>
+                     <th className="px-4 py-4 text-center">الصافي الاستحقاق</th>
                    </tr>
                  </thead>
                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                    {currentPayrolls.map(p => (
-                     <tr key={p.id} className="hover:bg-slate-50 transition font-bold text-xs">
-                       <td className="px-4 py-6 text-right sticky right-0 bg-white dark:bg-slate-900 border-r">{db.employees.find(e => e.id === p.employeeId)?.name}</td>
-                       <td className="px-2 py-6">{p.baseSalary.toLocaleString()}</td>
-                       <td className="px-2 py-6 text-indigo-500">{p.transport.toLocaleString()}</td>
-                       <td className="px-2 py-6 font-black">{p.workingHours} س</td>
-                       <td className="px-2 py-6 text-emerald-600 bg-emerald-50/20 font-black">{p.overtimePay.toLocaleString()}</td>
-                       <td className="px-2 py-6 text-rose-500 bg-rose-50/20 font-black">{p.lateDeduction.toLocaleString()}</td>
-                       <td className="px-2 py-6 text-rose-700 font-black">-{p.loanInstallment.toLocaleString()}</td>
-                       <td className="px-4 py-6 font-black text-indigo-950 bg-indigo-50/30 text-base">{p.netSalary.toLocaleString()}</td>
+                     <tr key={p.id} className="hover:bg-indigo-50/20 transition-all">
+                       <td className="px-4 py-4 text-right font-black text-slate-900 dark:text-slate-100">{db.employees.find(e => e.id === p.employeeId)?.name}</td>
+                       <td className="px-2 py-4 text-slate-500">{p.workingDays} ي</td>
+                       <td className="px-2 py-4 text-slate-500">{p.workingHours} س</td>
+                       <td className={`px-2 py-4 ${p.lateMinutes > 0 ? 'text-rose-600' : 'text-slate-400'}`}>{p.lateMinutes}</td>
+                       <td className={`px-2 py-4 ${p.overtimeMinutes > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>{p.overtimeMinutes}</td>
+                       <td className="px-2 py-4 text-indigo-700">{p.baseSalary.toLocaleString()}</td>
+                       <td className="px-2 py-4 text-indigo-700">{p.transport.toLocaleString()}</td>
+                       <td className="px-2 py-4 text-emerald-600">+{(p.overtimePay + p.bonuses + p.production).toLocaleString()}</td>
+                       <td className="px-2 py-4 text-rose-600">-{p.deductions.toLocaleString()}</td>
+                       <td className="px-4 py-4 font-black bg-indigo-50/50 dark:bg-indigo-900/10 text-[11px] text-indigo-800 dark:text-indigo-400 border-x border-indigo-100 dark:border-indigo-900">
+                          {p.netSalary.toLocaleString()} <span className="text-[8px] opacity-60">{db.settings.currency}</span>
+                       </td>
                      </tr>
                    ))}
                  </tbody>
-                 <tfoot className="bg-indigo-950 text-white font-black text-xs uppercase border-t-4 border-indigo-900">
-                   <tr>
-                     <td className="px-4 py-6 text-right sticky right-0 bg-indigo-950 z-20">الإجمالي الكلي</td>
-                     <td className="px-2 py-6 bg-indigo-900/50">{payrollTotals.base.toLocaleString()}</td>
-                     <td className="px-2 py-6 bg-indigo-900/50">{payrollTotals.transport.toLocaleString()}</td>
-                     <td className="px-2 py-6 bg-slate-900/80 text-indigo-300">{payrollTotals.actualHours} س</td>
-                     <td className="px-2 py-6 bg-emerald-900/60">{payrollTotals.overtime.toLocaleString()}</td>
-                     <td className="px-2 py-6 bg-rose-900/60">-{payrollTotals.late.toLocaleString()}</td>
-                     <td className="px-2 py-6 bg-indigo-900/50">-{payrollTotals.loans.toLocaleString()}</td>
-                     <td className="px-4 py-6 bg-slate-900 text-lg text-indigo-400">{payrollTotals.net.toLocaleString()} {db.settings.currency}</td>
-                   </tr>
+                 <tfoot className="bg-indigo-950 text-white font-black text-[10px] border-t-2 border-indigo-900">
+                    <tr>
+                       <td colSpan={6} className="p-4 text-right">إجمالي الرواتب المستحقة للمنشأة:</td>
+                       <td colSpan={4} className="p-4 text-center text-xl text-emerald-300">
+                          {currentPayrolls.reduce((sum, p) => sum + p.netSalary, 0).toLocaleString()} {db.settings.currency}
+                       </td>
+                    </tr>
                  </tfoot>
                </table>
              </div>
           </div>
         </div>
       );
-      case 'documents': return (
-        <PrintForms 
-          employees={db.employees || []} 
-          attendance={db.attendance || []} 
-          financials={db.financials || []} 
-          warnings={db.warnings || []}
-          leaves={db.leaves || []}
-          settings={db.settings} 
-          onPrint={(doc) => setIndividualPrintItem(doc as any)} 
-        />
-      );
+      case 'documents': return <PrintForms employees={db.employees || []} attendance={db.attendance || []} financials={db.financials || []} warnings={db.warnings || []} leaves={db.leaves || []} settings={db.settings} onPrint={(doc) => setIndividualPrintItem(doc as any)} />;
       case 'settings': return <SettingsView settings={db.settings} admin={db.users[0]} db={db} onUpdateSettings={s => setDb(p => ({...p, settings: {...p.settings, ...s}}))} onUpdateAdmin={u => setDb(p => ({...p, users: [{...p.users[0], ...u}, ...p.users.slice(1)]}))} onImport={json => setDb(json)} onRunArchive={() => {}} />;
       case 'reports': return <ReportsView db={db} payrolls={currentPayrolls} lang={db.settings.language} onPrint={() => window.print()} />;
       default: return null;
     }
   };
 
+  if (!currentUser) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center bg-slate-950 p-6 font-cairo ${db.settings.theme === 'dark' ? 'dark' : ''}`} dir="rtl">
+         <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-[3.5rem] p-12 shadow-2xl border-4 border-white/10 relative overflow-hidden">
+            <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-600/10 rounded-full blur-3xl"></div>
+            <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-indigo-600/10 rounded-full blur-3xl"></div>
+            
+            <div className="text-center mb-12 relative z-10">
+               <div className="w-24 h-24 bg-indigo-600 rounded-[2rem] mx-auto flex items-center justify-center text-white text-5xl font-black mb-6 shadow-2xl shadow-indigo-500/40">S</div>
+               <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">نظام SAM Pro</h2>
+               <p className="text-slate-400 font-bold mt-2">نظام إدارة الموارد البشرية المتطور</p>
+            </div>
+
+            <form onSubmit={handleLogin} className="space-y-8 relative z-10">
+               <div>
+                  <label className="text-xs font-black text-slate-500 block mb-3 mr-3 uppercase tracking-widest flex items-center gap-2">
+                     <div className="w-2 h-2 bg-indigo-600 rounded-full"></div> اسم المستخدم
+                  </label>
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      className="w-full p-6 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 rounded-[2rem] font-black transition-all outline-none text-xl shadow-inner dark:text-white" 
+                      placeholder="اسم المستخدم (admin)"
+                      value={loginForm.username} 
+                      onChange={e => setLoginForm({...loginForm, username: e.target.value})} 
+                    />
+                  </div>
+               </div>
+               <div>
+                  <label className="text-xs font-black text-slate-500 block mb-3 mr-3 uppercase tracking-widest flex items-center gap-2">
+                    <div className="w-2 h-2 bg-indigo-600 rounded-full"></div> كلمة المرور
+                  </label>
+                  <div className="relative">
+                    <input 
+                      type="password" 
+                      className="w-full p-6 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 rounded-[2rem] font-black transition-all outline-none text-xl shadow-inner dark:text-white" 
+                      placeholder="••••••"
+                      value={loginForm.password} 
+                      onChange={e => setLoginForm({...loginForm, password: e.target.value})} 
+                    />
+                    <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={24}/>
+                  </div>
+               </div>
+               
+               <div className="flex flex-col gap-4">
+                 <button type="submit" className="w-full bg-indigo-600 text-white py-6 rounded-[2.2rem] font-black text-2xl shadow-2xl shadow-indigo-600/30 hover:bg-indigo-700 hover:scale-[1.02] active:scale-95 transition-all duration-300">
+                    دخـول للـنـظام
+                 </button>
+                 
+                 <button type="button" onClick={() => setShowHint(!showHint)} className="flex items-center justify-center gap-2 text-indigo-600 font-bold text-sm hover:underline">
+                   <HelpCircle size={16}/> هل نسيت كلمة المرور؟
+                 </button>
+
+                 {showHint && (
+                   <div className="p-6 bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-200 dark:border-indigo-800 rounded-[1.5rem] animate-in slide-in-from-top-4">
+                     <p className="text-center text-xs font-black text-indigo-700 dark:text-indigo-400">
+                       <span className="block opacity-60 mb-1">تلميح كلمة المرور:</span>
+                       {db.settings.passwordHint || 'لا يوجد تلميح متاح حالياً. يرجى مراجعة المسؤول.'}
+                     </p>
+                   </div>
+                 )}
+               </div>
+            </form>
+         </div>
+      </div>
+    );
+  }
+
+  const PrintPortalContent = () => {
+    const portalNode = document.getElementById('sam-print-portal');
+    if (!individualPrintItem || !portalNode) return null;
+    return createPortal(
+      <div className="print-isolated-wrapper text-right w-full" dir="rtl">
+        {individualPrintItem.type === 'vouchers' 
+          ? <VouchersPrintGrid payrolls={individualPrintItem.data} />
+          : <DocumentPrintCard title={individualPrintItem.title} type={individualPrintItem.type} data={individualPrintItem.data} />}
+      </div>,
+      portalNode
+    );
+  };
+
   return (
-    <Layout activeTab={activeTab} setActiveTab={setActiveTab} lang={db.settings.language} theme={db.settings.theme} toggleTheme={() => setDb(p => ({...p, settings: {...p.settings, theme: p.settings.theme === 'light' ? 'dark' : 'light'}}))} currentUser={currentUser} onLogout={() => setCurrentUser(null)}>
-      {renderContent()}
-      
-      {individualPrintItem && (
-        <div className="fixed inset-0 bg-slate-950/95 z-[500] flex items-center justify-center p-6 no-print overflow-y-auto">
-          <div className="bg-white p-10 w-full max-w-5xl shadow-2xl rounded-[3.5rem] border-4 border-white/20 transition-all">
-             <div className="flex justify-between items-center mb-10 border-b-2 pb-6 text-right">
-                <div className="flex items-center gap-4">
-                   <div className="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center text-indigo-600">
-                      {individualPrintItem.type === 'vouchers' ? <Layers size={32}/> : <FileText size={32}/>}
-                   </div>
-                   <div>
-                      <h3 className="font-black text-indigo-800 text-2xl">{individualPrintItem.type === 'vouchers' ? 'معاينة قسائم الرواتب (6/صفحة)' : 'معاينة المستند الرسمي'}</h3>
-                      <p className="text-xs font-bold text-slate-400">يرجى التحقق من صحة البيانات قبل الطباعة</p>
-                   </div>
-                </div>
-                <button onClick={() => setIndividualPrintItem(null)} className="text-rose-500 p-2 hover:bg-rose-50 rounded-full transition transform hover:rotate-90" disabled={isPrinting}><X size={44}/></button>
-             </div>
-             
-             <div className="bg-white rounded-[2rem] text-right overflow-hidden border border-slate-100 shadow-inner p-2">
-                {individualPrintItem.type === 'vouchers' 
-                  ? <VouchersPrintGrid payrolls={individualPrintItem.data} />
-                  : <DocumentPrintCard title={individualPrintItem.title} type={individualPrintItem.type} data={individualPrintItem.data} />}
-             </div>
-
-             <div className="flex gap-6 mt-12 no-print">
-                <button 
-                  onClick={executePrintAction} 
-                  disabled={isPrinting}
-                  className="flex-[2] bg-indigo-600 text-white py-6 rounded-[2.5rem] font-black text-2xl shadow-xl flex items-center justify-center gap-4 hover:bg-indigo-700 hover:scale-[1.02] active:scale-95 transition-all outline-none disabled:opacity-50"
-                >
-                  {isPrinting ? <Loader2 className="animate-spin" size={32}/> : <Printer size={32}/>}
-                  {isPrinting ? 'جاري التحضير...' : 'تـنـفـيذ الـطـباعـة'}
-                </button>
-                <button onClick={() => setIndividualPrintItem(null)} className="flex-1 bg-slate-100 py-6 rounded-[2.5rem] font-black text-xl text-slate-500 hover:bg-slate-200 transition">إلغاء وإغلاق</button>
-             </div>
+    <div className={db.settings.theme === 'dark' ? 'dark' : ''}>
+      <Layout activeTab={activeTab} setActiveTab={setActiveTab} lang={db.settings.language} theme={db.settings.theme} toggleTheme={() => setDb(p => ({...p, settings: {...p.settings, theme: p.settings.theme === 'light' ? 'dark' : 'light'}}))} currentUser={currentUser} onLogout={() => setCurrentUser(null)}>
+        {renderActiveTab()}
+        {individualPrintItem && (
+          <div className="fixed inset-0 bg-slate-950/95 z-[500] flex items-center justify-center p-6 no-print overflow-y-auto">
+            <div className="bg-white p-10 w-full max-w-5xl shadow-2xl rounded-[3.5rem] border-4 border-white/20 transition-all">
+               <div className="flex justify-between items-center mb-10 border-b-2 pb-6 text-right">
+                  <h3 className="font-black text-indigo-800 text-2xl">معاينة المستند الرسمي</h3>
+                  <button onClick={() => setIndividualPrintItem(null)} className="text-rose-500 p-2 hover:bg-rose-50 rounded-full transition transform hover:rotate-90" disabled={isPrinting}><X size={44}/></button>
+               </div>
+               <div className="bg-white rounded-[2rem] text-right overflow-hidden border border-slate-100 p-2">
+                  {individualPrintItem.type === 'vouchers' 
+                    ? <VouchersPrintGrid payrolls={individualPrintItem.data} />
+                    : <DocumentPrintCard title={individualPrintItem.title} type={individualPrintItem.type} data={individualPrintItem.data} />}
+               </div>
+               <div className="flex gap-6 mt-12 no-print">
+                  <button onClick={executePrintAction} disabled={isPrinting} className="flex-[2] bg-indigo-600 text-white py-6 rounded-[2.5rem] font-black text-2xl shadow-xl flex items-center justify-center gap-4 hover:bg-indigo-700 transition-all disabled:opacity-50">
+                    {isPrinting ? <Loader2 className="animate-spin" size={32}/> : <Printer size={32}/>}
+                    {isPrinting ? 'جاري التحضير...' : 'تـنـفـيذ الـطـباعـة'}
+                  </button>
+                  <button onClick={() => setIndividualPrintItem(null)} className="flex-1 bg-slate-100 py-6 rounded-[2.5rem] font-black text-xl text-slate-500 hover:bg-slate-200 transition">إغلاق</button>
+               </div>
+            </div>
           </div>
-        </div>
-      )}
-
-      <PrintPortalContent />
-    </Layout>
+        )}
+        <PrintPortalContent />
+      </Layout>
+    </div>
   );
 };
 

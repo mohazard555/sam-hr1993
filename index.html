@@ -7,6 +7,8 @@
     <title>SAM - نظام إدارة شؤون الموظفين Pro</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4f46e5">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -28,6 +30,7 @@
             font-family: 'Cairo', sans-serif;
             transition: background-color 0.3s ease;
             color: #020617;
+            -webkit-tap-highlight-color: transparent;
         }
 
         #sam-print-portal {
@@ -35,21 +38,16 @@
         }
         
         @media print {
-            /* إذا كان الجسم يحمل كلاس الطباعة المنفردة، نخفي كل شيء عدا البوابة */
             body.printing-individual > *:not(#sam-print-portal) {
                 display: none !important;
                 visibility: hidden !important;
             }
 
-            /* إذا لم نكن نطبع فرداً، نخفي فقط العناصر التي لا نريدها (الأزرار، القوائم الجانبية) */
             body:not(.printing-individual) .no-print {
                 display: none !important;
             }
 
-            body:not(.printing-individual) aside {
-                display: none !important;
-            }
-
+            body:not(.printing-individual) aside, 
             body:not(.printing-individual) header {
                 display: none !important;
             }
@@ -91,29 +89,41 @@
                 padding: 20px !important;
                 box-shadow: none !important;
             }
+        }
 
-            .vouchers-grid-print {
-                display: grid !important;
-                grid-template-columns: repeat(2, 1fr) !important;
-                gap: 15px !important;
-                width: 100% !important;
-            }
-            
-            a[href]:after { content: none !important; }
+        /* تنسيق تنبيه الأوفلاين */
+        #offline-notification {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ef4444;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-weight: 900;
+            z-index: 9999;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            align-items: center;
+            gap: 10px;
+        }
+        body.is-offline #offline-notification {
+            display: flex;
         }
     </style>
 <script type="importmap">
 {
   "imports": {
     "react": "https://esm.sh/react@19.0.0",
-    "react/": "https://esm.sh/react@19.0.0/",
     "react-dom": "https://esm.sh/react-dom@19.0.0",
     "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
-    "react-dom/": "https://esm.sh/react-dom@19.0.0/",
     "lucide-react": "https://esm.sh/lucide-react@0.460.0",
     "xlsx": "https://esm.sh/xlsx@0.18.5",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
-    "vite": "https://esm.sh/vite@^7.3.0"
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "vite": "https://esm.sh/vite@^7.3.0",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
   }
 }
 </script>
@@ -121,6 +131,23 @@
 <body class="bg-slate-50 dark:bg-slate-950">
     <div id="root"></div>
     <div id="sam-print-portal"></div>
+    
+    <div id="offline-notification">
+        <span>⚠️ يعمل الآن في وضع الأوفلاين</span>
+    </div>
+
     <script type="module" src="index.tsx"></script>
+    <script>
+      const checkStatus = () => {
+        if (!navigator.onLine) {
+          document.body.classList.add('is-offline');
+        } else {
+          document.body.classList.remove('is-offline');
+        }
+      };
+      window.addEventListener('online', checkStatus);
+      window.addEventListener('offline', checkStatus);
+      checkStatus();
+    </script>
 </body>
 </html>
