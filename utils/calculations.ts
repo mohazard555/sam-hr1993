@@ -8,17 +8,12 @@ export const calculateTimeDiffMinutes = (time1: string, time2: string): number =
   return (h1 * 60 + m1) - (h2 * 60 + m2);
 };
 
-/**
- * حساب أيام العمل الفعلية المتوقعة في شهر محدد بناءً على إعدادات عطلة الجمعة.
- */
 const getPotentialWorkDays = (month: number, year: number, fridayIsWorkDay: boolean): number => {
   const lastDay = new Date(year, month, 0).getDate();
   let count = 0;
   for (let d = 1; d <= lastDay; d++) {
     const dayDate = new Date(year, month - 1, d);
-    const dayOfWeek = dayDate.getDay(); // 0: Sunday, 5: Friday
-    
-    // إذا لم يكن الجمعة، أو كان الجمعة يوم عمل
+    const dayOfWeek = dayDate.getDay(); 
     if (dayOfWeek !== 5 || fridayIsWorkDay) {
       count++;
     }
@@ -37,7 +32,11 @@ export const generateMonthlyPayroll = (
   settings: CompanySettings
 ): PayrollRecord[] => {
   const potentialWorkDaysInMonth = getPotentialWorkDays(month, year, settings.fridayIsWorkDay);
-  const daysInCycle = settings.salaryCycle === 'weekly' ? 7 : 30;
+  
+  // استخدام القيم المخصصة من الإعدادات بدلاً من الثوابت 7 و 30
+  const daysInCycle = settings.salaryCycle === 'weekly' 
+    ? (settings.weeklyCycleDays || 7) 
+    : (settings.monthlyCycleDays || 30);
 
   return employees.map(emp => {
     const empAttendance = attendance.filter(a => {
@@ -67,25 +66,18 @@ export const generateMonthlyPayroll = (
       return acc + (duration > 0 ? duration : 0);
     }, 0);
 
-    // سعر اليوم بناءً على الراتب الأساسي ونظام الدورة (أسبوعي/شهري)
     const dailyRate = emp.baseSalary / daysInCycle;
     const hourlyRate = dailyRate / 8;
     
-    // إجمالي الاستحقاق الأساسي للشهر = (سعر اليوم * أيام العمل المتوقعة في هذا الشهر)
-    // هذا يضمن أنه إذا كان الراتب أسبوعياً، يتم توسيعه ليشمل 4 أسابيع تقريباً (أيام الشهر)
     const monthlyBasePotential = dailyRate * potentialWorkDaysInMonth;
 
     const shiftIn = emp.customCheckIn || settings.officialCheckIn;
     const shiftOut = emp.customCheckOut || settings.officialCheckOut;
 
-    // الحضور والغياب (فقط أيام "حاضر")
     const workingDays = empAttendance.filter(a => a.status === 'present').length;
-    
-    // الغياب = أيام العمل المتوقعة في الشهر - الأيام التي حضرها فعلياً
     const absenceDays = Math.max(0, potentialWorkDaysInMonth - workingDays);
     const absenceDeduction = absenceDays * dailyRate;
 
-    // التأخير
     const totalLateMinutes = empAttendance.reduce((acc, record) => {
       const lateMins = Math.max(0, calculateTimeDiffMinutes(record.checkIn, shiftIn));
       const effectiveLate = lateMins > settings.gracePeriodMinutes ? lateMins : 0;
@@ -93,14 +85,12 @@ export const generateMonthlyPayroll = (
     }, 0);
     const lateDeductionValue = (totalLateMinutes / 60) * (emp.customDeductionRate || settings.deductionPerLateMinute || 1) * hourlyRate;
 
-    // انصراف مبكر
     const totalEarlyDepartureMinutes = empAttendance.reduce((acc, record) => {
       const earlyMins = Math.max(0, calculateTimeDiffMinutes(shiftOut, record.checkOut));
       return acc + earlyMins;
     }, 0);
     const earlyDepartureDeductionValue = (totalEarlyDepartureMinutes / 60) * hourlyRate;
 
-    // إضافي
     const overtimeRateMultiplier = emp.customOvertimeRate ?? settings.overtimeHourRate;
     const totalOvertimeMinutes = empAttendance.reduce((acc, r) => {
       const otMins = Math.max(0, calculateTimeDiffMinutes(r.checkOut, shiftOut));

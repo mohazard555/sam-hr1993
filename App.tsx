@@ -14,7 +14,7 @@ import { GenericModule } from './views/GenericModule';
 import { loadDB, saveDB, DB } from './db/store';
 import { Employee, PayrollRecord, FinancialEntry, Loan, LeaveRequest, ProductionEntry, AttendanceRecord, Warning } from './types';
 import { generateMonthlyPayroll } from './utils/calculations';
-import { Printer, X, ReceiptText, CalendarDays, Loader2, FileText, CheckCircle, Info, ShieldAlert, Package, Layers, Clock, TrendingUp, Lock, HelpCircle } from 'lucide-react';
+import { Printer, X, ReceiptText, CalendarDays, Loader2, FileText, CheckCircle, Info, ShieldAlert, Package, Layers, Clock, TrendingUp, Lock, HelpCircle, ToggleLeft, ToggleRight } from 'lucide-react';
 
 type PrintType = 'production' | 'loan' | 'leave' | 'financial' | 'document' | 'vouchers' | 'report_attendance' | 'report_financial' | 'warning';
 
@@ -237,6 +237,9 @@ const App: React.FC = () => {
                <p>توقيع المحاسب</p>
                <p>توقيع الموظف</p>
             </div>
+            <div className="mt-4 text-center border-t border-dashed pt-2">
+              <p className="text-[6px] font-black text-slate-300">تطوير م. مهند أحمد - 0998171954</p>
+            </div>
           </div>
         );
       })}
@@ -267,12 +270,34 @@ const App: React.FC = () => {
           initialData={{ type: 'annual', status: 'approved', isPaid: true, startDate: new Date().toISOString().split('T')[0], endDate: new Date().toISOString().split('T')[0] }} 
           tableHeaders={['الموظف', 'النوع', 'مأجورة', 'من', 'إلى']} 
           renderForm={(data, set) => (
-            <div className="grid grid-cols-2 gap-4">
-                <input type="date" className="p-4 border rounded-xl" value={data.startDate} onChange={e => set({...data, startDate: e.target.value})} />
-                <input type="date" className="p-4 border rounded-xl" value={data.endDate} onChange={e => set({...data, endDate: e.target.value})} />
+            <div className="grid grid-cols-2 gap-6">
+                <div className="col-span-2">
+                   <label className="text-[10pt] font-black mb-1 block">نوع الإجازة</label>
+                   <select className="w-full p-4 border-2 rounded-xl font-bold" value={data.type} onChange={e => set({...data, type: e.target.value as any})}>
+                      <option value="annual">سنوية</option>
+                      <option value="sick">مرضية</option>
+                      <option value="emergency">طارئة</option>
+                      <option value="unpaid">بدون راتب</option>
+                      <option value="marriage">زواج</option>
+                   </select>
+                </div>
+                <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-xl border-2 col-span-2">
+                   <span className="text-[10pt] font-black">إجازة مأجورة الراتب؟</span>
+                   <button type="button" onClick={() => set({...data, isPaid: !data.isPaid})} className="text-indigo-600">
+                      {data.isPaid ? <ToggleRight size={44} /> : <ToggleLeft size={44} className="text-slate-300" />}
+                   </button>
+                </div>
+                <div>
+                   <label className="text-[10pt] font-black mb-1 block">تاريخ البدء</label>
+                   <input type="date" className="w-full p-4 border rounded-xl font-bold" value={data.startDate} onChange={e => set({...data, startDate: e.target.value})} />
+                </div>
+                <div>
+                   <label className="text-[10pt] font-black mb-1 block">تاريخ الانتهاء</label>
+                   <input type="date" className="w-full p-4 border rounded-xl font-bold" value={data.endDate} onChange={e => set({...data, endDate: e.target.value})} />
+                </div>
             </div>
           )} 
-          renderRow={(i, name) => (<><td className="px-6 py-4 font-black">{name}</td><td className="px-6 py-4">{i.type}</td><td className="px-6 py-4">{i.isPaid ? 'نعم' : 'لا'}</td><td className="px-6 py-4">{i.startDate}</td><td className="px-6 py-4">{i.endDate}</td></>)} 
+          renderRow={(i, name) => (<><td className="px-6 py-4 font-black">{name}</td><td className="px-6 py-4">{i.type === 'annual' ? 'سنوية' : i.type === 'sick' ? 'مرضية' : i.type}</td><td className="px-6 py-4">{i.isPaid ? 'نعم' : 'لا'}</td><td className="px-6 py-4">{i.startDate}</td><td className="px-6 py-4">{i.endDate}</td></>)} 
         />
       );
       case 'loans': return (
@@ -303,11 +328,27 @@ const App: React.FC = () => {
           initialData={{ type: 'bonus', amount: 0, date: new Date().toISOString().split('T')[0], reason: '' }} 
           tableHeaders={['الموظف', 'النوع', 'المبلغ', 'التاريخ']} 
           renderForm={(data, set) => (
-            <div className="grid grid-cols-2 gap-4">
-              <input type="number" className="p-4 border rounded-xl font-black" value={data.amount} onChange={e => set({...data, amount: Number(e.target.value)})} />
+            <div className="grid grid-cols-1 gap-6">
+                <div>
+                   <label className="text-[10pt] font-black mb-1 block">نوع السند المالي</label>
+                   <select className="w-full p-4 border-2 rounded-xl font-bold" value={data.type} onChange={e => set({...data, type: e.target.value as any})}>
+                      <option value="bonus">مكافأة تميز (+)</option>
+                      <option value="production_incentive">حافز إنتاج (+)</option>
+                      <option value="deduction">خصم مالي (-)</option>
+                      <option value="payment">سلفة فورية / دفعة (-)</option>
+                   </select>
+                </div>
+                <div>
+                   <label className="text-[10pt] font-black mb-1 block">المبلغ</label>
+                   <input type="number" className="w-full p-4 border rounded-xl font-black text-xl" value={data.amount} onChange={e => set({...data, amount: Number(e.target.value)})} />
+                </div>
+                <div>
+                   <label className="text-[10pt] font-black mb-1 block">السبب / البيان</label>
+                   <textarea className="w-full p-4 border rounded-xl font-bold h-20" value={data.reason} onChange={e => set({...data, reason: e.target.value})} placeholder="اكتب سبب السند هنا..."></textarea>
+                </div>
             </div>
           )} 
-          renderRow={(i, name) => (<><td className="px-6 py-4 font-black">{name}</td><td className="px-6 py-4">{i.type}</td><td className="px-6 py-4 font-black text-indigo-700">{i.amount.toLocaleString()}</td><td className="px-6 py-4">{i.date}</td></>)} 
+          renderRow={(i, name) => (<><td className="px-6 py-4 font-black">{name}</td><td className="px-6 py-4">{i.type === 'bonus' ? 'مكافأة' : i.type === 'deduction' ? 'خصم' : i.type}</td><td className={`px-6 py-4 font-black ${i.type==='deduction'?'text-rose-600':'text-indigo-700'}`}>{i.amount.toLocaleString()}</td><td className="px-6 py-4">{i.date}</td></>)} 
         />
       );
       case 'production': return <Production employees={db.employees} items={db.production || []} settings={db.settings} onSave={i => updateList('production', i)} onDelete={id => deleteFromList('production', id)} archiveMode={archiveModes.production} onToggleArchive={() => setArchiveModes(p => ({...p, production: !p.production}))} onPrintIndividual={i => setIndividualPrintItem({title: "إشعار إنتاجية موظف", type: 'production', data: i})} />;
@@ -316,7 +357,7 @@ const App: React.FC = () => {
           <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 flex flex-col md:flex-row justify-between items-center no-print text-right gap-4">
              <div>
                 <h2 className="text-3xl font-black text-indigo-700">مسير رواتب الموظفين - {currentMonth}/{currentYear}</h2>
-                <p className="text-slate-400 font-bold mt-1 text-sm">يشمل الآن حساب الغياب بناءً على نظام العمل ({db.settings.salaryCycle === 'weekly' ? 'أسبوعي' : 'شهري'}) واستثناء العطل.</p>
+                <p className="text-slate-400 font-bold mt-1 text-sm">يشمل الآن حساب الغياب بناءً على نظام العمل والمحدد بـ ({db.settings.salaryCycle === 'weekly' ? db.settings.weeklyCycleDays : db.settings.monthlyCycleDays}) يوم.</p>
              </div>
              <div className="flex gap-3">
                 <button onClick={() => setIndividualPrintItem({ title: 'قسائم رواتب الموظفين', type: 'vouchers', data: currentPayrolls })} className="bg-indigo-100 text-indigo-700 px-8 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-indigo-200 transition"><ReceiptText size={20}/> القسائم</button>
@@ -325,60 +366,48 @@ const App: React.FC = () => {
           </div>
           
           <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl border dark:border-slate-800 overflow-hidden relative print:border-none">
-             <div className="hidden print:flex justify-between items-start border-b-4 border-indigo-900 pb-4 mb-4 w-full text-indigo-950 p-6">
-               <div className="text-right">
-                 <h1 className="text-2xl font-black">{db.settings.name}</h1>
-                 <p className="text-xs font-black text-indigo-700">سجل مسير الرواتب المعتمد</p>
-                 <p className="text-[9px] font-bold">الفترة: {currentMonth} / {currentYear}</p>
-               </div>
-               <div className="text-left text-[8px] font-black text-slate-400">
-                 <p>تاريخ الاستخراج: {new Date().toLocaleDateString('ar-EG')}</p>
-                 <p>عدد الموظفين: {currentPayrolls.length}</p>
-               </div>
-             </div>
-             
-             <div className="overflow-x-auto overflow-y-hidden">
-               <table className="w-full text-center text-[11px] font-bold print:text-[9px]">
-                 <thead className="bg-indigo-950 text-white font-black text-[12px] uppercase">
+             <div className="overflow-x-auto">
+               <table className="w-full text-center text-[13px] font-bold print:text-[11px]">
+                 <thead className="bg-indigo-950 text-white font-black text-[14px] uppercase">
                    <tr>
-                     <th className="px-4 py-5 text-right sticky right-0 bg-indigo-950 z-10 min-w-[150px]">الموظف</th>
+                     <th className="px-6 py-5 text-right sticky right-0 bg-indigo-950 z-10 min-w-[200px]">الموظف</th>
                      <th className="px-2 py-5">الأساسي</th>
                      <th className="px-2 py-5">المواصلات</th>
-                     <th className="px-2 py-5">حضور (ي)</th>
-                     <th className="px-2 py-5">غياب (ي)</th>
+                     <th className="px-2 py-5">حضور</th>
+                     <th className="px-2 py-5">غياب</th>
                      <th className="px-2 py-5 text-emerald-300">مكافآت (+)</th>
                      <th className="px-2 py-5 text-emerald-300">إنتاج (+)</th>
                      <th className="px-2 py-5 text-emerald-300">إضافي (+)</th>
                      <th className="px-2 py-5 text-rose-300">تأخير (-)</th>
                      <th className="px-2 py-5 text-rose-300">سلف (-)</th>
                      <th className="px-2 py-5 text-rose-300">أخرى (-)</th>
-                     <th className="px-4 py-5 text-center bg-indigo-900 min-w-[120px]">صافي الراتب</th>
+                     <th className="px-6 py-5 text-center bg-indigo-900 min-w-[150px]">صافي الراتب</th>
                    </tr>
                  </thead>
                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                    {currentPayrolls.map(p => (
                      <tr key={p.id} className="hover:bg-indigo-50/20 transition-all">
-                       <td className="px-4 py-4 text-right font-black text-slate-900 dark:text-slate-100 whitespace-nowrap sticky right-0 bg-white dark:bg-slate-900 z-10 border-l border-slate-50">{db.employees.find(e => e.id === p.employeeId)?.name}</td>
-                       <td className="px-2 py-4 text-slate-500">{p.baseSalary.toLocaleString()}</td>
-                       <td className="px-2 py-4 text-indigo-700 font-black">{p.transport.toLocaleString()}</td>
-                       <td className="px-2 py-4 text-slate-700">{p.workingDays}</td>
-                       <td className={`px-2 py-4 ${p.absenceDays > 0 ? 'text-rose-600 font-black' : 'text-slate-400'}`}>{p.absenceDays}</td>
-                       <td className="px-2 py-4 text-emerald-600 font-black">+{p.bonuses.toLocaleString()}</td>
-                       <td className="px-2 py-4 text-emerald-600 font-black">+{p.production.toLocaleString()}</td>
-                       <td className="px-2 py-4 text-emerald-600">+{p.overtimePay.toLocaleString()}</td>
-                       <td className={`px-2 py-4 ${p.lateDeduction > 0 ? 'text-rose-600' : 'text-slate-400'}`}>-{p.lateDeduction.toLocaleString()}</td>
-                       <td className="px-2 py-4 text-rose-600">-{p.loanInstallment.toLocaleString()}</td>
-                       <td className="px-2 py-4 text-rose-600">-{p.manualDeductions.toLocaleString()}</td>
-                       <td className="px-4 py-4 font-black bg-indigo-50/50 dark:bg-indigo-900/10 text-[13px] text-indigo-800 dark:text-indigo-300 border-r border-indigo-100">
+                       <td className="px-6 py-5 text-right font-black text-slate-900 dark:text-slate-100 whitespace-nowrap sticky right-0 bg-white dark:bg-slate-900 z-10 border-l border-slate-50">{db.employees.find(e => e.id === p.employeeId)?.name}</td>
+                       <td className="px-2 py-5 text-slate-500">{p.baseSalary.toLocaleString()}</td>
+                       <td className="px-2 py-5 text-indigo-700 font-black">{p.transport.toLocaleString()}</td>
+                       <td className="px-2 py-5">{p.workingDays} ي</td>
+                       <td className={`px-2 py-5 ${p.absenceDays > 0 ? 'text-rose-600 font-black' : 'text-slate-400'}`}>{p.absenceDays} ي</td>
+                       <td className="px-2 py-5 text-emerald-600 font-black">+{p.bonuses.toLocaleString()}</td>
+                       <td className="px-2 py-5 text-emerald-600 font-black">+{p.production.toLocaleString()}</td>
+                       <td className="px-2 py-5 text-emerald-600">+{p.overtimePay.toLocaleString()}</td>
+                       <td className={`px-2 py-5 ${p.lateDeduction > 0 ? 'text-rose-600' : 'text-slate-400'}`}>-{p.lateDeduction.toLocaleString()}</td>
+                       <td className="px-2 py-5 text-rose-600">-{p.loanInstallment.toLocaleString()}</td>
+                       <td className="px-2 py-5 text-rose-600">-{p.manualDeductions.toLocaleString()}</td>
+                       <td className="px-6 py-5 font-black bg-indigo-50/50 dark:bg-indigo-900/10 text-[16px] text-indigo-800 dark:text-indigo-300 border-r border-indigo-100">
                           {p.netSalary.toLocaleString()}
                        </td>
                      </tr>
                    ))}
                  </tbody>
-                 <tfoot className="bg-indigo-950 text-white font-black text-[12px] border-t-2 border-indigo-900">
+                 <tfoot className="bg-indigo-950 text-white font-black text-[14px] border-t-2 border-indigo-900">
                     <tr>
-                       <td colSpan={11} className="p-6 text-right text-lg">إجمالي الرواتب المستحقة للمنشأة (لهذا الشهر):</td>
-                       <td className="p-6 text-center text-2xl text-emerald-300">
+                       <td colSpan={11} className="p-8 text-right text-xl">إجمالي الرواتب المستحقة للمنشأة (لهذا الشهر):</td>
+                       <td className="p-8 text-center text-3xl text-emerald-300">
                           {currentPayrolls.reduce((sum, p) => sum + p.netSalary, 0).toLocaleString()} <span className="text-xs">{db.settings.currency}</span>
                        </td>
                     </tr>

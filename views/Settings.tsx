@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { CompanySettings, User, ArchiveLog } from '../types';
 import { DB } from '../db/store';
-import { Shield, Upload, Download, Database, Trash2, Image as ImageIcon, History, Archive, FileJson, CalendarDays, Clock, Banknote, HelpCircle } from 'lucide-react';
+import { Shield, Upload, Download, Database, Trash2, Image as ImageIcon, History, Archive, FileJson, CalendarDays, Clock, Banknote, HelpCircle, Settings2 } from 'lucide-react';
 
 interface Props {
   settings: CompanySettings;
@@ -90,7 +90,7 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
 
               <div>
                 <label className="text-xs font-black text-slate-400 mb-1 block uppercase flex items-center gap-2">
-                  <HelpCircle size={14} className="text-indigo-500"/> تلميح كلمة المرور (للمساعدة عند النسيان)
+                  <HelpCircle size={14} className="text-indigo-500"/> تلميح كلمة المرور
                 </label>
                 <input 
                   className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 rounded-2xl font-black outline-none transition" 
@@ -100,13 +100,26 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
                 />
               </div>
               
-              <div>
-                <label className="text-xs font-black text-indigo-600 mb-1 block uppercase">دورة الرواتب</label>
-                <select className="w-full p-4 bg-indigo-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 rounded-2xl font-black outline-none transition cursor-pointer" value={settings.salaryCycle} onChange={e => onUpdateSettings({salaryCycle: e.target.value as any})}>
-                   <option value="monthly">نظام رواتب شهري (30 يوم)</option>
-                   <option value="weekly">نظام رواتب أسبوعي (7 أيام)</option>
-                </select>
-                <p className="text-[10px] font-bold text-slate-400 mt-1 mr-2">* يؤثر هذا الخيار على طريقة حساب سعر ساعة الموظف.</p>
+              <div className="p-6 bg-indigo-50/50 dark:bg-slate-800 rounded-3xl border-2 border-indigo-100 dark:border-slate-700 space-y-4">
+                <h4 className="text-sm font-black text-indigo-700 flex items-center gap-2"><Settings2 size={18}/> تخصيص دورة الرواتب</h4>
+                <div>
+                  <label className="text-xs font-black text-slate-500 mb-1 block uppercase">نظام الدورة</label>
+                  <select className="w-full p-3 bg-white dark:bg-slate-900 border rounded-xl font-black outline-none" value={settings.salaryCycle} onChange={e => onUpdateSettings({salaryCycle: e.target.value as any})}>
+                    <option value="monthly">نظام رواتب شهري</option>
+                    <option value="weekly">نظام رواتب أسبوعي</option>
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                   <div>
+                     <label className="text-[10px] font-black text-slate-400 block mb-1">أيام الشهر المالي</label>
+                     <input type="number" className="w-full p-3 border rounded-xl font-black" value={settings.monthlyCycleDays || 30} onChange={e => onUpdateSettings({monthlyCycleDays: Number(e.target.value)})} />
+                   </div>
+                   <div>
+                     <label className="text-[10px] font-black text-slate-400 block mb-1">أيام الأسبوع المالي</label>
+                     <input type="number" className="w-full p-3 border rounded-xl font-black" value={settings.weeklyCycleDays || 7} onChange={e => onUpdateSettings({weeklyCycleDays: Number(e.target.value)})} />
+                   </div>
+                </div>
+                <p className="text-[9px] font-bold text-slate-400 italic leading-relaxed">* سيقوم النظام بقسمة الراتب الأساسي للموظف على عدد الأيام المحدد هنا لاستخراج سعر اليوم بدقة.</p>
               </div>
 
               <div className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border">
@@ -118,7 +131,7 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
                    onChange={e => onUpdateSettings({fridayIsWorkDay: e.target.checked})} 
                  />
                  <label htmlFor="fridayWork" className="text-sm font-black text-slate-700 dark:text-slate-200 cursor-pointer">
-                    اعتبار يوم الجمعة يوم دوام رسمي (وليس عطلة)
+                    اعتبار يوم الجمعة يوم دوام رسمي
                  </label>
               </div>
            </div>

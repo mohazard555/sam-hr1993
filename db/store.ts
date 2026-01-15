@@ -44,6 +44,8 @@ const DEFAULT_SETTINGS: CompanySettings = {
   deductionPerLateMinute: 1.0,
   overtimeHourRate: 1.5,
   salaryCycle: 'monthly',
+  monthlyCycleDays: 30, // افتراضي 30 يوم للشهر
+  weeklyCycleDays: 7,   // افتراضي 7 أيام للأسبوع
   passwordHint: 'رقم هاتفك أو اسمك المفضل',
   archiveRetentionDays: 90,
   archiveLogs: [],
