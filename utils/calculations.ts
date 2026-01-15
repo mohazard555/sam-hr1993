@@ -8,17 +8,16 @@ export const calculateTimeDiffMinutes = (time1: string, time2: string): number =
   return (h1 * 60 + m1) - (h2 * 60 + m2);
 };
 
-const getPotentialWorkDays = (month: number, year: number, fridayIsWorkDay: boolean): number => {
+// دالة لحساب عدد أيام العمل "المطلوبة" في الشهر بناءً على نظام العمل
+const getTargetWorkDaysInMonth = (month: number, year: number, settings: CompanySettings): number => {
+  const daysInCycle = settings.salaryCycle === 'weekly' ? (settings.weeklyCycleDays || 6) : (settings.monthlyCycleDays || 26);
+  
+  if (settings.salaryCycle === 'monthly') return daysInCycle;
+
+  // إذا كان النظام أسبوعياً، نحسب عدد الأسابيع في الشهر ونضربها في أيام العمل المحددة
   const lastDay = new Date(year, month, 0).getDate();
-  let count = 0;
-  for (let d = 1; d <= lastDay; d++) {
-    const dayDate = new Date(year, month - 1, d);
-    const dayOfWeek = dayDate.getDay(); 
-    if (dayOfWeek !== 5 || fridayIsWorkDay) {
-      count++;
-    }
-  }
-  return count;
+  const weeksInMonth = lastDay / 7;
+  return Math.round(weeksInMonth * daysInCycle);
 };
 
 export const generateMonthlyPayroll = (
@@ -31,12 +30,8 @@ export const generateMonthlyPayroll = (
   production: ProductionEntry[],
   settings: CompanySettings
 ): PayrollRecord[] => {
-  const potentialWorkDaysInMonth = getPotentialWorkDays(month, year, settings.fridayIsWorkDay);
-  
-  // استخدام القيم المخصصة من الإعدادات بدلاً من الثوابت 7 و 30
-  const daysInCycle = settings.salaryCycle === 'weekly' 
-    ? (settings.weeklyCycleDays || 7) 
-    : (settings.monthlyCycleDays || 30);
+  const targetWorkDays = getTargetWorkDaysInMonth(month, year, settings);
+  const salaryCycleDivisor = settings.salaryCycle === 'weekly' ? (settings.weeklyCycleDays || 7) : (settings.monthlyCycleDays || 30);
 
   return employees.map(emp => {
     const empAttendance = attendance.filter(a => {
@@ -57,27 +52,32 @@ export const generateMonthlyPayroll = (
     const empLoan = loans.find(l => l.employeeId === emp.id && l.remainingAmount > 0 && !l.isArchived);
     const loanInstallment = empLoan ? Math.min(empLoan.monthlyInstallment, empLoan.remainingAmount) : 0;
 
-    const totalBonuses = empFinancials.filter(f => f.type === 'bonus').reduce((acc, f) => acc + f.amount, 0);
+    const totalBonuses = empFinancials.filter(f => f.type === 'bonus' || f.type === 'production_incentive').reduce((acc, f) => acc + f.amount, 0);
     const totalProductionValue = empProduction.reduce((acc, p) => acc + p.totalValue, 0);
-    const manualDeductions = empFinancials.filter(f => f.type === 'deduction').reduce((acc, f) => acc + f.amount, 0);
+    const manualDeductions = empFinancials.filter(f => f.type === 'deduction' || f.type === 'payment').reduce((acc, f) => acc + f.amount, 0);
 
     const totalWorkingMinutes = empAttendance.reduce((acc, r) => {
       const duration = calculateTimeDiffMinutes(r.checkOut, r.checkIn);
       return acc + (duration > 0 ? duration : 0);
     }, 0);
 
-    const dailyRate = emp.baseSalary / daysInCycle;
+    // حساب الرواتب بناءً على الدورة
+    const dailyRate = emp.baseSalary / salaryCycleDivisor;
     const hourlyRate = dailyRate / 8;
     
-    const monthlyBasePotential = dailyRate * potentialWorkDaysInMonth;
+    // الراتب الأساسي المتوقع لكامل الشهر
+    const monthlyBasePotential = dailyRate * targetWorkDays;
 
     const shiftIn = emp.customCheckIn || settings.officialCheckIn;
     const shiftOut = emp.customCheckOut || settings.officialCheckOut;
 
+    // الحضور والغياب
     const workingDays = empAttendance.filter(a => a.status === 'present').length;
-    const absenceDays = Math.max(0, potentialWorkDaysInMonth - workingDays);
+    // هنا المنطق المطلوب: الغياب هو الفرق بين المستهدف والفعلي
+    const absenceDays = Math.max(0, targetWorkDays - workingDays);
     const absenceDeduction = absenceDays * dailyRate;
 
+    // التأخير والانصراف المبكر
     const totalLateMinutes = empAttendance.reduce((acc, record) => {
       const lateMins = Math.max(0, calculateTimeDiffMinutes(record.checkIn, shiftIn));
       const effectiveLate = lateMins > settings.gracePeriodMinutes ? lateMins : 0;
@@ -91,6 +91,7 @@ export const generateMonthlyPayroll = (
     }, 0);
     const earlyDepartureDeductionValue = (totalEarlyDepartureMinutes / 60) * hourlyRate;
 
+    // الإضافي
     const overtimeRateMultiplier = emp.customOvertimeRate ?? settings.overtimeHourRate;
     const totalOvertimeMinutes = empAttendance.reduce((acc, r) => {
       const otMins = Math.max(0, calculateTimeDiffMinutes(r.checkOut, shiftOut));
