@@ -8,16 +8,18 @@ export const calculateTimeDiffMinutes = (time1: string, time2: string): number =
   return (h1 * 60 + m1) - (h2 * 60 + m2);
 };
 
-// دالة لحساب عدد أيام العمل "المطلوبة" في الشهر بناءً على نظام العمل
-const getTargetWorkDaysInMonth = (month: number, year: number, settings: CompanySettings): number => {
-  const daysInCycle = settings.salaryCycle === 'weekly' ? (settings.weeklyCycleDays || 6) : (settings.monthlyCycleDays || 26);
+// دالة لحساب عدد أيام العمل المستهدفة للموظف في الشهر الحالي بناءً على نظامه الخاص
+const getEmployeeTargetDaysForMonth = (month: number, year: number, emp: Employee, settings: CompanySettings): number => {
+  const isWeekly = settings.salaryCycle === 'weekly';
+  const empCycleDays = emp.workDaysPerCycle || (isWeekly ? (settings.weeklyCycleDays || 6) : (settings.monthlyCycleDays || 26));
   
-  if (settings.salaryCycle === 'monthly') return daysInCycle;
+  if (!isWeekly) return empCycleDays;
 
-  // إذا كان النظام أسبوعياً، نحسب عدد الأسابيع في الشهر ونضربها في أيام العمل المحددة
+  // إذا كان النظام أسبوعياً، نحسب عدد الأسابيع في الشهر ونضربها في أيام عمل الموظف في الأسبوع
   const lastDay = new Date(year, month, 0).getDate();
   const weeksInMonth = lastDay / 7;
-  return Math.round(weeksInMonth * daysInCycle);
+  // مثلاً 4.28 أسبوع * 6 أيام عمل = ~26 يوم مستهدف في الشهر
+  return Math.round(weeksInMonth * empCycleDays);
 };
 
 export const generateMonthlyPayroll = (
@@ -30,10 +32,15 @@ export const generateMonthlyPayroll = (
   production: ProductionEntry[],
   settings: CompanySettings
 ): PayrollRecord[] => {
-  const targetWorkDays = getTargetWorkDaysInMonth(month, year, settings);
-  const salaryCycleDivisor = settings.salaryCycle === 'weekly' ? (settings.weeklyCycleDays || 7) : (settings.monthlyCycleDays || 30);
+  const isWeekly = settings.salaryCycle === 'weekly';
 
   return employees.map(emp => {
+    // عدد الأيام التي يجب على هذا الموظف تحديداً أن يعملها في هذا الشهر
+    const targetWorkDays = getEmployeeTargetDaysForMonth(month, year, emp, settings);
+    
+    // القسمة لحساب سعر اليوم تعتمد على أيام الدورة (مثلاً 6 أيام) وليس أيام الشهر الكاملة
+    const salaryCycleDivisor = emp.workDaysPerCycle || (isWeekly ? (settings.weeklyCycleDays || 6) : (settings.monthlyCycleDays || 26));
+
     const empAttendance = attendance.filter(a => {
       const d = new Date(a.date);
       return d.getMonth() + 1 === month && d.getFullYear() === year && a.employeeId === emp.id && !a.isArchived;
@@ -61,19 +68,20 @@ export const generateMonthlyPayroll = (
       return acc + (duration > 0 ? duration : 0);
     }, 0);
 
-    // حساب الرواتب بناءً على الدورة
+    // سعر اليوم = الراتب / عدد أيام العمل الفعلية في الدورة (بدون العطل)
     const dailyRate = emp.baseSalary / salaryCycleDivisor;
     const hourlyRate = dailyRate / 8;
     
-    // الراتب الأساسي المتوقع لكامل الشهر
-    const monthlyBasePotential = dailyRate * targetWorkDays;
+    // الراتب الأساسي المتوقع لكامل الشهر هو الراتب المكتوب في العقد (معادلة للحساب الصافي)
+    // لاحظ: إذا كان الموظف يعمل بنظام أسبوعي، نضرب سعر اليوم في عدد أيام الشهر المستهدفة
+    const monthlyBasePotential = isWeekly ? (dailyRate * targetWorkDays) : emp.baseSalary;
 
     const shiftIn = emp.customCheckIn || settings.officialCheckIn;
     const shiftOut = emp.customCheckOut || settings.officialCheckOut;
 
     // الحضور والغياب
     const workingDays = empAttendance.filter(a => a.status === 'present').length;
-    // هنا المنطق المطلوب: الغياب هو الفرق بين المستهدف والفعلي
+    // الغياب = الأيام المستهدفة لهذا الموظف في الشهر - الأيام التي حضرها فعلياً
     const absenceDays = Math.max(0, targetWorkDays - workingDays);
     const absenceDeduction = absenceDays * dailyRate;
 

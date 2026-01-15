@@ -36,8 +36,8 @@ export interface CompanySettings {
   deductionPerLateMinute: number;
   overtimeHourRate: number;
   salaryCycle: SalaryCycle;
-  monthlyCycleDays: number; // جديد: عدد الأيام في الشهر المالي
-  weeklyCycleDays: number;  // جديد: عدد الأيام في الأسبوع المالي
+  monthlyCycleDays: number;
+  weeklyCycleDays: number;
   passwordHint?: string;
   archiveRetentionDays: number;
   archiveLogs: [];
@@ -55,6 +55,7 @@ export interface Employee {
   phone: string;
   nationalId: string;
   vacationBalance: number;
+  workDaysPerCycle: number; // الحقل الجديد: عدد أيام العمل الفعلية في الدورة (مثلاً 6 أيام للأسبوع)
   customOvertimeRate?: number;
   customDeductionRate?: number;
   customCheckIn?: string;
