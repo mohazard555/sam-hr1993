@@ -38,7 +38,8 @@ export interface CompanySettings {
   salaryCycle: SalaryCycle;
   passwordHint?: string;
   archiveRetentionDays: number;
-  archiveLogs: []
+  archiveLogs: [];
+  fridayIsWorkDay: boolean;
 }
 
 export interface Employee {

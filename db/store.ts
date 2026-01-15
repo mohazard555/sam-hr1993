@@ -46,7 +46,8 @@ const DEFAULT_SETTINGS: CompanySettings = {
   salaryCycle: 'monthly',
   passwordHint: 'رقم هاتفك أو اسمك المفضل',
   archiveRetentionDays: 90,
-  archiveLogs: []
+  archiveLogs: [],
+  fridayIsWorkDay: false
 };
 
 const INITIAL_USER: User = {
@@ -82,7 +83,6 @@ export const loadDB = (): DB => {
   try {
     const parsed = JSON.parse(data);
     
-    // ضمان وجود كافة المصفوفات والحقول الأساسية لمنع أخطاء TypeScript
     return {
       settings: { ...DEFAULT_SETTINGS, ...parsed.settings },
       users: parsed.users || [INITIAL_USER],

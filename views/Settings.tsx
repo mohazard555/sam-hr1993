@@ -108,6 +108,19 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
                 </select>
                 <p className="text-[10px] font-bold text-slate-400 mt-1 mr-2">* يؤثر هذا الخيار على طريقة حساب سعر ساعة الموظف.</p>
               </div>
+
+              <div className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border">
+                 <input 
+                   type="checkbox" 
+                   id="fridayWork"
+                   className="w-5 h-5 accent-indigo-600"
+                   checked={settings.fridayIsWorkDay} 
+                   onChange={e => onUpdateSettings({fridayIsWorkDay: e.target.checked})} 
+                 />
+                 <label htmlFor="fridayWork" className="text-sm font-black text-slate-700 dark:text-slate-200 cursor-pointer">
+                    اعتبار يوم الجمعة يوم دوام رسمي (وليس عطلة)
+                 </label>
+              </div>
            </div>
         </div>
       </div>

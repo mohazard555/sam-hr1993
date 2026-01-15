@@ -8,6 +8,19 @@ export const calculateTimeDiffMinutes = (time1: string, time2: string): number =
   return (h1 * 60 + m1) - (h2 * 60 + m2);
 };
 
+// دالة لحساب عدد أيام العمل المحتملة في الشهر (باستثناء الجمعة إذا كانت عطلة)
+const getPotentialWorkDays = (month: number, year: number, fridayIsWorkDay: boolean): number => {
+  const lastDay = new Date(year, month, 0).getDate();
+  let count = 0;
+  for (let d = 1; d <= lastDay; d++) {
+    const dayOfWeek = new Date(year, month - 1, d).getDay(); // 5 is Friday
+    if (dayOfWeek !== 5 || fridayIsWorkDay) {
+      count++;
+    }
+  }
+  return count;
+};
+
 export const generateMonthlyPayroll = (
   month: number, 
   year: number, 
@@ -18,6 +31,7 @@ export const generateMonthlyPayroll = (
   production: ProductionEntry[],
   settings: CompanySettings
 ): PayrollRecord[] => {
+  const potentialWorkDays = getPotentialWorkDays(month, year, settings.fridayIsWorkDay);
   const daysInCycle = settings.salaryCycle === 'weekly' ? 7 : 30;
 
   return employees.map(emp => {
@@ -48,15 +62,17 @@ export const generateMonthlyPayroll = (
       return acc + (duration > 0 ? duration : 0);
     }, 0);
 
-    const hourlyRate = (emp.baseSalary / daysInCycle / 8);
-    const dailyRate = (emp.baseSalary / daysInCycle);
+    // حساب سعر اليوم والساعة بناءً على إعدادات الشركة
+    const dailyRate = emp.baseSalary / daysInCycle;
+    const hourlyRate = dailyRate / 8;
     
     const shiftIn = emp.customCheckIn || settings.officialCheckIn;
     const shiftOut = emp.customCheckOut || settings.officialCheckOut;
 
     // الحضور والغياب
     const workingDays = empAttendance.filter(a => a.status === 'present').length;
-    const absenceDays = Math.max(0, daysInCycle - workingDays);
+    // إذا كان الموظف حضر أياماً أكثر من أيام العمل المحتملة (عمل في العطل)، لا يخصم منه
+    const absenceDays = Math.max(0, potentialWorkDays - workingDays);
     const absenceDeduction = absenceDays * dailyRate;
 
     // التأخير
