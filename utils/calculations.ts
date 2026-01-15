@@ -8,18 +8,17 @@ export const calculateTimeDiffMinutes = (time1: string, time2: string): number =
   return (h1 * 60 + m1) - (h2 * 60 + m2);
 };
 
-// دالة لحساب عدد أيام العمل المستهدفة للموظف في الشهر الحالي بناءً على نظامه الخاص
-const getEmployeeTargetDaysForMonth = (month: number, year: number, emp: Employee, settings: CompanySettings): number => {
-  const isWeekly = settings.salaryCycle === 'weekly';
-  const empCycleDays = emp.workDaysPerCycle || (isWeekly ? (settings.weeklyCycleDays || 6) : (settings.monthlyCycleDays || 26));
-  
-  if (!isWeekly) return empCycleDays;
-
-  // إذا كان النظام أسبوعياً، نحسب عدد الأسابيع في الشهر ونضربها في أيام عمل الموظف في الأسبوع
-  const lastDay = new Date(year, month, 0).getDate();
-  const weeksInMonth = lastDay / 7;
-  // مثلاً 4.28 أسبوع * 6 أيام عمل = ~26 يوم مستهدف في الشهر
-  return Math.round(weeksInMonth * empCycleDays);
+// دالة لحساب عدد أيام العمل "المتوقعة" في نطاق تاريخ محدد بناءً على إعدادات الجمعة
+const countExpectedWorkDays = (year: number, month: number, startDay: number, endDay: number, settings: CompanySettings): number => {
+  let count = 0;
+  for (let d = startDay; d <= endDay; d++) {
+    const date = new Date(year, month - 1, d);
+    const dayOfWeek = date.getDay(); // 5 = Friday
+    if (settings.fridayIsWorkDay || dayOfWeek !== 5) {
+      count++;
+    }
+  }
+  return count;
 };
 
 export const generateMonthlyPayroll = (
@@ -33,19 +32,37 @@ export const generateMonthlyPayroll = (
   settings: CompanySettings
 ): PayrollRecord[] => {
   const isWeekly = settings.salaryCycle === 'weekly';
+  const now = new Date();
+  const isCurrentMonth = now.getMonth() + 1 === month && now.getFullYear() === year;
+  
+  // تحديد آخر يوم يجب الحساب حتى تاريخه (اليوم الحالي إذا كان الشهر جاري، أو آخر يوم في الشهر إذا كان قديماً)
+  const lastDayOfMonth = new Date(year, month, 0).getDate();
+  const calculationEndDay = isCurrentMonth ? now.getDate() : lastDayOfMonth;
 
   return employees.map(emp => {
-    // عدد الأيام التي يجب على هذا الموظف تحديداً أن يعملها في هذا الشهر
-    const targetWorkDays = getEmployeeTargetDaysForMonth(month, year, emp, settings);
-    
-    // القسمة لحساب سعر اليوم تعتمد على أيام الدورة (مثلاً 6 أيام) وليس أيام الشهر الكاملة
-    const salaryCycleDivisor = emp.workDaysPerCycle || (isWeekly ? (settings.weeklyCycleDays || 6) : (settings.monthlyCycleDays || 26));
-
     const empAttendance = attendance.filter(a => {
       const d = new Date(a.date);
       return d.getMonth() + 1 === month && d.getFullYear() === year && a.employeeId === emp.id && !a.isArchived;
     });
 
+    // 1. حساب سعر اليوم بناءً على الدورة المحددة (مثلاً الراتب / 6 أيام للأسبوع)
+    const salaryCycleDivisor = emp.workDaysPerCycle || (isWeekly ? (settings.weeklyCycleDays || 6) : (settings.monthlyCycleDays || 26));
+    const dailyRate = emp.baseSalary / salaryCycleDivisor;
+    const hourlyRate = dailyRate / 8;
+
+    // 2. حساب عدد أيام العمل "التي كان يجب حضورها" حتى الآن
+    // إذا كان الموظف يعمل 6 أيام في الأسبوع، فإن المستهدف الشهري الكلي هو (أيام العمل في الشهر الفعلي)
+    const totalPotentialWorkDaysInMonth = countExpectedWorkDays(year, month, 1, lastDayOfMonth, settings);
+    const targetDaysUntilNow = countExpectedWorkDays(year, month, 1, calculationEndDay, settings);
+
+    const workingDays = empAttendance.filter(a => a.status === 'present').length;
+    
+    // 3. الغياب = (المستهدف حتى تاريخه) - (الحضور الفعلي)
+    // هذا يحل مشكلة ظهور "21 يوم غياب" بينما الشهر لا يزال في بدايته
+    const absenceDays = Math.max(0, targetDaysUntilNow - workingDays);
+    const absenceDeduction = absenceDays * dailyRate;
+
+    // 4. الحسابات المالية الأخرى
     const empFinancials = financials.filter(f => {
       const d = new Date(f.date);
       return d.getMonth() + 1 === month && d.getFullYear() === year && f.employeeId === emp.id && !f.isArchived;
@@ -68,24 +85,9 @@ export const generateMonthlyPayroll = (
       return acc + (duration > 0 ? duration : 0);
     }, 0);
 
-    // سعر اليوم = الراتب / عدد أيام العمل الفعلية في الدورة (بدون العطل)
-    const dailyRate = emp.baseSalary / salaryCycleDivisor;
-    const hourlyRate = dailyRate / 8;
-    
-    // الراتب الأساسي المتوقع لكامل الشهر هو الراتب المكتوب في العقد (معادلة للحساب الصافي)
-    // لاحظ: إذا كان الموظف يعمل بنظام أسبوعي، نضرب سعر اليوم في عدد أيام الشهر المستهدفة
-    const monthlyBasePotential = isWeekly ? (dailyRate * targetWorkDays) : emp.baseSalary;
-
     const shiftIn = emp.customCheckIn || settings.officialCheckIn;
     const shiftOut = emp.customCheckOut || settings.officialCheckOut;
 
-    // الحضور والغياب
-    const workingDays = empAttendance.filter(a => a.status === 'present').length;
-    // الغياب = الأيام المستهدفة لهذا الموظف في الشهر - الأيام التي حضرها فعلياً
-    const absenceDays = Math.max(0, targetWorkDays - workingDays);
-    const absenceDeduction = absenceDays * dailyRate;
-
-    // التأخير والانصراف المبكر
     const totalLateMinutes = empAttendance.reduce((acc, record) => {
       const lateMins = Math.max(0, calculateTimeDiffMinutes(record.checkIn, shiftIn));
       const effectiveLate = lateMins > settings.gracePeriodMinutes ? lateMins : 0;
@@ -99,7 +101,6 @@ export const generateMonthlyPayroll = (
     }, 0);
     const earlyDepartureDeductionValue = (totalEarlyDepartureMinutes / 60) * hourlyRate;
 
-    // الإضافي
     const overtimeRateMultiplier = emp.customOvertimeRate ?? settings.overtimeHourRate;
     const totalOvertimeMinutes = empAttendance.reduce((acc, r) => {
       const otMins = Math.max(0, calculateTimeDiffMinutes(r.checkOut, shiftOut));
@@ -107,6 +108,10 @@ export const generateMonthlyPayroll = (
     }, 0);
     const overtimePay = (totalOvertimeMinutes / 60) * hourlyRate * overtimeRateMultiplier;
 
+    // 5. حساب صافي الراتب
+    // الراتب الأساسي الشهري الكامل (إما الراتب الأسبوعي * عدد أسابيع الشهر، أو الراتب الشهري الثابت)
+    const monthlyBasePotential = isWeekly ? (dailyRate * totalPotentialWorkDaysInMonth) : emp.baseSalary;
+    
     const totalDeductions = manualDeductions + lateDeductionValue + earlyDepartureDeductionValue + loanInstallment + absenceDeduction;
     const netSalary = monthlyBasePotential + emp.transportAllowance + totalBonuses + totalProductionValue + overtimePay - totalDeductions;
 

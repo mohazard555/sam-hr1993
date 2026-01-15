@@ -14,7 +14,7 @@ import { GenericModule } from './views/GenericModule';
 import { loadDB, saveDB, DB } from './db/store';
 import { Employee, PayrollRecord, FinancialEntry, Loan, LeaveRequest, ProductionEntry, AttendanceRecord, Warning } from './types';
 import { generateMonthlyPayroll } from './utils/calculations';
-import { Printer, X, ReceiptText, CalendarDays, Loader2, FileText, CheckCircle, Info, ShieldAlert, Package, Layers, Clock, TrendingUp, Lock, HelpCircle, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Printer, X, ReceiptText, CalendarDays, Loader2, FileText, CheckCircle, Info, ShieldAlert, Package, Layers, Clock, TrendingUp, Lock, HelpCircle, ToggleLeft, ToggleRight, AlertCircle } from 'lucide-react';
 
 type PrintType = 'production' | 'loan' | 'leave' | 'financial' | 'document' | 'vouchers' | 'report_attendance' | 'report_financial' | 'warning';
 
@@ -359,9 +359,17 @@ const App: React.FC = () => {
       case 'payroll': return (
         <div className="space-y-8 animate-in fade-in duration-700">
           <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 flex flex-col md:flex-row justify-between items-center no-print text-right gap-4">
-             <div>
-                <h2 className="text-3xl font-black text-indigo-700">مسير رواتب الموظفين - {currentMonth}/{currentYear}</h2>
-                <p className="text-slate-400 font-bold mt-1 text-sm">يتم الآن احتساب الغياب بناءً على نظام دوام ({db.settings.salaryCycle === 'weekly' ? db.settings.weeklyCycleDays : db.settings.monthlyCycleDays}) أيام المعتمد.</p>
+             <div className="flex items-center gap-4">
+                <div className="p-4 bg-indigo-600 text-white rounded-2xl">
+                   <TrendingUp size={32}/>
+                </div>
+                <div>
+                   <h2 className="text-3xl font-black text-indigo-700">مسير رواتب الموظفين - {currentMonth}/{currentYear}</h2>
+                   <div className="flex items-center gap-2 text-slate-400 font-bold mt-1 text-sm bg-slate-50 dark:bg-slate-800 p-2 rounded-xl">
+                      <AlertCircle size={14} className="text-indigo-500"/>
+                      <span>يتم احتساب الغياب الآن تفاعلياً بناءً على الأيام المنقضية من الشهر فقط.</span>
+                   </div>
+                </div>
              </div>
              <div className="flex gap-3">
                 <button onClick={() => setIndividualPrintItem({ title: 'قسائم رواتب الموظفين', type: 'vouchers', data: currentPayrolls })} className="bg-indigo-100 text-indigo-700 px-8 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-indigo-200 transition"><ReceiptText size={20}/> القسائم</button>
@@ -378,7 +386,7 @@ const App: React.FC = () => {
                      <th className="px-2 py-6">الأساسي</th>
                      <th className="px-2 py-6">المواصلات</th>
                      <th className="px-2 py-6">حضور</th>
-                     <th className="px-2 py-6">غياب</th>
+                     <th className="px-2 py-6">غياب (حالياً)</th>
                      <th className="px-2 py-6 text-emerald-300">مكافآت (+)</th>
                      <th className="px-2 py-6 text-emerald-300">إنتاج (+)</th>
                      <th className="px-2 py-6 text-emerald-300">إضافي (+)</th>
@@ -391,11 +399,13 @@ const App: React.FC = () => {
                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                    {currentPayrolls.map(p => (
                      <tr key={p.id} className="hover:bg-indigo-50/40 transition-all">
-                       <td className="px-6 py-6 text-right font-black text-slate-900 dark:text-slate-100 whitespace-nowrap sticky right-0 bg-white dark:bg-slate-900 z-10 border-l border-slate-50 text-xl">{db.employees.find(e => e.id === p.employeeId)?.name}</td>
+                       <td className="px-6 py-6 text-right font-black text-slate-900 dark:text-white whitespace-nowrap sticky right-0 bg-white dark:bg-slate-900 z-10 border-l border-slate-50 text-xl">{db.employees.find(e => e.id === p.employeeId)?.name}</td>
                        <td className="px-2 py-6 text-slate-500 font-bold">{p.baseSalary.toLocaleString()}</td>
                        <td className="px-2 py-6 text-indigo-700 font-black">{p.transport.toLocaleString()}</td>
                        <td className="px-2 py-6 font-black text-slate-700">{p.workingDays} ي</td>
-                       <td className={`px-2 py-6 text-lg ${p.absenceDays > 0 ? 'text-rose-600 font-black' : 'text-slate-300'}`}>{p.absenceDays} ي</td>
+                       <td className={`px-2 py-6 text-lg ${p.absenceDays > 0 ? 'text-rose-600 font-black' : 'text-emerald-500 font-black'}`}>
+                         {p.absenceDays > 0 ? `${p.absenceDays} ي` : 'ملتزم'}
+                       </td>
                        <td className="px-2 py-6 text-emerald-600 font-black">+{p.bonuses.toLocaleString()}</td>
                        <td className="px-2 py-6 text-emerald-600 font-black">+{p.production.toLocaleString()}</td>
                        <td className="px-2 py-6 text-emerald-600 font-bold">+{p.overtimePay.toLocaleString()}</td>
