@@ -316,7 +316,7 @@ const App: React.FC = () => {
           <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 flex flex-col md:flex-row justify-between items-center no-print text-right gap-4">
              <div>
                 <h2 className="text-3xl font-black text-indigo-700">مسير رواتب الموظفين - {currentMonth}/{currentYear}</h2>
-                <p className="text-slate-400 font-bold mt-1 text-sm">يشمل الآن حساب أيام الغياب والانصراف المبكر مع استثناء العطل.</p>
+                <p className="text-slate-400 font-bold mt-1 text-sm">يشمل الآن حساب الغياب بناءً على نظام العمل ({db.settings.salaryCycle === 'weekly' ? 'أسبوعي' : 'شهري'}) واستثناء العطل.</p>
              </div>
              <div className="flex gap-3">
                 <button onClick={() => setIndividualPrintItem({ title: 'قسائم رواتب الموظفين', type: 'vouchers', data: currentPayrolls })} className="bg-indigo-100 text-indigo-700 px-8 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-indigo-200 transition"><ReceiptText size={20}/> القسائم</button>
@@ -337,51 +337,49 @@ const App: React.FC = () => {
                </div>
              </div>
              
-             <div className="overflow-x-auto">
-               <table className="w-full text-center text-[7px] font-bold print:text-[6px]">
-                 <thead className="bg-indigo-950 text-white font-black text-[8px] uppercase">
+             <div className="overflow-x-auto overflow-y-hidden">
+               <table className="w-full text-center text-[11px] font-bold print:text-[9px]">
+                 <thead className="bg-indigo-950 text-white font-black text-[12px] uppercase">
                    <tr>
-                     <th className="px-2 py-4 text-right sticky right-0 bg-indigo-950 z-10">الموظف</th>
-                     <th className="px-1 py-4">الأساسي</th>
-                     <th className="px-1 py-4">المواصلات</th>
-                     <th className="px-1 py-4">حضور (ي)</th>
-                     <th className="px-1 py-4">غياب (ي)</th>
-                     <th className="px-1 py-4">مكافآت</th>
-                     <th className="px-1 py-4">إنتاج</th>
-                     <th className="px-1 py-4">إضافي (د)</th>
-                     <th className="px-1 py-4">تأخير (د)</th>
-                     <th className="px-1 py-4">مبكر (د)</th>
-                     <th className="px-1 py-4">سلف</th>
-                     <th className="px-1 py-4">خصومات أخرى</th>
-                     <th className="px-2 py-4 text-center">صافي الراتب</th>
+                     <th className="px-4 py-5 text-right sticky right-0 bg-indigo-950 z-10 min-w-[150px]">الموظف</th>
+                     <th className="px-2 py-5">الأساسي</th>
+                     <th className="px-2 py-5">المواصلات</th>
+                     <th className="px-2 py-5">حضور (ي)</th>
+                     <th className="px-2 py-5">غياب (ي)</th>
+                     <th className="px-2 py-5 text-emerald-300">مكافآت (+)</th>
+                     <th className="px-2 py-5 text-emerald-300">إنتاج (+)</th>
+                     <th className="px-2 py-5 text-emerald-300">إضافي (+)</th>
+                     <th className="px-2 py-5 text-rose-300">تأخير (-)</th>
+                     <th className="px-2 py-5 text-rose-300">سلف (-)</th>
+                     <th className="px-2 py-5 text-rose-300">أخرى (-)</th>
+                     <th className="px-4 py-5 text-center bg-indigo-900 min-w-[120px]">صافي الراتب</th>
                    </tr>
                  </thead>
                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                    {currentPayrolls.map(p => (
                      <tr key={p.id} className="hover:bg-indigo-50/20 transition-all">
-                       <td className="px-2 py-3 text-right font-black text-slate-900 dark:text-slate-100 whitespace-nowrap sticky right-0 bg-white dark:bg-slate-900 z-10">{db.employees.find(e => e.id === p.employeeId)?.name}</td>
-                       <td className="px-1 py-3">{p.baseSalary.toLocaleString()}</td>
-                       <td className="px-1 py-3 text-indigo-700">{p.transport.toLocaleString()}</td>
-                       <td className="px-1 py-3">{p.workingDays}</td>
-                       <td className={`px-1 py-3 ${p.absenceDays > 0 ? 'text-rose-600' : 'text-slate-400'}`}>{p.absenceDays}</td>
-                       <td className="px-1 py-3 text-emerald-600">+{p.bonuses.toLocaleString()}</td>
-                       <td className="px-1 py-3 text-emerald-600">+{p.production.toLocaleString()}</td>
-                       <td className="px-1 py-3 text-emerald-600">+{p.overtimePay.toLocaleString()}</td>
-                       <td className={`px-1 py-3 ${p.lateMinutes > 0 ? 'text-rose-600' : 'text-slate-400'}`}>{p.lateMinutes}</td>
-                       <td className={`px-1 py-3 ${p.earlyDepartureMinutes > 0 ? 'text-rose-600' : 'text-slate-400'}`}>{p.earlyDepartureMinutes}</td>
-                       <td className="px-1 py-3 text-rose-600">-{p.loanInstallment.toLocaleString()}</td>
-                       <td className="px-1 py-3 text-rose-600">-{p.manualDeductions.toLocaleString()}</td>
-                       <td className="px-2 py-3 font-black bg-indigo-50/50 dark:bg-indigo-900/10 text-[9px] text-indigo-800 dark:text-indigo-400 border-x border-indigo-100">
+                       <td className="px-4 py-4 text-right font-black text-slate-900 dark:text-slate-100 whitespace-nowrap sticky right-0 bg-white dark:bg-slate-900 z-10 border-l border-slate-50">{db.employees.find(e => e.id === p.employeeId)?.name}</td>
+                       <td className="px-2 py-4 text-slate-500">{p.baseSalary.toLocaleString()}</td>
+                       <td className="px-2 py-4 text-indigo-700 font-black">{p.transport.toLocaleString()}</td>
+                       <td className="px-2 py-4 text-slate-700">{p.workingDays}</td>
+                       <td className={`px-2 py-4 ${p.absenceDays > 0 ? 'text-rose-600 font-black' : 'text-slate-400'}`}>{p.absenceDays}</td>
+                       <td className="px-2 py-4 text-emerald-600 font-black">+{p.bonuses.toLocaleString()}</td>
+                       <td className="px-2 py-4 text-emerald-600 font-black">+{p.production.toLocaleString()}</td>
+                       <td className="px-2 py-4 text-emerald-600">+{p.overtimePay.toLocaleString()}</td>
+                       <td className={`px-2 py-4 ${p.lateDeduction > 0 ? 'text-rose-600' : 'text-slate-400'}`}>-{p.lateDeduction.toLocaleString()}</td>
+                       <td className="px-2 py-4 text-rose-600">-{p.loanInstallment.toLocaleString()}</td>
+                       <td className="px-2 py-4 text-rose-600">-{p.manualDeductions.toLocaleString()}</td>
+                       <td className="px-4 py-4 font-black bg-indigo-50/50 dark:bg-indigo-900/10 text-[13px] text-indigo-800 dark:text-indigo-300 border-r border-indigo-100">
                           {p.netSalary.toLocaleString()}
                        </td>
                      </tr>
                    ))}
                  </tbody>
-                 <tfoot className="bg-indigo-950 text-white font-black text-[8px] border-t-2 border-indigo-900">
+                 <tfoot className="bg-indigo-950 text-white font-black text-[12px] border-t-2 border-indigo-900">
                     <tr>
-                       <td colSpan={12} className="p-4 text-right">إجمالي الرواتب المستحقة للمنشأة:</td>
-                       <td className="p-4 text-center text-lg text-emerald-300">
-                          {currentPayrolls.reduce((sum, p) => sum + p.netSalary, 0).toLocaleString()} {db.settings.currency}
+                       <td colSpan={11} className="p-6 text-right text-lg">إجمالي الرواتب المستحقة للمنشأة (لهذا الشهر):</td>
+                       <td className="p-6 text-center text-2xl text-emerald-300">
+                          {currentPayrolls.reduce((sum, p) => sum + p.netSalary, 0).toLocaleString()} <span className="text-xs">{db.settings.currency}</span>
                        </td>
                     </tr>
                  </tfoot>
