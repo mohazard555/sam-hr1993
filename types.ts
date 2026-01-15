@@ -38,7 +38,7 @@ export interface CompanySettings {
   salaryCycle: SalaryCycle;
   passwordHint?: string;
   archiveRetentionDays: number;
-  archiveLogs: ArchiveLog[];
+  archiveLogs: []
 }
 
 export interface Employee {
@@ -138,6 +138,10 @@ export interface PayrollRecord {
   overtimeMinutes: number;
   loanInstallment: number;
   lateDeduction: number; 
+  earlyDepartureMinutes: number;
+  earlyDepartureDeduction: number;
+  absenceDays: number;
+  absenceDeduction: number;
   manualDeductions: number; 
   deductions: number; 
   lateMinutes: number;

@@ -18,11 +18,9 @@ export const generateMonthlyPayroll = (
   production: ProductionEntry[],
   settings: CompanySettings
 ): PayrollRecord[] => {
-  // تحديد عدد الأيام بناءً على نظام الدوام في الإعدادات
   const daysInCycle = settings.salaryCycle === 'weekly' ? 7 : 30;
 
   return employees.map(emp => {
-    // جلب سجلات الحضور لهذا الموظف في الشهر المحدد
     const empAttendance = attendance.filter(a => {
       const d = new Date(a.date);
       return d.getMonth() + 1 === month && d.getFullYear() === year && a.employeeId === emp.id && !a.isArchived;
@@ -38,7 +36,6 @@ export const generateMonthlyPayroll = (
       return d.getMonth() + 1 === month && d.getFullYear() === year && p.employeeId === emp.id && !p.isArchived;
     });
 
-    // حساب السلف
     const empLoan = loans.find(l => l.employeeId === emp.id && l.remainingAmount > 0 && !l.isArchived);
     const loanInstallment = empLoan ? Math.min(empLoan.monthlyInstallment, empLoan.remainingAmount) : 0;
 
@@ -51,29 +48,41 @@ export const generateMonthlyPayroll = (
       return acc + (duration > 0 ? duration : 0);
     }, 0);
 
-    // حساب سعر الساعة بدقة
     const hourlyRate = (emp.baseSalary / daysInCycle / 8);
-    const shiftIn = emp.customCheckIn || settings.officialCheckIn;
+    const dailyRate = (emp.baseSalary / daysInCycle);
     
-    // حساب دقائق التأخير الفعلي بعد فترة السماح
+    const shiftIn = emp.customCheckIn || settings.officialCheckIn;
+    const shiftOut = emp.customCheckOut || settings.officialCheckOut;
+
+    // الحضور والغياب
+    const workingDays = empAttendance.filter(a => a.status === 'present').length;
+    const absenceDays = Math.max(0, daysInCycle - workingDays);
+    const absenceDeduction = absenceDays * dailyRate;
+
+    // التأخير
     const totalLateMinutes = empAttendance.reduce((acc, record) => {
       const lateMins = Math.max(0, calculateTimeDiffMinutes(record.checkIn, shiftIn));
       const effectiveLate = lateMins > settings.gracePeriodMinutes ? lateMins : 0;
       return acc + effectiveLate;
     }, 0);
-    
     const lateDeductionValue = (totalLateMinutes / 60) * (emp.customDeductionRate || settings.deductionPerLateMinute || 1) * hourlyRate;
 
+    // انصراف مبكر
+    const totalEarlyDepartureMinutes = empAttendance.reduce((acc, record) => {
+      const earlyMins = Math.max(0, calculateTimeDiffMinutes(shiftOut, record.checkOut));
+      return acc + earlyMins;
+    }, 0);
+    const earlyDepartureDeductionValue = (totalEarlyDepartureMinutes / 60) * hourlyRate;
+
+    // إضافي
     const overtimeRateMultiplier = emp.customOvertimeRate ?? settings.overtimeHourRate;
-    const shiftOut = emp.customCheckOut || settings.officialCheckOut;
-    
     const totalOvertimeMinutes = empAttendance.reduce((acc, r) => {
       const otMins = Math.max(0, calculateTimeDiffMinutes(r.checkOut, shiftOut));
       return acc + otMins;
     }, 0);
     const overtimePay = (totalOvertimeMinutes / 60) * hourlyRate * overtimeRateMultiplier;
 
-    const totalDeductions = manualDeductions + lateDeductionValue + loanInstallment;
+    const totalDeductions = manualDeductions + lateDeductionValue + earlyDepartureDeductionValue + loanInstallment + absenceDeduction;
     const netSalary = emp.baseSalary + emp.transportAllowance + totalBonuses + totalProductionValue + overtimePay - totalDeductions;
 
     return {
@@ -89,11 +98,15 @@ export const generateMonthlyPayroll = (
       overtimeMinutes: totalOvertimeMinutes,
       loanInstallment: loanInstallment,
       lateDeduction: Math.round(lateDeductionValue),
+      earlyDepartureMinutes: totalEarlyDepartureMinutes,
+      earlyDepartureDeduction: Math.round(earlyDepartureDeductionValue),
+      absenceDays,
+      absenceDeduction: Math.round(absenceDeduction),
       manualDeductions: Math.round(manualDeductions),
       deductions: Math.round(totalDeductions),
       lateMinutes: totalLateMinutes,
       workingHours: Number((totalWorkingMinutes / 60).toFixed(1)),
-      workingDays: empAttendance.filter(a => a.status === 'present').length,
+      workingDays,
       netSalary: Math.round(Math.max(0, netSalary)),
       isPaid: false
     };

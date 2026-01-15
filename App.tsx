@@ -122,14 +122,6 @@ const App: React.FC = () => {
     }
   };
 
-  const leaveTypesAr: Record<string, string> = {
-    'annual': 'سنوية', 'sick': 'مرضية', 'unpaid': 'بلا راتب', 'emergency': 'طارئة', 'marriage': 'زواج', 'death': 'وفاة', 'maternity': 'أمومة', 'hajj': 'حج'
-  };
-
-  const financialTypesAr: Record<string, string> = {
-    'bonus': 'مكافأة', 'deduction': 'خصم إداري', 'production_incentive': 'حافز إنتاج', 'payment': 'سند صرف'
-  };
-
   const PrintableHeader = ({ title }: { title: string }) => (
     <div className="flex justify-between items-start border-b-4 border-indigo-900 pb-6 mb-8 w-full text-indigo-950">
       <div className="text-right">
@@ -148,7 +140,6 @@ const App: React.FC = () => {
 
   const DocumentPrintCard = ({ title, type, data }: { title: string, type: PrintType, data: any }) => {
     const emp = db.employees.find(e => e.id === data.employeeId) || { name: data.employeeName || '.......', department: 'غير محدد' };
-    
     return (
       <div className="bg-white print-card w-full max-w-4xl mx-auto shadow-none relative overflow-hidden">
         <div className="absolute inset-0 opacity-[0.03] flex items-center justify-center pointer-events-none rotate-12">
@@ -166,7 +157,6 @@ const App: React.FC = () => {
                 <span className="text-lg font-bold text-indigo-700">{emp.department}</span>
              </div>
            </div>
-
            <div className="p-8 border-4 border-dashed border-slate-200 rounded-[2rem] text-right">
               {type === 'production' ? (
                 <div className="space-y-6">
@@ -192,19 +182,9 @@ const App: React.FC = () => {
                   )}
                 </div>
               ) : (
-                <p className="text-lg font-bold leading-relaxed">
-                  {type === 'loan' ? `نقر نحن إدارة ${db.settings.name} بصرف سلفة مالية للموظف المذكور أعلاه بقيمة ${data.amount.toLocaleString()} ${db.settings.currency}، على أن يتم تحصيلها على ${data.installmentsCount} أقساط شهرياً.` : 
-                   type === 'leave' ? `تمت الموافقة على طلب الإجازة الـ ${leaveTypesAr[data.type] || ''} للموظف المذكور للفترة من ${data.startDate} إلى ${data.endDate}.` :
-                   type === 'financial' ? `سند مالي: ${financialTypesAr[data.type]} بمبلغ ${data.amount.toLocaleString()} ${db.settings.currency} للموظف المذكور أعلاه.` :
-                   data.notes || 'بيان إداري معتمد'}
-                </p>
+                <p className="text-lg font-bold leading-relaxed">بيان رسمي معتمد بناء على السجلات الجارية.</p>
               )}
            </div>
-        </div>
-        <div className="grid grid-cols-3 gap-8 mt-20 text-center border-t-2 pt-10 text-[10px] font-black opacity-60">
-           <div>توقيع الموظف</div>
-           <div>المسؤول المباشر</div>
-           <div>الختم الرسمي</div>
         </div>
       </div>
     );
@@ -224,32 +204,36 @@ const App: React.FC = () => {
                <div className="text-left text-[10px] font-black text-slate-400">
                   <p>الفترة: {p.month} / {p.year}</p>
                   <p>تاريخ: {new Date().toLocaleDateString()}</p>
+                  <p>ساعات العمل: {p.workingHours} س</p>
                </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-[11px] font-bold">
-               <div className="flex justify-between text-slate-600 border-b border-slate-50 pb-1"><span>الراتب الأساسي:</span> <span>{p.baseSalary.toLocaleString()}</span></div>
-               <div className="flex justify-between text-emerald-600 border-b border-slate-50 pb-1"><span>المواصلات:</span> <span>+{p.transport.toLocaleString()}</span></div>
-               <div className="flex justify-between text-emerald-600 border-b border-slate-50 pb-1"><span>العمل الإضافي:</span> <span>+{p.overtimePay.toLocaleString()}</span></div>
-               <div className="flex justify-between text-emerald-600 border-b border-slate-50 pb-1"><span>المكافآت والإنتاج:</span> <span>+{(p.bonuses + p.production).toLocaleString()}</span></div>
+            <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-[10px] font-bold">
+               <div className="col-span-2 text-[10px] font-black text-indigo-800 mb-1 border-b">المستحقات (+)</div>
+               <div className="flex justify-between text-slate-600 border-b border-slate-50"><span>الراتب الأساسي:</span> <span>{p.baseSalary.toLocaleString()}</span></div>
+               <div className="flex justify-between text-emerald-600 border-b border-slate-50"><span>المواصلات:</span> <span>+{p.transport.toLocaleString()}</span></div>
+               <div className="flex justify-between text-emerald-600 border-b border-slate-50"><span>العمل الإضافي:</span> <span>+{p.overtimePay.toLocaleString()}</span></div>
+               <div className="flex justify-between text-emerald-600 border-b border-slate-50"><span>المكافآت:</span> <span>+{p.bonuses.toLocaleString()}</span></div>
+               <div className="flex justify-between text-emerald-600 border-b border-slate-50"><span>الإنتاج:</span> <span>+{p.production.toLocaleString()}</span></div>
                
-               <div className="col-span-2 my-2 border-t pt-2 opacity-50">الاستقطاعات:</div>
+               <div className="col-span-2 text-[10px] font-black text-rose-800 mb-1 mt-2 border-b">الاستقطاعات (-)</div>
+               <div className="flex justify-between text-rose-600 border-b border-slate-50"><span>تأخير:</span> <span>-{p.lateDeduction.toLocaleString()}</span></div>
+               <div className="flex justify-between text-rose-600 border-b border-slate-50"><span>انصراف مبكر:</span> <span>-{p.earlyDepartureDeduction.toLocaleString()}</span></div>
+               <div className="flex justify-between text-rose-600 border-b border-slate-50"><span>أيام غياب:</span> <span>-{p.absenceDeduction.toLocaleString()} ({p.absenceDays} ي)</span></div>
+               <div className="flex justify-between text-rose-600 border-b border-slate-50"><span>أقساط سلف:</span> <span>-{p.loanInstallment.toLocaleString()}</span></div>
+               <div className="flex justify-between text-rose-600 border-b border-slate-50"><span>خصومات أخرى:</span> <span>-{p.manualDeductions.toLocaleString()}</span></div>
                
-               <div className="flex justify-between text-rose-600 border-b border-slate-50 pb-1"><span>تأخير غياب:</span> <span>-{p.lateDeduction.toLocaleString()}</span></div>
-               <div className="flex justify-between text-rose-600 border-b border-slate-50 pb-1"><span>أقساط سلف:</span> <span>-{p.loanInstallment.toLocaleString()}</span></div>
-               <div className="flex justify-between text-rose-600 border-b border-slate-50 pb-1"><span>خصومات أخرى:</span> <span>-{p.manualDeductions.toLocaleString()}</span></div>
-               
-               <div className="col-span-2 flex justify-between text-lg font-black text-indigo-950 pt-4 mt-4 border-t-2 border-indigo-900 items-baseline">
-                 <span>صافي الراتب المستحق:</span>
+               <div className="col-span-2 flex justify-between text-lg font-black text-indigo-950 pt-3 mt-3 border-t-2 border-indigo-900 items-baseline">
+                 <span>صافي الراتب:</span>
                  <div className="text-right">
                     <span className="text-2xl">{p.netSalary.toLocaleString()}</span>
                     <span className="text-[10px] mr-2 opacity-60 font-black">{db.settings.currency}</span>
                  </div>
                </div>
             </div>
-            <div className="mt-6 flex justify-between items-center text-[8px] font-black opacity-40">
-               <p>توقيع المحاسب المختص</p>
-               <p>توقيع الموظف بالاستلام</p>
+            <div className="mt-4 flex justify-between items-center text-[8px] font-black opacity-40">
+               <p>توقيع المحاسب</p>
+               <p>توقيع الموظف</p>
             </div>
           </div>
         );
@@ -282,15 +266,11 @@ const App: React.FC = () => {
           tableHeaders={['الموظف', 'النوع', 'مأجورة', 'من', 'إلى']} 
           renderForm={(data, set) => (
             <div className="grid grid-cols-2 gap-4">
-              <select className="w-full p-4 border rounded-xl font-black" value={data.type} onChange={e => set({...data, type: (e.target.value as any)})}>
-                {Object.entries(leaveTypesAr).map(([k,v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
-              <div className="flex items-center gap-2 px-4 border rounded-xl font-bold"><input type="checkbox" checked={data.isPaid} onChange={e => set({...data, isPaid: e.target.checked})} /> مأجورة</div>
-              <input type="date" className="w-full p-4 border rounded-xl font-bold" value={data.startDate} onChange={e => set({...data, startDate: e.target.value})} />
-              <input type="date" className="w-full p-4 border rounded-xl font-bold" value={data.endDate} onChange={e => set({...data, endDate: e.target.value})} />
+                <input type="date" className="p-4 border rounded-xl" value={data.startDate} onChange={e => set({...data, startDate: e.target.value})} />
+                <input type="date" className="p-4 border rounded-xl" value={data.endDate} onChange={e => set({...data, endDate: e.target.value})} />
             </div>
           )} 
-          renderRow={(i, name) => (<><td className="px-6 py-4 font-black">{name}</td><td className="px-6 py-4 font-bold">{leaveTypesAr[i.type]}</td><td className="px-6 py-4">{i.isPaid ? 'نعم' : 'لا'}</td><td className="px-6 py-4">{i.startDate}</td><td className="px-6 py-4">{i.endDate}</td></>)} 
+          renderRow={(i, name) => (<><td className="px-6 py-4 font-black">{name}</td><td className="px-6 py-4">{i.type}</td><td className="px-6 py-4">{i.isPaid ? 'نعم' : 'لا'}</td><td className="px-6 py-4">{i.startDate}</td><td className="px-6 py-4">{i.endDate}</td></>)} 
         />
       );
       case 'loans': return (
@@ -322,13 +302,10 @@ const App: React.FC = () => {
           tableHeaders={['الموظف', 'النوع', 'المبلغ', 'التاريخ']} 
           renderForm={(data, set) => (
             <div className="grid grid-cols-2 gap-4">
-              <select className="p-4 border rounded-xl font-black" value={data.type} onChange={e => set({...data, type: (e.target.value as any)})}>
-                {Object.entries(financialTypesAr).map(([k,v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
               <input type="number" className="p-4 border rounded-xl font-black" value={data.amount} onChange={e => set({...data, amount: Number(e.target.value)})} />
             </div>
           )} 
-          renderRow={(i, name) => (<><td className="px-6 py-4 font-black">{name}</td><td className="px-6 py-4 font-bold">{financialTypesAr[i.type || 'bonus']}</td><td className="px-6 py-4 font-black text-indigo-700">{i.amount.toLocaleString()}</td><td className="px-6 py-4">{i.date}</td></>)} 
+          renderRow={(i, name) => (<><td className="px-6 py-4 font-black">{name}</td><td className="px-6 py-4">{i.type}</td><td className="px-6 py-4 font-black text-indigo-700">{i.amount.toLocaleString()}</td><td className="px-6 py-4">{i.date}</td></>)} 
         />
       );
       case 'production': return <Production employees={db.employees} items={db.production || []} settings={db.settings} onSave={i => updateList('production', i)} onDelete={id => deleteFromList('production', id)} archiveMode={archiveModes.production} onToggleArchive={() => setArchiveModes(p => ({...p, production: !p.production}))} onPrintIndividual={i => setIndividualPrintItem({title: "إشعار إنتاجية موظف", type: 'production', data: i})} />;
@@ -337,7 +314,7 @@ const App: React.FC = () => {
           <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 flex flex-col md:flex-row justify-between items-center no-print text-right gap-4">
              <div>
                 <h2 className="text-3xl font-black text-indigo-700">مسير رواتب الموظفين - {currentMonth}/{currentYear}</h2>
-                <p className="text-slate-400 font-bold mt-1 text-sm">يتم توليد هذا الجدول بناءً على سجلات الحضور والمالية الجارية حصراً.</p>
+                <p className="text-slate-400 font-bold mt-1 text-sm">يشمل الآن حساب أيام الغياب والانصراف المبكر.</p>
              </div>
              <div className="flex gap-3">
                 <button onClick={() => setIndividualPrintItem({ title: 'قسائم رواتب الموظفين', type: 'vouchers', data: currentPayrolls })} className="bg-indigo-100 text-indigo-700 px-8 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-indigo-200 transition"><ReceiptText size={20}/> القسائم</button>
@@ -345,60 +322,57 @@ const App: React.FC = () => {
              </div>
           </div>
           
-          <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl border dark:border-slate-800 overflow-hidden relative">
-             <div className="hidden print:flex justify-between items-start border-b-4 border-indigo-900 pb-6 mb-8 w-full text-indigo-950 p-8">
+          <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl border dark:border-slate-800 overflow-hidden relative print:border-none">
+             <div className="hidden print:flex justify-between items-start border-b-4 border-indigo-900 pb-4 mb-4 w-full text-indigo-950 p-6">
                <div className="text-right">
-                 <h1 className="text-3xl font-black leading-none">{db.settings.name}</h1>
-                 <p className="text-sm font-black text-indigo-700 mt-2">سجل مسير الرواتب المعتمد</p>
-                 <p className="text-[10px] font-bold mt-1 text-slate-600 uppercase">الفترة: شهر {currentMonth} سنة {currentYear}</p>
+                 <h1 className="text-2xl font-black">{db.settings.name}</h1>
+                 <p className="text-xs font-black text-indigo-700">سجل مسير الرواتب المعتمد</p>
+                 <p className="text-[9px] font-bold">الفترة: {currentMonth} / {currentYear}</p>
                </div>
-               <div className="flex flex-col items-center">
-                 {db.settings.logo && <img src={db.settings.logo} className="h-14 w-auto object-contain mb-2" alt="Logo" />}
-               </div>
-               <div className="text-left text-[10px] font-black text-slate-400">
+               <div className="text-left text-[8px] font-black text-slate-400">
                  <p>تاريخ الاستخراج: {new Date().toLocaleDateString('ar-EG')}</p>
                  <p>عدد الموظفين: {currentPayrolls.length}</p>
                </div>
              </div>
              
              <div className="overflow-x-auto">
-               <table className="w-full text-center text-[9px] font-bold">
-                 <thead className="bg-indigo-950 text-white font-black text-[10px] uppercase">
+               <table className="w-full text-center text-[8px] font-bold print:text-[7px]">
+                 <thead className="bg-indigo-950 text-white font-black text-[9px] uppercase">
                    <tr>
-                     <th className="px-4 py-4 text-right">الموظف</th>
-                     <th className="px-2 py-4">أيام الدوام</th>
-                     <th className="px-2 py-4">ساعات العمل</th>
-                     <th className="px-2 py-4">تأخير (د)</th>
-                     <th className="px-2 py-4">إضافي (د)</th>
-                     <th className="px-2 py-4">الأساسي</th>
-                     <th className="px-2 py-4">المواصلات</th>
-                     <th className="px-2 py-4">إضافات</th>
-                     <th className="px-2 py-4">خصومات</th>
-                     <th className="px-4 py-4 text-center">الصافي الاستحقاق</th>
+                     <th className="px-2 py-4 text-right">الموظف</th>
+                     <th className="px-1 py-4">الأساسي</th>
+                     <th className="px-1 py-4">حضور (ي)</th>
+                     <th className="px-1 py-4">غياب (ي)</th>
+                     <th className="px-1 py-4">تأخير (د)</th>
+                     <th className="px-1 py-4">انصراف مبكر (د)</th>
+                     <th className="px-1 py-4">إضافي (د)</th>
+                     <th className="px-1 py-4">إضافات (+)</th>
+                     <th className="px-1 py-4">استقطاعات (-)</th>
+                     <th className="px-2 py-4 text-center">صافي الراتب</th>
                    </tr>
                  </thead>
                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                    {currentPayrolls.map(p => (
                      <tr key={p.id} className="hover:bg-indigo-50/20 transition-all">
-                       <td className="px-4 py-4 text-right font-black text-slate-900 dark:text-slate-100">{db.employees.find(e => e.id === p.employeeId)?.name}</td>
-                       <td className="px-2 py-4 text-slate-500">{p.workingDays} ي</td>
-                       <td className="px-2 py-4 text-slate-500">{p.workingHours} س</td>
-                       <td className={`px-2 py-4 ${p.lateMinutes > 0 ? 'text-rose-600' : 'text-slate-400'}`}>{p.lateMinutes}</td>
-                       <td className={`px-2 py-4 ${p.overtimeMinutes > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>{p.overtimeMinutes}</td>
-                       <td className="px-2 py-4 text-indigo-700">{p.baseSalary.toLocaleString()}</td>
-                       <td className="px-2 py-4 text-indigo-700">{p.transport.toLocaleString()}</td>
-                       <td className="px-2 py-4 text-emerald-600">+{(p.overtimePay + p.bonuses + p.production).toLocaleString()}</td>
-                       <td className="px-2 py-4 text-rose-600">-{p.deductions.toLocaleString()}</td>
-                       <td className="px-4 py-4 font-black bg-indigo-50/50 dark:bg-indigo-900/10 text-[11px] text-indigo-800 dark:text-indigo-400 border-x border-indigo-100 dark:border-indigo-900">
-                          {p.netSalary.toLocaleString()} <span className="text-[8px] opacity-60">{db.settings.currency}</span>
+                       <td className="px-2 py-3 text-right font-black text-slate-900 dark:text-slate-100 whitespace-nowrap">{db.employees.find(e => e.id === p.employeeId)?.name}</td>
+                       <td className="px-1 py-3">{p.baseSalary.toLocaleString()}</td>
+                       <td className="px-1 py-3 text-indigo-700">{p.workingDays}</td>
+                       <td className={`px-1 py-3 ${p.absenceDays > 0 ? 'text-rose-600' : 'text-slate-400'}`}>{p.absenceDays}</td>
+                       <td className={`px-1 py-3 ${p.lateMinutes > 0 ? 'text-rose-600' : 'text-slate-400'}`}>{p.lateMinutes}</td>
+                       <td className={`px-1 py-3 ${p.earlyDepartureMinutes > 0 ? 'text-rose-600 font-black' : 'text-slate-400'}`}>{p.earlyDepartureMinutes}</td>
+                       <td className="px-1 py-3 text-emerald-600">{p.overtimeMinutes}</td>
+                       <td className="px-1 py-3 text-emerald-600">+{(p.overtimePay + p.bonuses + p.production).toLocaleString()}</td>
+                       <td className="px-1 py-3 text-rose-600">-{p.deductions.toLocaleString()}</td>
+                       <td className="px-2 py-3 font-black bg-indigo-50/50 dark:bg-indigo-900/10 text-[10px] text-indigo-800 dark:text-indigo-400 border-x border-indigo-100">
+                          {p.netSalary.toLocaleString()}
                        </td>
                      </tr>
                    ))}
                  </tbody>
-                 <tfoot className="bg-indigo-950 text-white font-black text-[10px] border-t-2 border-indigo-900">
+                 <tfoot className="bg-indigo-950 text-white font-black text-[9px] border-t-2 border-indigo-900">
                     <tr>
-                       <td colSpan={6} className="p-4 text-right">إجمالي الرواتب المستحقة للمنشأة:</td>
-                       <td colSpan={4} className="p-4 text-center text-xl text-emerald-300">
+                       <td colSpan={9} className="p-4 text-right">إجمالي الرواتب المستحقة للمنشأة:</td>
+                       <td className="p-4 text-center text-lg text-emerald-300">
                           {currentPayrolls.reduce((sum, p) => sum + p.netSalary, 0).toLocaleString()} {db.settings.currency}
                        </td>
                     </tr>
