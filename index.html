@@ -38,137 +38,69 @@
         }
         
         @media print {
-            /* إعدادات الصفحة الافتراضية */
             @page {
-                margin: 10mm;
+                margin: 5mm;
+                size: auto;
             }
 
-            /* التحكم الديناميكي في اتجاه الصفحة */
-            .print-landscape {
-                @page { size: landscape; }
-            }
-            .print-portrait {
-                @page { size: portrait; }
-            }
+            .print-landscape { @page { size: landscape; } }
+            .print-portrait { @page { size: portrait; } }
 
-            /* إخفاء العناصر غير المطلوبة للطباعة */
             body.printing-individual > *:not(#sam-print-portal) {
                 display: none !important;
-                visibility: hidden !important;
             }
 
             body:not(.printing-individual) .no-print {
                 display: none !important;
             }
 
-            body:not(.printing-individual) aside, 
-            body:not(.printing-individual) header {
-                display: none !important;
-            }
+            aside, header, nav { display: none !important; }
 
-            /* إزالة قيود التمرير والقص */
             html, body {
                 height: auto !important;
                 overflow: visible !important;
                 background: white !important;
-                margin: 0 !important;
-                padding: 0 !important;
                 width: 100% !important;
-                position: static !important;
             }
 
-            #root, main, section {
+            #root, main, section, .overflow-x-auto {
                 overflow: visible !important;
                 display: block !important;
-                position: static !important;
                 height: auto !important;
                 width: 100% !important;
-                margin: 0 !important;
-                padding: 0 !important;
+                position: static !important;
             }
 
             #sam-print-portal {
                 display: block !important;
-                visibility: visible !important;
                 width: 100% !important;
                 position: static !important;
             }
 
-            /* تحسين الجداول للطباعة */
             table {
                 width: 100% !important;
                 table-layout: auto !important;
                 border-collapse: collapse !important;
-                overflow: visible !important;
+                page-break-inside: auto !important;
             }
 
-            .overflow-x-auto {
-                overflow: visible !important;
-                display: block !important;
-                width: 100% !important;
-            }
+            tr { page-break-inside: avoid !important; page-break-after: auto !important; }
+            thead { display: table-header-group !important; }
+            tfoot { display: table-footer-group !important; }
 
             th, td {
-                word-wrap: break-word !important;
                 font-size: 8pt !important;
+                border: 1px solid #ddd !important;
                 padding: 4px !important;
-                border: 1px solid #e2e8f0 !important;
-            }
-
-            thead {
-                display: table-header-group !important;
-            }
-
-            tfoot {
-                display: table-footer-group !important;
-            }
-
-            tr {
-                page-break-inside: avoid !important;
-            }
-
-            /* جودة الألوان والرسومات */
-            * {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
             }
 
             .print-card {
                 page-break-inside: avoid !important;
-                break-inside: avoid !important;
-                border: 2px solid #e2e8f0 !important;
-                border-radius: 12px !important;
-                background-color: #ffffff !important;
-                margin-bottom: 20px !important;
-                padding: 15px !important;
+                border: none !important;
                 box-shadow: none !important;
             }
 
-            /* تصغير حجم الخط للتقارير العريضة */
-            .landscape-table th, .landscape-table td {
-                font-size: 7pt !important;
-            }
-        }
-
-        /* تنسيق تنبيه الأوفلاين */
-        #offline-notification {
-            display: none;
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #ef4444;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 50px;
-            font-weight: 900;
-            z-index: 9999;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            align-items: center;
-            gap: 10px;
-        }
-        body.is-offline #offline-notification {
-            display: flex;
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
     </style>
 <script type="importmap">
@@ -189,23 +121,6 @@
 <body class="bg-slate-50 dark:bg-slate-950">
     <div id="root"></div>
     <div id="sam-print-portal"></div>
-    
-    <div id="offline-notification">
-        <span>⚠️ يعمل الآن في وضع الأوفلاين</span>
-    </div>
-
     <script type="module" src="index.tsx"></script>
-    <script>
-      const checkStatus = () => {
-        if (!navigator.onLine) {
-          document.body.classList.add('is-offline');
-        } else {
-          document.body.classList.remove('is-offline');
-        }
-      };
-      window.addEventListener('online', checkStatus);
-      window.addEventListener('offline', checkStatus);
-      checkStatus();
-    </script>
 </body>
 </html>
