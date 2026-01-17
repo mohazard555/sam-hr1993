@@ -367,7 +367,7 @@ const App: React.FC = () => {
                    <h2 className="text-3xl font-black text-indigo-700">مسير رواتب الموظفين - {currentMonth}/{currentYear}</h2>
                    <div className="flex items-center gap-2 text-slate-400 font-bold mt-1 text-sm bg-slate-50 dark:bg-slate-800 p-2 rounded-xl">
                       <AlertCircle size={14} className="text-indigo-500"/>
-                      <span>يتم احتساب الغياب الآن تفاعلياً بناءً على الأيام المنقضية من الشهر فقط.</span>
+                      <span>يتم احتساب الغياب بناءً على دورة العمل المحددة في الإعدادات (ثابت).</span>
                    </div>
                 </div>
              </div>
@@ -386,7 +386,7 @@ const App: React.FC = () => {
                      <th className="px-2 py-6">الأساسي</th>
                      <th className="px-2 py-6">المواصلات</th>
                      <th className="px-2 py-6">حضور</th>
-                     <th className="px-2 py-6">غياب (حالياً)</th>
+                     <th className="px-2 py-6">غياب (دورة)</th>
                      <th className="px-2 py-6 text-emerald-300">مكافآت (+)</th>
                      <th className="px-2 py-6 text-emerald-300">إنتاج (+)</th>
                      <th className="px-2 py-6 text-emerald-300">إضافي (+)</th>
