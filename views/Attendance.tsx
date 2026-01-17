@@ -28,6 +28,8 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
   const [dateFrom, setDateFrom] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]);
   const [dateTo, setDateTo] = useState(new Date().toISOString().split('T')[0]);
 
+  const isRtl = lang === 'ar';
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedEmp) return;
@@ -43,8 +45,20 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
       date, checkIn, checkOut, lateMinutes, overtimeMinutes, status: 'present'
     });
     
+    // تصفير المدخلات فوراً لمنع التكرار
     setEditingId(null); 
     setSelectedEmp('');
+  };
+
+  const handleEdit = (r: AttendanceRecord) => {
+    setEditingId(r.id);
+    setSelectedEmp(r.employeeId);
+    setCheckIn(r.checkIn);
+    setCheckOut(r.checkOut);
+    setDate(r.date);
+    if (showArchive) {
+        setShowArchive(false);
+    }
   };
 
   const filteredRecords = useMemo(() => {
@@ -71,87 +85,178 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
   };
 
   return (
-    <div className="space-y-8 print:w-full print:p-0">
-      <div className="hidden print:flex justify-between items-center border-b-4 border-indigo-950 pb-4 mb-6 w-full text-indigo-950">
-        <div className="text-right flex-1">
-          <h1 className="text-3xl font-black mb-1">{settings.name}</h1>
-          <p className="text-lg font-black text-indigo-700">تقرير سجلات الحضور والانصراف</p>
-          <p className="text-[10px] font-bold text-slate-500 uppercase">الفترة: {showArchive ? `${dateFrom} إلى ${dateTo}` : `يوم ${date}`}</p>
+    <div className="space-y-8">
+      {/* ترويسة الطباعة الرسمية */}
+      <div className="hidden print:flex justify-between items-start border-b-4 border-indigo-900 pb-6 mb-8 w-full text-indigo-950">
+        <div className="text-right">
+          <h1 className="text-3xl font-black leading-none">{settings.name}</h1>
+          <p className="text-sm font-black text-indigo-700 mt-2">تقرير سجلات الحضور والانصراف</p>
+          <p className="text-[10px] font-bold mt-1 text-slate-600 uppercase">الفترة: {showArchive ? `${dateFrom} إلى ${dateTo}` : `يوم ${date}`}</p>
         </div>
-        <div className="flex-none px-6">
-          {settings.logo && <img src={settings.logo} className="h-14 w-auto object-contain" alt="Logo" />}
+        <div className="flex flex-col items-center">
+          {settings.logo && <img src={settings.logo} className="h-14 w-auto object-contain mb-2" alt="Logo" />}
         </div>
-        <div className="text-left flex-1 font-bold text-[8px]">
-          <p>تاريخ الاستخراج: {new Date().toLocaleDateString('ar-EG')}</p>
-          <p>عدد السجلات: {showArchive ? archivedRecords.length : filteredRecords.length}</p>
+        <div className="text-left text-[10px] font-black text-slate-400">
+          <p>تاريخ الطباعة: {new Date().toLocaleDateString('ar-EG')}</p>
+          <p>الوقت: {new Date().toLocaleTimeString('ar-EG')}</p>
         </div>
       </div>
 
-      <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-xl border dark:border-slate-800 no-print">
-         <h2 className="text-2xl font-black text-indigo-700">{showArchive ? 'سجل الحضور التاريخي' : 'إدارة الحضور اليومي'}</h2>
+      <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 no-print">
+         <h2 className="text-2xl font-black text-indigo-700">{showArchive ? 'سجل الحضور التاريخي' : 'إدارة الحضور اليومي والماضي'}</h2>
          <button onClick={() => setShowArchive(!showArchive)} className={`flex items-center gap-2 px-8 py-3 rounded-2xl font-black transition-all ${showArchive ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-900 text-white'}`}>
-           {showArchive ? 'العودة للتسجيل' : 'عرض الأرشيف المتقدم'}
+           {showArchive ? <Calendar size={20}/> : <Archive size={20}/>} {showArchive ? 'العودة للتسجيل' : 'عرض الأرشيف المتقدم'}
          </button>
       </div>
 
       {!showArchive ? (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          <div className="lg:col-span-1 bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border shadow-2xl h-fit no-print">
-            <h3 className="text-xl font-black mb-8 flex items-center gap-2 text-indigo-700 text-right"><Clock size={24} /> تسجيل حضور</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 animate-in fade-in duration-500">
+          <div className="lg:col-span-1 bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border dark:border-slate-800 shadow-2xl h-fit no-print">
+            <h3 className="text-xl font-black mb-8 flex items-center gap-2 text-indigo-700 text-right"><Clock size={24} /> {editingId ? 'تعديل السجل' : 'تسجيل حضور'}</h3>
             <form onSubmit={handleSubmit} className="space-y-6 text-right">
-              <div><label className="text-xs font-black block">التاريخ</label><input type="date" className="w-full p-4 border rounded-xl font-bold bg-indigo-50/50" value={date} onChange={e => setDate(e.target.value)} /></div>
-              <div><label className="text-xs font-black block">الموظف</label><select className="w-full p-4 border rounded-xl font-bold" value={selectedEmp} onChange={e => setSelectedEmp(e.target.value)} required><option value="">-- اختر --</option>{employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}</select></div>
-              <div className="grid grid-cols-2 gap-3"><div><label className="text-[10px] font-black">الدخول</label><input type="time" className="w-full p-3 border rounded-xl font-bold" value={checkIn} onChange={e => setCheckIn(e.target.value)} /></div><div><label className="text-[10px] font-black">الانصراف</label><input type="time" className="w-full p-3 border rounded-xl font-bold" value={checkOut} onChange={e => setCheckOut(e.target.value)} /></div></div>
-              <button className="w-full bg-indigo-600 text-white py-4 rounded-xl font-black shadow-lg">تأكيد التسجيل</button>
+              <div>
+                <label className="text-[10px] font-black uppercase mb-1 block">تاريخ الدوام (يمكنك اختيار تاريخ سابق)</label>
+                <input type="date" className="w-full p-4 border dark:bg-slate-800 rounded-xl font-bold bg-indigo-50/50" value={date} onChange={e => setDate(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase mb-1 block">الموظف</label>
+                <select className="w-full p-4 border dark:bg-slate-800 rounded-xl font-bold" value={selectedEmp} onChange={e => setSelectedEmp(e.target.value)} required>
+                  <option value="">-- اختر الموظف --</option>
+                  {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                 <div><label className="text-[10px] font-black block">وقت الدخول</label><input type="time" className="w-full p-3 border dark:bg-slate-800 rounded-xl font-bold" value={checkIn} onChange={e => setCheckIn(e.target.value)} /></div>
+                 <div><label className="text-[10px] font-black block">وقت الانصراف</label><input type="time" className="w-full p-3 border dark:bg-slate-800 rounded-xl font-bold" value={checkOut} onChange={e => setCheckOut(e.target.value)} /></div>
+              </div>
+              <div className="flex gap-2 pt-4">
+                <button className="flex-1 bg-indigo-600 text-white py-4 rounded-xl font-black shadow-lg hover:bg-indigo-700 transition">
+                   {editingId ? 'تحديث البيانات' : 'تأكيد الحضور'}
+                </button>
+                {editingId && <button type="button" onClick={() => {setEditingId(null); setSelectedEmp('');}} className="p-4 bg-slate-100 dark:bg-slate-800 rounded-xl"><X size={20}/></button>}
+              </div>
             </form>
           </div>
-          <div className="lg:col-span-3">
-            <div className="bg-white dark:bg-slate-900 rounded-[2rem] border shadow-xl overflow-visible">
-              <table className="w-full text-right print:table-auto">
-                <thead className="bg-slate-50 border-b print:bg-slate-50 print:text-black">
-                  <tr className="text-slate-500 font-black text-xs uppercase">
-                    <th className="px-8 py-5">الموظف</th><th className="text-center py-5">الوقت</th><th className="text-center py-5">ساعات</th><th className="text-center py-5 no-print">إجراء</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {filteredRecords.map(r => (
-                    <tr key={r.id} className="hover:bg-slate-50 transition print:border-b">
-                      <td className="px-8 py-4 font-black">{employees.find(e => e.id === r.employeeId)?.name}</td>
-                      <td className="text-center font-bold">{r.checkIn} - {r.checkOut}</td>
-                      <td className="text-center text-indigo-600 font-black">{formatHours(calculateTimeDiffMinutes(r.checkOut, r.checkIn))}</td>
-                      <td className="text-center no-print"><button onClick={() => onDeleteRecord(r.id)} className="p-2 text-rose-600"><Trash2 size={16}/></button></td>
+
+          <div className="lg:col-span-3 space-y-6">
+            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border dark:border-slate-800 shadow-2xl overflow-hidden">
+              <div className="p-6 border-b bg-slate-50/50 flex justify-between items-center no-print">
+                 <h4 className="font-black text-slate-700">سجلات يوم: <span className="text-indigo-600">{date}</span></h4>
+                 <div className="relative w-48">
+                   <Search className="absolute right-2 top-2 text-slate-400" size={16}/>
+                   <input type="text" placeholder="بحث سريع..." className="w-full pr-8 p-1.5 text-xs border rounded-lg outline-none focus:border-indigo-400" value={archiveSearch} onChange={e => setArchiveSearch(e.target.value)}/>
+                 </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-right">
+                  <thead className="bg-slate-50 dark:bg-slate-800 border-b">
+                    <tr className="text-slate-500 font-black text-xs uppercase">
+                      <th className="px-8 py-6">الموظف</th>
+                      <th className="text-center py-6">الوقت المسجل</th>
+                      <th className="text-center py-6">ساعات العمل</th>
+                      <th className="text-center py-6">الحالة</th>
+                      <th className="text-center py-6 no-print">إجراءات</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {filteredRecords.map(r => {
+                      const emp = employees.find(e => e.id === r.employeeId);
+                      const actualMins = calculateTimeDiffMinutes(r.checkOut, r.checkIn);
+                      
+                      return (
+                        <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+                          <td className="px-8 py-5">
+                            <p className="font-black text-slate-900 dark:text-white text-lg">{emp?.name}</p>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase">{r.date}</p>
+                          </td>
+                          <td className="text-center font-bold">
+                            <span className="bg-indigo-50 dark:bg-indigo-900/20 px-4 py-2 rounded-xl text-indigo-700 dark:text-indigo-400">{r.checkIn} - {r.checkOut}</span>
+                          </td>
+                          <td className="text-center">
+                            <span className="text-indigo-600 font-black pt-1">{formatHours(actualMins)}</span>
+                          </td>
+                          <td className="text-center">
+                            <div className="flex flex-col items-center gap-1">
+                              {r.lateMinutes > 0 ? (
+                                <span className="flex items-center gap-1 text-rose-600 font-black text-xs"><AlertCircle size={14}/> متأخر {r.lateMinutes} د</span>
+                              ) : (
+                                <span className="flex items-center gap-1 text-emerald-600 font-black text-xs"><CheckCircle size={14}/> في الموعد</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="text-center no-print">
+                            <div className="flex justify-center gap-1">
+                              <button onClick={() => handleEdit(r)} title="تعديل السجل" className="p-2 text-indigo-600 rounded-lg hover:bg-indigo-50"><Edit2 size={16}/></button>
+                              <button onClick={() => onDeleteRecord(r.id)} title="حذف السجل" className="p-2 text-rose-600 rounded-lg hover:bg-rose-50"><Trash2 size={16}/></button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
       ) : (
-        <div className="space-y-6 print:w-full">
-           <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-xl border grid grid-cols-1 md:grid-cols-4 gap-6 no-print text-right">
-              <div><label className="text-xs font-black block">من</label><input type="date" className="w-full p-3 border rounded-xl font-bold" value={dateFrom} onChange={e => setDateFrom(e.target.value)} /></div>
-              <div><label className="text-xs font-black block">إلى</label><input type="date" className="w-full p-3 border rounded-xl font-bold" value={dateTo} onChange={e => setDateTo(e.target.value)} /></div>
-              <div className="flex items-end gap-2"><button onClick={() => window.print()} className="w-full bg-slate-900 text-white p-3 rounded-xl font-black"><Printer size={20}/> طباعة الأرشيف</button></div>
+        <div className="space-y-6 animate-in slide-in-from-bottom-8 duration-500">
+           <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 grid grid-cols-1 md:grid-cols-4 gap-6 no-print text-right">
+              <div className="md:col-span-1">
+                <label className="text-xs font-black mb-1 block">تصفية حسب الموظف</label>
+                <select className="w-full p-3 bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold" value={archiveEmpId} onChange={e => setArchiveEmpId(e.target.value)}>
+                   <option value="">كل الموظفين</option>
+                   {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                </select>
+              </div>
+              <div className="md:col-span-1">
+                <label className="text-xs font-black mb-1 block">من تاريخ</label>
+                <input type="date" className="w-full p-3 bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+              </div>
+              <div className="md:col-span-1">
+                <label className="text-xs font-black mb-1 block">إلى تاريخ</label>
+                <input type="date" className="w-full p-3 bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+              </div>
+              <div className="flex items-end gap-2">
+                 <button onClick={() => exportToExcel(archivedRecords, "AttendanceArchive")} className="flex-1 bg-emerald-600 text-white p-3 rounded-xl flex items-center justify-center gap-2 font-black shadow-lg"><FileDown size={18}/> Excel</button>
+                 <button onClick={() => window.print()} className="flex-1 bg-slate-900 text-white p-3 rounded-xl flex items-center justify-center gap-2 font-black shadow-lg"><Printer size={18}/> طباعة</button>
+              </div>
            </div>
-           <div className="bg-white dark:bg-slate-900 rounded-[2rem] border shadow-2xl overflow-visible print:w-full">
-             <table className="w-full text-right text-sm print:table-auto">
-                <thead className="bg-slate-100 border-b print:bg-slate-100">
-                  <tr className="text-slate-500 font-black text-xs">
-                    <th className="px-8 py-4">التاريخ</th><th className="px-8 py-4">الموظف</th><th className="text-center py-4">الوقت</th><th className="text-center py-4">الساعات</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {archivedRecords.map(r => (
-                    <tr key={r.id} className="hover:bg-slate-50 font-bold print:border-b">
-                      <td className="px-8 py-4 text-slate-500">{r.date}</td>
-                      <td className="px-8 py-4">{employees.find(e => e.id === r.employeeId)?.name}</td>
-                      <td className="text-center">{r.checkIn} - {r.checkOut}</td>
-                      <td className="text-center font-black text-indigo-700">{formatHours(calculateTimeDiffMinutes(r.checkOut, r.checkIn))}</td>
+
+           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border dark:border-slate-800 shadow-2xl overflow-hidden">
+             <div className="overflow-x-auto">
+               <table className="w-full text-right text-sm">
+                  <thead className="bg-slate-100 dark:bg-slate-900 border-b">
+                    <tr className="text-slate-500 font-black text-xs uppercase">
+                      <th className="px-8 py-4">التاريخ</th>
+                      <th className="px-8 py-4">الموظف</th>
+                      <th className="text-center py-4">الحضور</th>
+                      <th className="text-center py-4">الانصراف</th>
+                      <th className="text-center py-4">الساعات الفعلية</th>
+                      <th className="text-center py-4">تأخير (د)</th>
+                      <th className="text-center py-4 no-print">إجراءات</th>
                     </tr>
-                  ))}
-                </tbody>
-             </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {archivedRecords.map(r => (
+                      <tr key={r.id} className="hover:bg-slate-50 transition font-bold">
+                        <td className="px-8 py-4 text-slate-500">{r.date}</td>
+                        <td className="px-8 py-4">{employees.find(e => e.id === r.employeeId)?.name}</td>
+                        <td className="text-center">{r.checkIn}</td>
+                        <td className="text-center">{r.checkOut}</td>
+                        <td className="text-center font-black text-indigo-700">{formatHours(calculateTimeDiffMinutes(r.checkOut, r.checkIn))}</td>
+                        <td className={`text-center ${r.lateMinutes > 0 ? 'text-rose-600 font-black' : ''}`}>{r.lateMinutes}</td>
+                        <td className="text-center no-print">
+                           <div className="flex justify-center gap-2">
+                             <button onClick={() => handleEdit(r)} title="تعديل السجل" className="p-2 text-indigo-600 rounded-lg hover:bg-indigo-50"><Edit2 size={16}/></button>
+                             <button onClick={() => onDeleteRecord(r.id)} title="حذف نهائي" className="p-2 text-rose-600 rounded-lg hover:bg-rose-50"><Trash2 size={16}/></button>
+                           </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+               </table>
+             </div>
            </div>
         </div>
       )}
