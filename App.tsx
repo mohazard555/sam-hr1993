@@ -87,19 +87,22 @@ const App: React.FC = () => {
     db.settings
   ), [currentMonth, currentYear, db]);
 
-  // حساب الإجماليات لكافة أعمدة مسير الرواتب
+  // حساب الإجماليات لكافة أعمدة مسير الرواتب بدقة
   const payrollTotals = useMemo(() => {
     return currentPayrolls.reduce((acc, p) => ({
-      base: acc.base + p.baseSalary,
-      transport: acc.transport + p.transport,
-      bonuses: acc.bonuses + p.bonuses,
-      production: acc.production + p.production,
-      overtime: acc.overtime + p.overtimePay,
-      late: acc.late + p.lateDeduction,
-      loans: acc.loans + p.loanInstallment,
-      manual: acc.manual + p.manualDeductions,
-      net: acc.net + p.netSalary
-    }), { base: 0, transport: 0, bonuses: 0, production: 0, overtime: 0, late: 0, loans: 0, manual: 0, net: 0 });
+      base: acc.base + (p.baseSalary || 0),
+      transport: acc.transport + (p.transport || 0),
+      bonuses: acc.bonuses + (p.bonuses || 0),
+      production: acc.production + (p.production || 0),
+      overtime: acc.overtime + (p.overtimePay || 0),
+      late: acc.late + (p.lateDeduction || 0),
+      early: acc.early + (p.earlyDepartureDeduction || 0),
+      loans: acc.loans + (p.loanInstallment || 0),
+      manual: acc.manual + (p.manualDeductions || 0),
+      net: acc.net + (p.netSalary || 0),
+      workingDays: acc.workingDays + (p.workingDays || 0),
+      absenceDays: acc.absenceDays + (p.absenceDays || 0)
+    }), { base: 0, transport: 0, bonuses: 0, production: 0, overtime: 0, late: 0, early: 0, loans: 0, manual: 0, net: 0, workingDays: 0, absenceDays: 0 });
   }, [currentPayrolls]);
 
   const updateList = <K extends keyof DB>(key: K, item: any) => {
@@ -138,18 +141,25 @@ const App: React.FC = () => {
   };
 
   const PrintableHeader = ({ title, subtitle }: { title: string, subtitle?: string }) => (
-    <div className="hidden print:flex justify-between items-start border-b-4 border-indigo-900 pb-6 mb-8 w-full text-indigo-950">
-      <div className="text-right">
-        <h1 className="text-3xl font-black leading-none">{db.settings.name}</h1>
-        <p className="text-sm font-black text-indigo-700 mt-2">{title}</p>
-        {subtitle && <p className="text-[10px] font-bold mt-1 text-slate-500">{subtitle}</p>}
+    <div className="hidden print:flex justify-between items-center border-b-[6px] border-indigo-950 pb-6 mb-8 w-full text-indigo-950">
+      <div className="text-right flex-1">
+        <h1 className="text-4xl font-black leading-none mb-2">{db.settings.name}</h1>
+        <div className="flex flex-col gap-1">
+            <span className="text-xl font-black text-indigo-700">{title}</span>
+            {subtitle && <span className="text-xs font-bold text-slate-500">{subtitle}</span>}
+        </div>
       </div>
-      <div className="flex flex-col items-center">
-        {db.settings.logo && <img src={db.settings.logo} className="h-16 w-auto object-contain mb-2" alt="Logo" />}
+      <div className="flex-none px-10">
+        {db.settings.logo ? (
+            <img src={db.settings.logo} className="h-20 w-auto object-contain" alt="Logo" />
+        ) : (
+            <div className="w-16 h-16 bg-slate-200 rounded-2xl flex items-center justify-center font-black text-2xl">S</div>
+        )}
       </div>
-      <div className="text-left">
-        <p className="text-[10px] font-black text-slate-400 uppercase">تاريخ التقرير: {new Date().toLocaleDateString('ar-EG')}</p>
-        <p className="text-[10px] font-black text-slate-400 uppercase">الساعة: {new Date().toLocaleTimeString('ar-EG')}</p>
+      <div className="text-left flex-1 font-bold text-[10px] space-y-1">
+        <p className="bg-slate-100 p-1 rounded px-2">تاريخ الاستخراج: {new Date().toLocaleDateString('ar-EG')}</p>
+        <p className="bg-slate-100 p-1 rounded px-2">الوقت: {new Date().toLocaleTimeString('ar-EG')}</p>
+        <p className="bg-indigo-50 text-indigo-800 p-1 rounded px-2">الحالة: مسير معتمد</p>
       </div>
     </div>
   );
@@ -161,19 +171,7 @@ const App: React.FC = () => {
         <div className="absolute inset-0 opacity-[0.03] flex items-center justify-center pointer-events-none rotate-12">
             <h1 className="text-[8rem] font-black whitespace-nowrap">{db.settings.name}</h1>
         </div>
-        <div className="print:hidden">
-            <PrintableHeader title={title} />
-        </div>
-        {/* ترويسة مخصصة للقسائم والوثائق الفردية */}
-        <div className="hidden print:block">
-            <div className="flex justify-between items-center border-b-2 border-indigo-100 pb-4 mb-6">
-                <div className="text-right">
-                    <h2 className="text-2xl font-black">{db.settings.name}</h2>
-                    <p className="text-sm font-bold text-indigo-600">{title}</p>
-                </div>
-                {db.settings.logo && <img src={db.settings.logo} className="h-12 w-auto" />}
-            </div>
-        </div>
+        <PrintableHeader title={title} />
         <div className="space-y-8 relative z-10">
            <div className="flex justify-between items-center bg-slate-50 p-8 rounded-[2rem] border border-slate-100 text-right">
              <div className="text-right flex-1">
@@ -383,7 +381,7 @@ const App: React.FC = () => {
       case 'production': return <Production employees={db.employees} items={db.production || []} settings={db.settings} onSave={i => updateList('production', i)} onDelete={id => deleteFromList('production', id)} archiveMode={archiveModes.production} onToggleArchive={() => setArchiveModes(p => ({...p, production: !p.production}))} onPrintIndividual={i => setIndividualPrintItem({title: "إشعار إنتاجية موظف", type: 'production', data: i})} />;
       case 'payroll': return (
         <div className="space-y-8 animate-in fade-in duration-700">
-          <PrintableHeader title={`مسير رواتب الموظفين لشهر ${currentMonth} / ${currentYear}`} subtitle={`نظام الدوام المعتمد: ${db.settings.salaryCycle === 'weekly' ? 'أسبوعي' : 'شهري'}`} />
+          <PrintableHeader title={`مسير رواتب الموظفين لشهر ${currentMonth} / ${currentYear}`} subtitle={`نظام الدوام المعتمد: ${db.settings.salaryCycle === 'weekly' ? 'أسبوعي' : 'شهري'} - الدورة المالية: ${db.settings.salaryCycle === 'weekly' ? db.settings.weeklyCycleDays : db.settings.monthlyCycleDays} يوم`} />
           
           <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 flex flex-col md:flex-row justify-between items-center no-print text-right gap-4">
              <div className="flex items-center gap-4">
@@ -406,59 +404,60 @@ const App: React.FC = () => {
           
           <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl border dark:border-slate-800 overflow-hidden relative print:border-none print:shadow-none print:w-full">
              <div className="overflow-x-auto print:overflow-visible">
-               <table className="w-full text-center text-[13px] font-bold print:text-[10px] print:w-full print:table-fixed">
-                 <thead className="bg-indigo-950 text-white font-black text-[15px] uppercase">
+               <table className="w-full text-center text-[13px] font-bold print:text-[8pt] print:w-full">
+                 <thead className="bg-indigo-950 text-white font-black uppercase print:bg-slate-100 print:text-black print:border-b-2">
                    <tr>
-                     <th className="px-4 py-5 text-right sticky right-0 bg-indigo-950 z-10 min-w-[180px] print:min-w-[120px]">الموظف</th>
+                     <th className="px-4 py-5 text-right sticky right-0 bg-indigo-950 z-10 min-w-[180px] print:min-w-[100px] print:bg-slate-100">الموظف</th>
                      <th className="px-1 py-5">الأساسي</th>
                      <th className="px-1 py-5">مواصلات</th>
                      <th className="px-1 py-5">حضور</th>
                      <th className="px-1 py-5">غياب</th>
-                     <th className="px-1 py-5 text-emerald-300">مكافأة</th>
-                     <th className="px-1 py-5 text-emerald-300">إنتاج</th>
-                     <th className="px-1 py-5 text-emerald-300">إضافي</th>
-                     <th className="px-1 py-5 text-rose-300">تأخير</th>
-                     <th className="px-1 py-5 text-rose-300">سلف</th>
-                     <th className="px-1 py-5 text-rose-300">أخرى</th>
+                     <th className="px-1 py-5 text-emerald-300 print:text-black">مكافأة</th>
+                     <th className="px-1 py-5 text-emerald-300 print:text-black">إنتاج</th>
+                     <th className="px-1 py-5 text-emerald-300 print:text-black">إضافي</th>
+                     <th className="px-1 py-5 text-rose-300 print:text-black">تأخير</th>
+                     <th className="px-1 py-5 text-rose-300 print:text-black">سلف</th>
+                     <th className="px-1 py-5 text-rose-300 print:text-black">أخرى</th>
                      <th className="px-4 py-5 text-center bg-indigo-900 min-w-[130px] shadow-2xl print:bg-slate-200 print:text-black">الصافي</th>
                    </tr>
                  </thead>
                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                    {currentPayrolls.map(p => (
-                     <tr key={p.id} className="hover:bg-indigo-50/40 transition-all border-b print:border-slate-300">
-                       <td className="px-4 py-5 text-right font-black text-slate-900 dark:text-white whitespace-nowrap sticky right-0 bg-white dark:bg-slate-900 z-10 border-l border-slate-50 text-lg print:text-[11px]">{db.employees.find(e => e.id === p.employeeId)?.name}</td>
-                       <td className="px-1 py-5 text-slate-500">{p.baseSalary.toLocaleString()}</td>
-                       <td className="px-1 py-5 text-indigo-700">{p.transport.toLocaleString()}</td>
-                       <td className="px-1 py-5 text-slate-700">{p.workingDays} ي</td>
-                       <td className={`px-1 py-5 ${p.absenceDays > 0 ? 'text-rose-600 font-black' : 'text-emerald-500 font-black'}`}>
-                         {p.absenceDays > 0 ? `${p.absenceDays} ي` : '0'}
+                     <tr key={p.id} className="hover:bg-indigo-50/40 transition-all border-b print:border-slate-200">
+                       <td className="px-4 py-4 text-right font-black text-slate-900 dark:text-white whitespace-nowrap sticky right-0 bg-white dark:bg-slate-900 z-10 border-l border-slate-50 text-lg print:text-[9pt] print:bg-white">{db.employees.find(e => e.id === p.employeeId)?.name}</td>
+                       <td className="px-1 py-4 text-slate-500">{(p.baseSalary || 0).toLocaleString()}</td>
+                       <td className="px-1 py-4 text-indigo-700">{(p.transport || 0).toLocaleString()}</td>
+                       <td className="px-1 py-4 text-slate-700">{p.workingDays || 0} ي</td>
+                       <td className={`px-1 py-4 ${p.absenceDays > 0 ? 'text-rose-600 font-black' : 'text-emerald-500 font-black'}`}>
+                         {(p.absenceDays || 0) > 0 ? `${p.absenceDays} ي` : '0'}
                        </td>
-                       <td className="px-1 py-5 text-emerald-600">+{p.bonuses.toLocaleString()}</td>
-                       <td className="px-1 py-5 text-emerald-600">+{p.production.toLocaleString()}</td>
-                       <td className="px-1 py-5 text-emerald-600">+{p.overtimePay.toLocaleString()}</td>
-                       <td className={`px-1 py-5 ${p.lateDeduction > 0 ? 'text-rose-600' : 'text-slate-400'}`}>-{p.lateDeduction.toLocaleString()}</td>
-                       <td className="px-1 py-5 text-rose-600">-{p.loanInstallment.toLocaleString()}</td>
-                       <td className="px-1 py-5 text-rose-600">-{p.manualDeductions.toLocaleString()}</td>
-                       <td className="px-4 py-5 font-black bg-indigo-50/80 dark:bg-indigo-900/10 text-[18px] text-indigo-900 dark:text-indigo-300 border-r border-indigo-100 print:bg-white print:text-black print:text-[12px]">
-                          {p.netSalary.toLocaleString()}
+                       <td className="px-1 py-4 text-emerald-600">+{(p.bonuses || 0).toLocaleString()}</td>
+                       <td className="px-1 py-4 text-emerald-600">+{(p.production || 0).toLocaleString()}</td>
+                       <td className="px-1 py-4 text-emerald-600">+{(p.overtimePay || 0).toLocaleString()}</td>
+                       <td className={`px-1 py-4 ${(p.lateDeduction + p.earlyDepartureDeduction) > 0 ? 'text-rose-600' : 'text-slate-400'}`}>-{(p.lateDeduction + p.earlyDepartureDeduction).toLocaleString()}</td>
+                       <td className="px-1 py-4 text-rose-600">-{(p.loanInstallment || 0).toLocaleString()}</td>
+                       <td className="px-1 py-4 text-rose-600">-{(p.manualDeductions || 0).toLocaleString()}</td>
+                       <td className="px-4 py-4 font-black bg-indigo-50/80 dark:bg-indigo-900/10 text-[18px] text-indigo-900 dark:text-indigo-300 border-r border-indigo-100 print:bg-white print:text-black print:text-[10pt] print:border-r">
+                          {(p.netSalary || 0).toLocaleString()}
                        </td>
                      </tr>
                    ))}
                  </tbody>
-                 {/* صف الإجماليات الجديد */}
-                 <tfoot className="bg-indigo-950 text-white font-black text-[13px] border-t-4 border-indigo-900 print:bg-slate-100 print:text-black">
+                 {/* صف الإجماليات المحدث */}
+                 <tfoot className="bg-indigo-950 text-white font-black text-[13px] border-t-4 border-indigo-900 print:bg-slate-200 print:text-black print:border-t-2 print:border-black">
                     <tr className="shadow-2xl">
-                       <td className="px-4 py-6 text-right sticky right-0 bg-indigo-950 z-10 print:bg-slate-100">إجمالي المسير:</td>
+                       <td className="px-4 py-6 text-right sticky right-0 bg-indigo-950 z-10 print:bg-slate-200 print:text-sm">الإجماليات الكلية:</td>
                        <td className="px-1 py-6">{payrollTotals.base.toLocaleString()}</td>
                        <td className="px-1 py-6">{payrollTotals.transport.toLocaleString()}</td>
-                       <td colSpan={2} className="px-1 py-6 text-slate-400">---</td>
-                       <td className="px-1 py-6 text-emerald-400">+{payrollTotals.bonuses.toLocaleString()}</td>
-                       <td className="px-1 py-6 text-emerald-400">+{payrollTotals.production.toLocaleString()}</td>
-                       <td className="px-1 py-6 text-emerald-400">+{payrollTotals.overtime.toLocaleString()}</td>
-                       <td className="px-1 py-6 text-rose-300">-{payrollTotals.late.toLocaleString()}</td>
-                       <td className="px-1 py-6 text-rose-300">-{payrollTotals.loans.toLocaleString()}</td>
-                       <td className="px-1 py-6 text-rose-300">-{payrollTotals.manual.toLocaleString()}</td>
-                       <td className="px-4 py-6 text-[22px] bg-indigo-900 text-white shadow-2xl print:bg-slate-300 print:text-black print:text-[14px]">
+                       <td className="px-1 py-6 text-indigo-300 print:text-black">{payrollTotals.workingDays} ي</td>
+                       <td className="px-1 py-6 text-rose-300 print:text-black">{payrollTotals.absenceDays} ي</td>
+                       <td className="px-1 py-6 text-emerald-400 print:text-black">+{payrollTotals.bonuses.toLocaleString()}</td>
+                       <td className="px-1 py-6 text-emerald-400 print:text-black">+{payrollTotals.production.toLocaleString()}</td>
+                       <td className="px-1 py-6 text-emerald-400 print:text-black">+{payrollTotals.overtime.toLocaleString()}</td>
+                       <td className="px-1 py-6 text-rose-300 print:text-black">-{(payrollTotals.late + payrollTotals.early).toLocaleString()}</td>
+                       <td className="px-1 py-6 text-rose-300 print:text-black">-{payrollTotals.loans.toLocaleString()}</td>
+                       <td className="px-1 py-6 text-rose-300 print:text-black">-{payrollTotals.manual.toLocaleString()}</td>
+                       <td className="px-4 py-6 text-[22px] bg-indigo-900 text-white shadow-2xl print:bg-slate-300 print:text-black print:text-[14pt] print:border-r">
                           {payrollTotals.net.toLocaleString()}
                        </td>
                     </tr>
@@ -467,12 +466,26 @@ const App: React.FC = () => {
              </div>
           </div>
           
-          <div className="hidden print:block mt-12 p-8 border-t-2 border-dashed border-slate-300">
-             <div className="grid grid-cols-3 gap-10 text-center font-black text-sm">
-                <div>توقيع المحاسب العام</div>
-                <div>توقيع مدير الموارد البشرية</div>
-                <div>توقيع المدير المفوض</div>
+          <div className="hidden print:block mt-20 p-8 border-t-2 border-dashed border-slate-300">
+             <div className="grid grid-cols-4 gap-4 text-center font-black text-xs uppercase tracking-tighter">
+                <div className="space-y-12">
+                   <p>المحاسب المالي</p>
+                   <p className="border-b w-3/4 mx-auto"></p>
+                </div>
+                <div className="space-y-12">
+                   <p>مدير الموارد البشرية</p>
+                   <p className="border-b w-3/4 mx-auto"></p>
+                </div>
+                <div className="space-y-12">
+                   <p>المدير العام</p>
+                   <p className="border-b w-3/4 mx-auto"></p>
+                </div>
+                <div className="space-y-12">
+                   <p>ختم المنشأة الرسمي</p>
+                   <div className="w-20 h-20 border-2 border-slate-300 rounded-full mx-auto border-dotted"></div>
+                </div>
              </div>
+             <p className="text-center text-[8px] text-slate-400 mt-20 font-bold">تم استخراج هذا التقرير آلياً عبر نظام SAM HRMS PRO - تطوير مهند أحمد 0998171954</p>
           </div>
         </div>
       );
