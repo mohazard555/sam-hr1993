@@ -38,12 +38,20 @@
         }
         
         @media print {
-            /* إجبار الطباعة بوضع العرض Landscape */
+            /* إعدادات الصفحة الافتراضية */
             @page {
-                size: landscape;
-                margin: 5mm;
+                margin: 10mm;
             }
 
+            /* التحكم الديناميكي في اتجاه الصفحة */
+            .print-landscape {
+                @page { size: landscape; }
+            }
+            .print-portrait {
+                @page { size: portrait; }
+            }
+
+            /* إخفاء العناصر غير المطلوبة للطباعة */
             body.printing-individual > *:not(#sam-print-portal) {
                 display: none !important;
                 visibility: hidden !important;
@@ -58,6 +66,7 @@
                 display: none !important;
             }
 
+            /* إزالة قيود التمرير والقص */
             html, body {
                 height: auto !important;
                 overflow: visible !important;
@@ -65,45 +74,60 @@
                 margin: 0 !important;
                 padding: 0 !important;
                 width: 100% !important;
+                position: static !important;
+            }
+
+            #root, main, section {
+                overflow: visible !important;
+                display: block !important;
+                position: static !important;
+                height: auto !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
 
             #sam-print-portal {
                 display: block !important;
                 visibility: visible !important;
                 width: 100% !important;
+                position: static !important;
             }
 
-            section {
-                padding: 0 !important;
-                margin: 0 !important;
+            /* تحسين الجداول للطباعة */
+            table {
+                width: 100% !important;
+                table-layout: auto !important;
+                border-collapse: collapse !important;
                 overflow: visible !important;
             }
 
-            /* ضمان عدم قص الجدول */
             .overflow-x-auto {
                 overflow: visible !important;
                 display: block !important;
-            }
-
-            table {
                 width: 100% !important;
-                table-layout: fixed !important; /* توزيع الأعمدة بالتساوي */
-                border-collapse: collapse !important;
             }
 
             th, td {
                 word-wrap: break-word !important;
-                font-size: 8pt !important; /* تصغير الخط للطباعة */
+                font-size: 8pt !important;
+                padding: 4px !important;
+                border: 1px solid #e2e8f0 !important;
             }
 
-            .printing-individual #sam-print-portal {
-                position: absolute !important;
-                top: 0 !important;
-                left: 0 !important;
-                padding: 5mm !important;
-                z-index: 9999999 !important;
+            thead {
+                display: table-header-group !important;
             }
 
+            tfoot {
+                display: table-footer-group !important;
+            }
+
+            tr {
+                page-break-inside: avoid !important;
+            }
+
+            /* جودة الألوان والرسومات */
             * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
@@ -112,12 +136,17 @@
             .print-card {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
-                border: 1px solid #e2e8f0 !important;
-                border-radius: 10px !important;
+                border: 2px solid #e2e8f0 !important;
+                border-radius: 12px !important;
                 background-color: #ffffff !important;
-                margin-bottom: 5px !important;
-                padding: 10px !important;
+                margin-bottom: 20px !important;
+                padding: 15px !important;
                 box-shadow: none !important;
+            }
+
+            /* تصغير حجم الخط للتقارير العريضة */
+            .landscape-table th, .landscape-table td {
+                font-size: 7pt !important;
             }
         }
 

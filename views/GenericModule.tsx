@@ -66,42 +66,41 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
   return (
     <div className="space-y-6">
       {/* ترويسة تقرير رسمية للطباعة */}
-      <div className="hidden print:flex justify-between items-start border-b-4 border-indigo-900 pb-6 mb-8 w-full text-indigo-950">
-        <div className="text-right">
-          <h1 className="text-3xl font-black leading-none">{companyName}</h1>
-          <p className="text-sm font-black text-indigo-700 mt-2">تقرير {title} {archiveMode ? '(الأرشيف التاريخي)' : ''}</p>
-          {(dateFrom || dateTo) && <p className="text-[10px] font-bold mt-1 text-slate-600 uppercase">الفترة: {dateFrom || '...'} إلى {dateTo || '...'}</p>}
+      <div className="hidden print:flex justify-between items-center border-b-[4px] border-indigo-950 pb-4 mb-6 w-full text-indigo-950">
+        <div className="text-right flex-1">
+          <h1 className="text-3xl font-black leading-none mb-1">{companyName}</h1>
+          <p className="text-lg font-black text-indigo-700">تقرير {title} {archiveMode ? '(الأرشيف)' : ''}</p>
+          {(dateFrom || dateTo) && <p className="text-[10px] font-bold text-slate-600 uppercase">الفترة: {dateFrom || '...'} إلى {dateTo || '...'}</p>}
         </div>
-        <div className="flex flex-col items-center">
-          {logo && <img src={logo} className="h-14 w-auto object-contain mb-2" alt="Logo" />}
+        <div className="flex-none px-6">
+          {logo && <img src={logo} className="h-14 w-auto object-contain" alt="Logo" />}
         </div>
-        <div className="text-left text-[10px] font-black text-slate-400">
-          <p>تاريخ الطباعة: {new Date().toLocaleDateString('ar-EG')}</p>
-          <p>الوقت: {new Date().toLocaleTimeString('ar-EG')}</p>
+        <div className="text-left flex-1 font-bold text-[8px] space-y-0.5">
+          <p>تاريخ الاستخراج: {new Date().toLocaleDateString('ar-EG')}</p>
           <p>عدد السجلات: {filteredItems.length}</p>
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 no-print text-right">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-xl border dark:border-slate-800 no-print text-right">
         <div className="flex items-center gap-4">
-           <div className={`p-4 rounded-2xl ${archiveMode ? 'bg-amber-100 text-amber-600' : 'bg-indigo-100 text-indigo-600'}`}>
+           <div className={`p-4 rounded-2xl shadow-md ${archiveMode ? 'bg-amber-100 text-amber-600' : 'bg-indigo-100 text-indigo-600'}`}>
               {archiveMode ? <History size={28}/> : <Archive size={28}/>}
            </div>
-           <h2 className="text-2xl font-black text-indigo-700">{title} {archiveMode ? '(الأرشيف)' : ''}</h2>
+           <h2 className="text-2xl font-black text-indigo-700 tracking-tight">{title} {archiveMode ? '(الأرشيف)' : ''}</h2>
         </div>
         <div className="flex gap-2">
-          {!archiveMode && <button onClick={() => { setFormData(initialData); setShowModal(true); }} className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg"><Plus size={20} /> إضافة جديد</button>}
-          <button onClick={onToggleArchive} className={`px-8 py-3 rounded-2xl font-black transition-all shadow-lg ${archiveMode ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700'}`}>
+          {!archiveMode && <button onClick={() => { setFormData(initialData); setShowModal(true); }} className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg hover:bg-indigo-700 transition-all"><Plus size={20} /> إضافة جديد</button>}
+          <button onClick={onToggleArchive} className={`px-8 py-3 rounded-2xl font-black transition-all shadow-md ${archiveMode ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>
              {archiveMode ? 'العودة للمهام' : 'سجل الأرشيف'}
           </button>
-          <button onClick={() => window.print()} className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-black shadow-lg"><Printer size={20} /></button>
+          <button onClick={() => window.print()} className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black shadow-lg hover:bg-black transition-all"><Printer size={20} /></button>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-lg border dark:border-slate-800 grid grid-cols-1 md:grid-cols-4 gap-4 no-print text-right animate-in fade-in duration-300">
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-lg border dark:border-slate-800 grid grid-cols-1 md:grid-cols-4 gap-4 no-print text-right">
          <div className="relative">
             <Search className="absolute right-3 top-3.5 text-slate-400" size={18}/>
-            <input type="text" placeholder="بحث باسم الموظف..." className="w-full pr-10 p-3 bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold" value={archiveSearch} onChange={e => setArchiveSearch(e.target.value)} />
+            <input type="text" placeholder="بحث باسم الموظف..." className="w-full pr-10 p-3 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 rounded-xl font-bold transition-all outline-none" value={archiveSearch} onChange={e => setArchiveSearch(e.target.value)} />
          </div>
          <div className="relative">
             <Calendar className="absolute right-3 top-3.5 text-slate-400" size={18}/>
@@ -111,15 +110,15 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
             <Calendar className="absolute right-3 top-3.5 text-slate-400" size={18}/>
             <input type="date" className="w-full pr-10 p-3 bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold text-center" value={dateTo} onChange={e => setDateTo(e.target.value)} />
          </div>
-         <button onClick={() => exportToExcel(filteredItems, title + "_Archive")} className="bg-emerald-600 text-white font-black rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-700 transition">
-            <FileDown size={18}/> تصدير Excel
+         <button onClick={() => exportToExcel(filteredItems, title + "_Archive")} className="bg-emerald-600 text-white font-black rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-700 transition shadow-lg">
+            <FileDown size={18}/> Excel
          </button>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border dark:border-slate-800 overflow-hidden relative">
-        <div className="overflow-x-auto">
-          <table className="w-full text-right text-sm">
-            <thead className="bg-slate-50 dark:bg-slate-800 border-b">
+      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border dark:border-slate-800 overflow-visible relative print:shadow-none print:border-none print:w-full">
+        <div className="overflow-x-auto print:overflow-visible">
+          <table className="w-full text-right text-sm print:table-auto print:w-full">
+            <thead className="bg-slate-50 dark:bg-slate-800 border-b print:bg-slate-50 print:text-black">
               <tr className="text-slate-900 dark:text-slate-100 font-black text-xs uppercase">
                 {tableHeaders.map((h, i) => <th key={i} className="px-6 py-5">{h}</th>)}
                 <th className="px-6 py-5 text-center no-print">إجراءات</th>
@@ -127,7 +126,7 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {filteredItems.map(item => (
-                <tr key={item.id} className="hover:bg-slate-50 transition font-bold text-xs">
+                <tr key={item.id} className="hover:bg-slate-50 transition font-bold text-xs print:border-b print:border-slate-100">
                   {renderRow(item, employees.find(e => e.id === item.employeeId)?.name || 'Unknown')}
                   <td className="px-6 py-5 text-center no-print">
                     <div className="flex justify-center gap-2">
@@ -141,7 +140,7 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
               ))}
             </tbody>
             {renderFooter && (
-              <tfoot className="bg-indigo-950 text-white font-black text-xs border-t-4 border-indigo-900">
+              <tfoot className="bg-indigo-950 text-white font-black text-xs border-t-4 border-indigo-900 print:bg-slate-100 print:text-black print:border-t-2">
                  {renderFooter(filteredItems)}
               </tfoot>
             )}

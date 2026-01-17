@@ -31,13 +31,33 @@ const App: React.FC = () => {
     leaves: false, financials: false, loans: false, production: false
   });
 
+  // إضافة فئات الطباعة للجسم عند فتح المعاينة
   useEffect(() => {
     if (individualPrintItem) {
       document.body.classList.add('printing-individual');
+      // تقرير القسائم والوثائق الفردية يكون طولياً
+      if (individualPrintItem.type === 'vouchers' || individualPrintItem.type === 'document' || individualPrintItem.type === 'warning') {
+        document.body.classList.add('print-portrait');
+        document.body.classList.remove('print-landscape');
+      } else {
+        document.body.classList.add('print-landscape');
+        document.body.classList.remove('print-portrait');
+      }
     } else {
-      document.body.classList.remove('printing-individual');
+      document.body.classList.remove('printing-individual', 'print-landscape', 'print-portrait');
     }
   }, [individualPrintItem]);
+
+  // إضافة فئات الطباعة لصفحة الرواتب العامة
+  useEffect(() => {
+    if (activeTab === 'payroll' || activeTab === 'reports') {
+        document.body.classList.add('print-landscape');
+        document.body.classList.remove('print-portrait');
+    } else {
+        document.body.classList.add('print-portrait');
+        document.body.classList.remove('print-landscape');
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     saveDB(db);
@@ -87,7 +107,6 @@ const App: React.FC = () => {
     db.settings
   ), [currentMonth, currentYear, db]);
 
-  // حساب الإجماليات لكافة أعمدة مسير الرواتب بدقة
   const payrollTotals = useMemo(() => {
     return currentPayrolls.reduce((acc, p) => ({
       base: acc.base + (p.baseSalary || 0),
@@ -141,25 +160,24 @@ const App: React.FC = () => {
   };
 
   const PrintableHeader = ({ title, subtitle }: { title: string, subtitle?: string }) => (
-    <div className="hidden print:flex justify-between items-center border-b-[6px] border-indigo-950 pb-6 mb-8 w-full text-indigo-950">
+    <div className="hidden print:flex justify-between items-center border-b-[4px] border-indigo-950 pb-4 mb-6 w-full text-indigo-950">
       <div className="text-right flex-1">
-        <h1 className="text-4xl font-black leading-none mb-2">{db.settings.name}</h1>
-        <div className="flex flex-col gap-1">
-            <span className="text-xl font-black text-indigo-700">{title}</span>
-            {subtitle && <span className="text-xs font-bold text-slate-500">{subtitle}</span>}
+        <h1 className="text-3xl font-black leading-none mb-1">{db.settings.name}</h1>
+        <div className="flex flex-col">
+            <span className="text-lg font-black text-indigo-700">{title}</span>
+            {subtitle && <span className="text-[10px] font-bold text-slate-500">{subtitle}</span>}
         </div>
       </div>
-      <div className="flex-none px-10">
+      <div className="flex-none px-6">
         {db.settings.logo ? (
-            <img src={db.settings.logo} className="h-20 w-auto object-contain" alt="Logo" />
+            <img src={db.settings.logo} className="h-14 w-auto object-contain" alt="Logo" />
         ) : (
-            <div className="w-16 h-16 bg-slate-200 rounded-2xl flex items-center justify-center font-black text-2xl">S</div>
+            <div className="w-12 h-12 bg-slate-200 rounded-xl flex items-center justify-center font-black text-xl">S</div>
         )}
       </div>
-      <div className="text-left flex-1 font-bold text-[10px] space-y-1">
-        <p className="bg-slate-100 p-1 rounded px-2">تاريخ الاستخراج: {new Date().toLocaleDateString('ar-EG')}</p>
-        <p className="bg-slate-100 p-1 rounded px-2">الوقت: {new Date().toLocaleTimeString('ar-EG')}</p>
-        <p className="bg-indigo-50 text-indigo-800 p-1 rounded px-2">الحالة: مسير معتمد</p>
+      <div className="text-left flex-1 font-bold text-[8px] space-y-0.5">
+        <p className="bg-slate-50 p-1 rounded px-2">تاريخ الاستخراج: {new Date().toLocaleDateString('ar-EG')}</p>
+        <p className="bg-slate-50 p-1 rounded px-2">الوقت: {new Date().toLocaleTimeString('ar-EG')}</p>
       </div>
     </div>
   );
@@ -167,50 +185,57 @@ const App: React.FC = () => {
   const DocumentPrintCard = ({ title, type, data }: { title: string, type: PrintType, data: any }) => {
     const emp = db.employees.find(e => e.id === data.employeeId) || { name: data.employeeName || '.......', department: 'غير محدد', position: 'غير محدد' };
     return (
-      <div className="bg-white print-card w-full max-w-4xl mx-auto shadow-none relative overflow-hidden">
-        <div className="absolute inset-0 opacity-[0.03] flex items-center justify-center pointer-events-none rotate-12">
-            <h1 className="text-[8rem] font-black whitespace-nowrap">{db.settings.name}</h1>
-        </div>
+      <div className="bg-white print-card w-full max-w-4xl mx-auto shadow-none relative overflow-visible">
         <PrintableHeader title={title} />
-        <div className="space-y-8 relative z-10">
-           <div className="flex justify-between items-center bg-slate-50 p-8 rounded-[2rem] border border-slate-100 text-right">
-             <div className="text-right flex-1">
-                <span className="text-[10px] font-black text-indigo-400 block uppercase mb-1">اسم الموظف:</span>
-                <span className="text-2xl font-black text-slate-900 leading-tight">{emp.name}</span>
-                <p className="text-xs font-bold text-slate-500">{emp.position}</p>
+        <div className="space-y-6 relative z-10 text-right">
+           <div className="flex justify-between items-center bg-slate-50 p-6 rounded-2xl border border-slate-100">
+             <div className="flex-1">
+                <span className="text-[8px] font-black text-indigo-400 block uppercase mb-1">الموظف:</span>
+                <span className="text-xl font-black text-slate-900 leading-tight">{emp.name}</span>
+                <p className="text-[10px] font-bold text-slate-500">{emp.position}</p>
              </div>
              <div className="text-left flex-1">
-                <span className="text-[10px] font-black text-slate-400 block uppercase mb-1">القسم / الوحدة:</span>
-                <span className="text-lg font-bold text-indigo-700">{emp.department}</span>
+                <span className="text-[8px] font-black text-slate-400 block uppercase mb-1">القسم:</span>
+                <span className="text-md font-bold text-indigo-700">{emp.department}</span>
              </div>
            </div>
-           <div className="p-8 border-4 border-dashed border-slate-200 rounded-[2rem] text-right">
+           <div className="p-6 border-2 border-dashed border-slate-200 rounded-2xl">
               {type === 'production' ? (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                      <span className="text-[10px] font-black text-slate-400 block mb-1">الكمية المنجزة:</span>
-                      <span className="text-xl font-black text-slate-900">{data.piecesCount} قطعة</span>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-3 bg-slate-50 rounded-xl">
+                      <span className="text-[8px] font-black text-slate-400 block">الكمية:</span>
+                      <span className="text-lg font-black text-slate-900">{data.piecesCount} قطعة</span>
                     </div>
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                      <span className="text-[10px] font-black text-slate-400 block mb-1">سعر القطعة الواحدة:</span>
-                      <span className="text-xl font-black text-slate-900">{data.valuePerPiece?.toLocaleString()} {db.settings.currency}</span>
+                    <div className="p-3 bg-slate-50 rounded-xl">
+                      <span className="text-[8px] font-black text-slate-400 block">السعر:</span>
+                      <span className="text-lg font-black text-slate-900">{data.valuePerPiece?.toLocaleString()} {db.settings.currency}</span>
                     </div>
                   </div>
-                  <div className="p-6 bg-indigo-50 rounded-3xl border-2 border-indigo-100 flex justify-between items-center">
-                    <span className="text-lg font-black text-indigo-900">إجمالي قيمة الاستحقاق:</span>
-                    <span className="text-3xl font-black text-indigo-700">{data.totalValue?.toLocaleString()} {db.settings.currency}</span>
+                  <div className="p-4 bg-indigo-50 rounded-xl border border-indigo-100 flex justify-between items-center">
+                    <span className="text-md font-black text-indigo-900">الإجمالي:</span>
+                    <span className="text-2xl font-black text-indigo-700">{data.totalValue?.toLocaleString()} {db.settings.currency}</span>
                   </div>
-                  {data.notes && (
-                    <div className="p-4 border border-slate-100 rounded-2xl bg-slate-50/30">
-                      <span className="text-[10px] font-black text-slate-400 block mb-1">ملاحظات إضافية:</span>
-                      <p className="text-sm font-bold text-slate-700 leading-relaxed italic">"{data.notes}"</p>
-                    </div>
-                  )}
                 </div>
               ) : (
-                <p className="text-lg font-bold leading-relaxed">بيان رسمي معتمد بناء على السجلات الجارية.</p>
+                <div className="space-y-4 min-h-[100px]">
+                   <p className="text-md font-bold leading-relaxed">{data.reason || data.notes || 'بيان رسمي معتمد بناء على السجلات الجارية لنظام الموارد البشرية SAM.'}</p>
+                   {type === 'financial' && (
+                     <div className="p-4 bg-slate-50 rounded-xl border flex justify-between items-center">
+                        <span className="font-black">المبلغ المقرر:</span>
+                        <span className="text-xl font-black">{data.amount?.toLocaleString()} {db.settings.currency}</span>
+                     </div>
+                   )}
+                </div>
               )}
+           </div>
+           <div className="grid grid-cols-2 gap-10 pt-10 px-4">
+              <div className="text-center border-t border-slate-200 pt-2">
+                 <p className="text-[10px] font-black">توقيع المسؤول</p>
+              </div>
+              <div className="text-center border-t border-slate-200 pt-2">
+                 <p className="text-[10px] font-black">توقيع الموظف</p>
+              </div>
            </div>
         </div>
       </div>
@@ -218,50 +243,32 @@ const App: React.FC = () => {
   };
 
   const VouchersPrintGrid = ({ payrolls }: { payrolls: PayrollRecord[] }) => (
-    <div className="vouchers-grid-print grid grid-cols-2 gap-4 p-4">
+    <div className="vouchers-grid-print grid grid-cols-2 gap-6 p-4">
       {payrolls.map(p => {
         const emp = db.employees.find(e => e.id === p.employeeId);
         return (
-          <div key={p.id} className="print-card border-2 border-slate-200 p-8 bg-white relative mb-4 rounded-[2rem] shadow-sm">
-            <div className="flex justify-between items-start border-b-2 border-indigo-100 pb-4 mb-4">
+          <div key={p.id} className="print-card border-2 border-slate-200 p-6 bg-white relative mb-4 rounded-2xl shadow-none break-inside-avoid">
+            <div className="flex justify-between items-start border-b border-indigo-100 pb-2 mb-3">
                <div className="text-right">
-                  <p className="text-[10px] font-black text-indigo-500 uppercase">قسيمة راتب معتمدة</p>
-                  <h3 className="text-xl font-black text-slate-900 leading-none">{emp?.name}</h3>
-                  <p className="text-[9px] font-bold text-slate-500 mt-1">{emp?.position} - {emp?.department}</p>
+                  <p className="text-[8px] font-black text-indigo-500 uppercase">قسيمة راتب معتمدة</p>
+                  <h3 className="text-md font-black text-slate-900 leading-none">{emp?.name}</h3>
                </div>
-               <div className="text-left text-[10px] font-black text-slate-400">
-                  <p>الفترة: {p.month} / {p.year}</p>
-                  <p>تاريخ: {new Date().toLocaleDateString()}</p>
-                  <p>ساعات العمل: {p.workingHours} س</p>
+               <div className="text-left text-[8px] font-bold text-slate-400">
+                  <p>{p.month} / {p.year}</p>
                </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-[10px] font-bold">
-               <div className="col-span-2 text-[10px] font-black text-indigo-800 mb-1 border-b">المستحقات (+)</div>
-               <div className="flex justify-between text-slate-600 border-b border-slate-50"><span>الراتب الأساسي:</span> <span>{p.baseSalary.toLocaleString()}</span></div>
-               <div className="flex justify-between text-emerald-600 border-b border-slate-50"><span>المواصلات:</span> <span>+{p.transport.toLocaleString()}</span></div>
-               <div className="flex justify-between text-emerald-600 border-b border-slate-50"><span>العمل الإضافي:</span> <span>+{p.overtimePay.toLocaleString()}</span></div>
-               <div className="flex justify-between text-emerald-600 border-b border-slate-50"><span>المكافآت:</span> <span>+{p.bonuses.toLocaleString()}</span></div>
-               <div className="flex justify-between text-emerald-600 border-b border-slate-50"><span>الإنتاج:</span> <span>+{p.production.toLocaleString()}</span></div>
-               
-               <div className="col-span-2 text-[10px] font-black text-rose-800 mb-1 mt-2 border-b">الاستقطاعات (-)</div>
-               <div className="flex justify-between text-rose-600 border-b border-slate-50"><span>تأخير:</span> <span>-{p.lateDeduction.toLocaleString()}</span></div>
-               <div className="flex justify-between text-rose-600 border-b border-slate-50"><span>انصراف مبكر:</span> <span>-{p.earlyDepartureDeduction.toLocaleString()}</span></div>
-               <div className="flex justify-between text-rose-600 border-b border-slate-50"><span>أيام غياب:</span> <span>-{p.absenceDeduction.toLocaleString()} ({p.absenceDays} ي)</span></div>
-               <div className="flex justify-between text-rose-600 border-b border-slate-50"><span>أقساط سلف:</span> <span>-{p.loanInstallment.toLocaleString()}</span></div>
-               <div className="flex justify-between text-rose-600 border-b border-slate-50"><span>خصومات أخرى:</span> <span>-{p.manualDeductions.toLocaleString()}</span></div>
-               
-               <div className="col-span-2 flex justify-between text-lg font-black text-indigo-950 pt-3 mt-3 border-t-2 border-indigo-900 items-baseline">
-                 <span>صافي الراتب:</span>
-                 <div className="text-right">
-                    <span className="text-2xl">{p.netSalary.toLocaleString()}</span>
-                    <span className="text-[10px] mr-2 opacity-60 font-black">{db.settings.currency}</span>
-                 </div>
-               </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[8pt] font-bold">
+               <div className="col-span-2 text-[8px] font-black text-indigo-800 border-b">المستحقات</div>
+               <div className="flex justify-between text-slate-600"><span>الأساسي:</span> <span>{p.baseSalary.toLocaleString()}</span></div>
+               <div className="flex justify-between text-emerald-600 font-black"><span>الصافي:</span> <span>{p.netSalary.toLocaleString()}</span></div>
+               <div className="col-span-2 text-[8px] font-black text-rose-800 border-b mt-2">الاستقطاعات</div>
+               <div className="flex justify-between text-rose-600"><span>غياب:</span> <span>{p.absenceDeduction.toLocaleString()}</span></div>
+               <div className="flex justify-between text-rose-600"><span>أقساط:</span> <span>{p.loanInstallment.toLocaleString()}</span></div>
             </div>
-            <div className="mt-4 flex justify-between items-center text-[8px] font-black opacity-40">
-               <p>توقيع المحاسب</p>
-               <p>توقيع الموظف</p>
+            <div className="mt-4 pt-2 border-t border-dashed flex justify-between items-center text-[7px] font-black opacity-50">
+               <span>المحاسب</span>
+               <span>المستلم</span>
             </div>
           </div>
         );
@@ -274,7 +281,7 @@ const App: React.FC = () => {
     setTimeout(() => {
       window.print();
       setIsPrinting(false);
-    }, 600);
+    }, 800);
   };
 
   const renderActiveTab = () => {
@@ -381,33 +388,33 @@ const App: React.FC = () => {
       case 'production': return <Production employees={db.employees} items={db.production || []} settings={db.settings} onSave={i => updateList('production', i)} onDelete={id => deleteFromList('production', id)} archiveMode={archiveModes.production} onToggleArchive={() => setArchiveModes(p => ({...p, production: !p.production}))} onPrintIndividual={i => setIndividualPrintItem({title: "إشعار إنتاجية موظف", type: 'production', data: i})} />;
       case 'payroll': return (
         <div className="space-y-8 animate-in fade-in duration-700">
-          <PrintableHeader title={`مسير رواتب الموظفين لشهر ${currentMonth} / ${currentYear}`} subtitle={`نظام الدوام المعتمد: ${db.settings.salaryCycle === 'weekly' ? 'أسبوعي' : 'شهري'} - الدورة المالية: ${db.settings.salaryCycle === 'weekly' ? db.settings.weeklyCycleDays : db.settings.monthlyCycleDays} يوم`} />
+          <PrintableHeader title={`مسير رواتب الموظفين لشهر ${currentMonth} / ${currentYear}`} subtitle={`نظام الدوام: ${db.settings.salaryCycle === 'weekly' ? 'أسبوعي' : 'شهري'} - الدورة: ${db.settings.salaryCycle === 'weekly' ? db.settings.weeklyCycleDays : db.settings.monthlyCycleDays} يوم`} />
           
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 flex flex-col md:flex-row justify-between items-center no-print text-right gap-4">
-             <div className="flex items-center gap-4">
-                <div className="p-4 bg-indigo-600 text-white rounded-2xl">
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-xl border dark:border-slate-800 flex flex-col md:flex-row justify-between items-center no-print text-right gap-4">
+             <div className="flex items-center gap-4 text-right">
+                <div className="p-4 bg-indigo-600 text-white rounded-2xl shadow-lg">
                    <TrendingUp size={32}/>
                 </div>
                 <div>
-                   <h2 className="text-3xl font-black text-indigo-700">مسير رواتب الموظفين - {currentMonth}/{currentYear}</h2>
-                   <div className="flex items-center gap-2 text-slate-400 font-bold mt-1 text-sm bg-slate-50 dark:bg-slate-800 p-2 rounded-xl">
+                   <h2 className="text-3xl font-black text-indigo-700 leading-tight">مسير رواتب الموظفين</h2>
+                   <div className="flex items-center gap-2 text-slate-400 font-bold mt-1 text-sm">
                       <AlertCircle size={14} className="text-indigo-500"/>
-                      <span>يتم احتساب الغياب بناءً على دورة العمل المحددة في الإعدادات (ثابت).</span>
+                      <span>يتم الحساب بناءً على الدورة المالية الثابتة لضمان دقة التقارير.</span>
                    </div>
                 </div>
              </div>
              <div className="flex gap-3">
                 <button onClick={() => setIndividualPrintItem({ title: 'قسائم رواتب الموظفين', type: 'vouchers', data: currentPayrolls })} className="bg-indigo-100 text-indigo-700 px-8 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-indigo-200 transition"><ReceiptText size={20}/> القسائم</button>
-                <button onClick={() => window.print()} className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg"><Printer size={20}/> طباعة المسير</button>
+                <button onClick={() => window.print()} className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg hover:bg-black transition"><Printer size={20}/> طباعة المسير</button>
              </div>
           </div>
           
-          <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl border dark:border-slate-800 overflow-hidden relative print:border-none print:shadow-none print:w-full">
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border dark:border-slate-800 overflow-visible relative print:border-none print:shadow-none print:w-full">
              <div className="overflow-x-auto print:overflow-visible">
-               <table className="w-full text-center text-[13px] font-bold print:text-[8pt] print:w-full">
-                 <thead className="bg-indigo-950 text-white font-black uppercase print:bg-slate-100 print:text-black print:border-b-2">
+               <table className="w-full text-center text-[13px] font-bold print:text-[8pt] print:w-full print:table-auto">
+                 <thead className="bg-indigo-950 text-white font-black uppercase print:bg-slate-50 print:text-black">
                    <tr>
-                     <th className="px-4 py-5 text-right sticky right-0 bg-indigo-950 z-10 min-w-[180px] print:min-w-[100px] print:bg-slate-100">الموظف</th>
+                     <th className="px-4 py-5 text-right sticky right-0 bg-indigo-950 z-10 min-w-[160px] print:min-w-[80px] print:bg-slate-50">الموظف</th>
                      <th className="px-1 py-5">الأساسي</th>
                      <th className="px-1 py-5">مواصلات</th>
                      <th className="px-1 py-5">حضور</th>
@@ -418,12 +425,12 @@ const App: React.FC = () => {
                      <th className="px-1 py-5 text-rose-300 print:text-black">تأخير</th>
                      <th className="px-1 py-5 text-rose-300 print:text-black">سلف</th>
                      <th className="px-1 py-5 text-rose-300 print:text-black">أخرى</th>
-                     <th className="px-4 py-5 text-center bg-indigo-900 min-w-[130px] shadow-2xl print:bg-slate-200 print:text-black">الصافي</th>
+                     <th className="px-4 py-5 text-center bg-indigo-900 min-w-[120px] shadow-2xl print:bg-slate-100 print:text-black">الصافي</th>
                    </tr>
                  </thead>
                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                    {currentPayrolls.map(p => (
-                     <tr key={p.id} className="hover:bg-indigo-50/40 transition-all border-b print:border-slate-200">
+                     <tr key={p.id} className="hover:bg-indigo-50/40 transition-all border-b print:border-slate-100">
                        <td className="px-4 py-4 text-right font-black text-slate-900 dark:text-white whitespace-nowrap sticky right-0 bg-white dark:bg-slate-900 z-10 border-l border-slate-50 text-lg print:text-[9pt] print:bg-white">{db.employees.find(e => e.id === p.employeeId)?.name}</td>
                        <td className="px-1 py-4 text-slate-500">{(p.baseSalary || 0).toLocaleString()}</td>
                        <td className="px-1 py-4 text-indigo-700">{(p.transport || 0).toLocaleString()}</td>
@@ -437,16 +444,15 @@ const App: React.FC = () => {
                        <td className={`px-1 py-4 ${(p.lateDeduction + p.earlyDepartureDeduction) > 0 ? 'text-rose-600' : 'text-slate-400'}`}>-{(p.lateDeduction + p.earlyDepartureDeduction).toLocaleString()}</td>
                        <td className="px-1 py-4 text-rose-600">-{(p.loanInstallment || 0).toLocaleString()}</td>
                        <td className="px-1 py-4 text-rose-600">-{(p.manualDeductions || 0).toLocaleString()}</td>
-                       <td className="px-4 py-4 font-black bg-indigo-50/80 dark:bg-indigo-900/10 text-[18px] text-indigo-900 dark:text-indigo-300 border-r border-indigo-100 print:bg-white print:text-black print:text-[10pt] print:border-r">
+                       <td className="px-4 py-4 font-black bg-indigo-50/80 dark:bg-indigo-900/10 text-[18px] text-indigo-900 dark:text-indigo-300 border-r border-indigo-100 print:bg-white print:text-black print:text-[10pt]">
                           {(p.netSalary || 0).toLocaleString()}
                        </td>
                      </tr>
                    ))}
                  </tbody>
-                 {/* صف الإجماليات المحدث */}
-                 <tfoot className="bg-indigo-950 text-white font-black text-[13px] border-t-4 border-indigo-900 print:bg-slate-200 print:text-black print:border-t-2 print:border-black">
+                 <tfoot className="bg-indigo-950 text-white font-black text-[13px] border-t-4 border-indigo-900 print:bg-slate-100 print:text-black print:border-t-2 print:border-black">
                     <tr className="shadow-2xl">
-                       <td className="px-4 py-6 text-right sticky right-0 bg-indigo-950 z-10 print:bg-slate-200 print:text-sm">الإجماليات الكلية:</td>
+                       <td className="px-4 py-6 text-right sticky right-0 bg-indigo-950 z-10 print:bg-slate-100 print:text-sm">إجمالي المسير:</td>
                        <td className="px-1 py-6">{payrollTotals.base.toLocaleString()}</td>
                        <td className="px-1 py-6">{payrollTotals.transport.toLocaleString()}</td>
                        <td className="px-1 py-6 text-indigo-300 print:text-black">{payrollTotals.workingDays} ي</td>
@@ -457,7 +463,7 @@ const App: React.FC = () => {
                        <td className="px-1 py-6 text-rose-300 print:text-black">-{(payrollTotals.late + payrollTotals.early).toLocaleString()}</td>
                        <td className="px-1 py-6 text-rose-300 print:text-black">-{payrollTotals.loans.toLocaleString()}</td>
                        <td className="px-1 py-6 text-rose-300 print:text-black">-{payrollTotals.manual.toLocaleString()}</td>
-                       <td className="px-4 py-6 text-[22px] bg-indigo-900 text-white shadow-2xl print:bg-slate-300 print:text-black print:text-[14pt] print:border-r">
+                       <td className="px-4 py-6 text-[22px] bg-indigo-900 text-white shadow-2xl print:bg-slate-200 print:text-black print:text-[14pt]">
                           {payrollTotals.net.toLocaleString()}
                        </td>
                     </tr>
@@ -466,26 +472,12 @@ const App: React.FC = () => {
              </div>
           </div>
           
-          <div className="hidden print:block mt-20 p-8 border-t-2 border-dashed border-slate-300">
-             <div className="grid grid-cols-4 gap-4 text-center font-black text-xs uppercase tracking-tighter">
-                <div className="space-y-12">
-                   <p>المحاسب المالي</p>
-                   <p className="border-b w-3/4 mx-auto"></p>
-                </div>
-                <div className="space-y-12">
-                   <p>مدير الموارد البشرية</p>
-                   <p className="border-b w-3/4 mx-auto"></p>
-                </div>
-                <div className="space-y-12">
-                   <p>المدير العام</p>
-                   <p className="border-b w-3/4 mx-auto"></p>
-                </div>
-                <div className="space-y-12">
-                   <p>ختم المنشأة الرسمي</p>
-                   <div className="w-20 h-20 border-2 border-slate-300 rounded-full mx-auto border-dotted"></div>
-                </div>
+          <div className="hidden print:block mt-12 p-8 border-t border-slate-300">
+             <div className="grid grid-cols-3 gap-10 text-center font-black text-[10px]">
+                <div>توقيع المحاسب</div>
+                <div>مدير الموارد البشرية</div>
+                <div>المدير العام (الختم)</div>
              </div>
-             <p className="text-center text-[8px] text-slate-400 mt-20 font-bold">تم استخراج هذا التقرير آلياً عبر نظام SAM HRMS PRO - تطوير مهند أحمد 0998171954</p>
           </div>
         </div>
       );
@@ -499,65 +491,26 @@ const App: React.FC = () => {
   if (!currentUser) {
     return (
       <div className={`min-h-screen flex items-center justify-center bg-slate-950 p-6 font-cairo ${db.settings.theme === 'dark' ? 'dark' : ''}`} dir="rtl">
-         <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-[3.5rem] p-12 shadow-2xl border-4 border-white/10 relative overflow-hidden">
+         <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-[3rem] p-12 shadow-2xl border-4 border-white/5 relative overflow-hidden">
             <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-600/10 rounded-full blur-3xl"></div>
             <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-indigo-600/10 rounded-full blur-3xl"></div>
             
             <div className="text-center mb-12 relative z-10">
-               <div className="w-24 h-24 bg-indigo-600 rounded-[2rem] mx-auto flex items-center justify-center text-white text-5xl font-black mb-6 shadow-2xl shadow-indigo-500/40">S</div>
-               <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">نظام SAM Pro</h2>
+               <div className="w-20 h-20 bg-indigo-600 rounded-[1.5rem] mx-auto flex items-center justify-center text-white text-4xl font-black mb-6 shadow-xl">S</div>
+               <h2 className="text-3xl font-black text-slate-900 dark:text-white">نظام SAM Pro</h2>
                <p className="text-slate-400 font-bold mt-2">نظام إدارة الموارد البشرية المتطور</p>
             </div>
 
-            <form onSubmit={handleLogin} className="space-y-8 relative z-10">
+            <form onSubmit={handleLogin} className="space-y-6 relative z-10">
                <div>
-                  <label className="text-xs font-black text-slate-500 block mb-3 mr-3 uppercase tracking-widest flex items-center gap-2">
-                     <div className="w-2 h-2 bg-indigo-600 rounded-full"></div> اسم المستخدم
-                  </label>
-                  <div className="relative">
-                    <input 
-                      type="text" 
-                      className="w-full p-6 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 rounded-[2rem] font-black transition-all outline-none text-xl shadow-inner dark:text-white" 
-                      placeholder="اسم المستخدم (admin)"
-                      value={loginForm.username} 
-                      onChange={e => setLoginForm({...loginForm, username: e.target.value})} 
-                    />
-                  </div>
+                  <label className="text-[10px] font-black text-slate-500 block mb-2 mr-3 uppercase tracking-widest">اسم المستخدم</label>
+                  <input type="text" className="w-full p-5 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 rounded-[2rem] font-black transition-all outline-none text-xl shadow-inner dark:text-white" value={loginForm.username} onChange={e => setLoginForm({...loginForm, username: e.target.value})} />
                </div>
                <div>
-                  <label className="text-xs font-black text-slate-500 block mb-3 mr-3 uppercase tracking-widest flex items-center gap-2">
-                    <div className="w-2 h-2 bg-indigo-600 rounded-full"></div> كلمة المرور
-                  </label>
-                  <div className="relative">
-                    <input 
-                      type="password" 
-                      className="w-full p-6 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 rounded-[2rem] font-black transition-all outline-none text-xl shadow-inner dark:text-white" 
-                      placeholder="••••••"
-                      value={loginForm.password} 
-                      onChange={e => setLoginForm({...loginForm, password: e.target.value})} 
-                    />
-                    <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={24}/>
-                  </div>
+                  <label className="text-[10px] font-black text-slate-500 block mb-2 mr-3 uppercase tracking-widest">كلمة المرور</label>
+                  <input type="password" className="w-full p-5 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 rounded-[2rem] font-black transition-all outline-none text-xl shadow-inner dark:text-white" value={loginForm.password} onChange={e => setLoginForm({...loginForm, password: e.target.value})} />
                </div>
-               
-               <div className="flex flex-col gap-4">
-                 <button type="submit" className="w-full bg-indigo-600 text-white py-6 rounded-[2.2rem] font-black text-2xl shadow-2xl shadow-indigo-600/30 hover:bg-indigo-700 hover:scale-[1.02] active:scale-95 transition-all duration-300">
-                    دخـول للـنـظام
-                 </button>
-                 
-                 <button type="button" onClick={() => setShowHint(!showHint)} className="flex items-center justify-center gap-2 text-indigo-600 font-bold text-sm hover:underline">
-                   <HelpCircle size={16}/> هل نسيت كلمة المرور؟
-                 </button>
-
-                 {showHint && (
-                   <div className="p-6 bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-200 dark:border-indigo-800 rounded-[1.5rem] animate-in slide-in-from-top-4">
-                     <p className="text-center text-xs font-black text-indigo-700 dark:text-indigo-400">
-                       <span className="block opacity-60 mb-1">تلميح كلمة المرور:</span>
-                       {db.settings.passwordHint || 'لا يوجد تلميح متاح حالياً. يرجى مراجعة المسؤول.'}
-                     </p>
-                   </div>
-                 )}
-               </div>
+               <button type="submit" className="w-full bg-indigo-600 text-white py-5 rounded-[2rem] font-black text-2xl shadow-xl hover:bg-indigo-700 transition-all">دخـول للـنـظام</button>
             </form>
          </div>
       </div>
@@ -568,7 +521,7 @@ const App: React.FC = () => {
     const portalNode = document.getElementById('sam-print-portal');
     if (!individualPrintItem || !portalNode) return null;
     return createPortal(
-      <div className="print-isolated-wrapper text-right w-full" dir="rtl">
+      <div className="print-isolated-wrapper text-right w-full overflow-visible" dir="rtl">
         {individualPrintItem.type === 'vouchers' 
           ? <VouchersPrintGrid payrolls={individualPrintItem.data} />
           : <DocumentPrintCard title={individualPrintItem.title} type={individualPrintItem.type} data={individualPrintItem.data} />}
@@ -583,22 +536,22 @@ const App: React.FC = () => {
         {renderActiveTab()}
         {individualPrintItem && (
           <div className="fixed inset-0 bg-slate-950/95 z-[500] flex items-center justify-center p-6 no-print overflow-y-auto">
-            <div className="bg-white p-10 w-full max-w-5xl shadow-2xl rounded-[3.5rem] border-4 border-white/20 transition-all">
-               <div className="flex justify-between items-center mb-10 border-b-2 pb-6 text-right">
-                  <h3 className="font-black text-indigo-800 text-2xl">معاينة المستند الرسمي</h3>
-                  <button onClick={() => setIndividualPrintItem(null)} className="text-rose-500 p-2 hover:bg-rose-50 rounded-full transition transform hover:rotate-90" disabled={isPrinting}><X size={44}/></button>
+            <div className="bg-white p-8 w-full max-w-5xl shadow-2xl rounded-[3rem] border-2 border-white/20 transition-all text-right">
+               <div className="flex justify-between items-center mb-6 border-b pb-4">
+                  <h3 className="font-black text-indigo-800 text-xl tracking-tight">معاينة المستند الرسمي للطباعة</h3>
+                  <button onClick={() => setIndividualPrintItem(null)} className="text-rose-500 p-2 hover:bg-rose-50 rounded-full transition transform hover:rotate-90" disabled={isPrinting}><X size={32}/></button>
                </div>
-               <div className="bg-white rounded-[2rem] text-right overflow-hidden border border-slate-100 p-2">
+               <div className="bg-white rounded-2xl overflow-visible border border-slate-100 p-4 min-h-[400px]">
                   {individualPrintItem.type === 'vouchers' 
                     ? <VouchersPrintGrid payrolls={individualPrintItem.data} />
                     : <DocumentPrintCard title={individualPrintItem.title} type={individualPrintItem.type} data={individualPrintItem.data} />}
                </div>
-               <div className="flex gap-6 mt-12 no-print">
-                  <button onClick={executePrintAction} disabled={isPrinting} className="flex-[2] bg-indigo-600 text-white py-6 rounded-[2.5rem] font-black text-2xl shadow-xl flex items-center justify-center gap-4 hover:bg-indigo-700 transition-all disabled:opacity-50">
-                    {isPrinting ? <Loader2 className="animate-spin" size={32}/> : <Printer size={32}/>}
+               <div className="flex gap-4 mt-8 no-print">
+                  <button onClick={executePrintAction} disabled={isPrinting} className="flex-[2] bg-indigo-600 text-white py-5 rounded-[2rem] font-black text-xl shadow-xl flex items-center justify-center gap-3 hover:bg-indigo-700 transition-all disabled:opacity-50">
+                    {isPrinting ? <Loader2 className="animate-spin" size={24}/> : <Printer size={24}/>}
                     {isPrinting ? 'جاري التحضير...' : 'تـنـفـيذ الـطـباعـة'}
                   </button>
-                  <button onClick={() => setIndividualPrintItem(null)} className="flex-1 bg-slate-100 py-6 rounded-[2.5rem] font-black text-xl text-slate-500 hover:bg-slate-200 transition">إغلاق</button>
+                  <button onClick={() => setIndividualPrintItem(null)} className="flex-1 bg-slate-100 py-5 rounded-[2rem] font-black text-lg text-slate-500 hover:bg-slate-200 transition">إغلاق</button>
                </div>
             </div>
           </div>
