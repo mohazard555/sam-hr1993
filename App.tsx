@@ -16,7 +16,7 @@ import { Employee, PayrollRecord, FinancialEntry, Loan, LeaveRequest, Production
 import { generatePayrollForRange } from './utils/calculations';
 import { Printer, X, ReceiptText, CalendarDays, Loader2, FileText, CheckCircle, Info, ShieldAlert, Package, Layers, Clock, TrendingUp, Lock, HelpCircle, ToggleLeft, ToggleRight, AlertCircle, Calendar } from 'lucide-react';
 
-type PrintType = 'production' | 'loan' | 'leave' | 'financial' | 'document' | 'vouchers' | 'report_attendance' | 'report_financial' | 'warning';
+type PrintType = 'production' | 'loan' | 'leave' | 'financial' | 'document' | 'vouchers' | 'report_attendance' | 'report_financial' | 'warning' | 'employee_list' | 'department_list';
 
 const App: React.FC = () => {
   const [db, setDb] = useState<DB>(loadDB());
@@ -59,7 +59,7 @@ const App: React.FC = () => {
   };
 
   const handleClearData = () => {
-    if (confirm('هل أنت متأكد تماماً؟ سيتم حذف كافة الموظفين، السجلات، المالية، والحضور نهائياً ولا يمكن التراجع!')) {
+    if (confirm('هل أنت متأكد تماماً؟ سيتم حذف كافة البيانات نهائياً!')) {
       const resetDB: DB = {
         ...db,
         employees: [],
@@ -75,7 +75,6 @@ const App: React.FC = () => {
       };
       setDb(resetDB);
       saveDB(resetDB);
-      alert('تم مسح كافة البيانات بنجاح.');
     }
   };
 
@@ -123,7 +122,7 @@ const App: React.FC = () => {
   };
 
   const deleteFromList = <K extends keyof DB>(key: K, id: string) => {
-    if(!confirm('هل أنت متأكد من حذف هذا السجل نهائياً؟')) return;
+    if(!confirm('هل أنت متأكد من الحذف؟')) return;
     setDb(prev => {
       const currentVal = prev[key];
       if (Array.isArray(currentVal)) {
@@ -140,7 +139,7 @@ const App: React.FC = () => {
   };
 
   const PrintableHeader = ({ title, subtitle }: { title: string, subtitle?: string }) => (
-    <div className="hidden print:flex justify-between items-start border-b-4 border-indigo-900 pb-6 mb-8 w-full text-indigo-950">
+    <div className="flex justify-between items-start border-b-4 border-indigo-900 pb-6 mb-8 w-full text-indigo-950">
       <div className="text-right">
         <h1 className="text-3xl font-black leading-none">{db.settings.name}</h1>
         <p className="text-sm font-black text-indigo-700 mt-2">{title}</p>
@@ -151,12 +150,48 @@ const App: React.FC = () => {
       </div>
       <div className="text-left">
         <p className="text-[10px] font-black text-slate-400 uppercase">تاريخ التقرير: {new Date().toLocaleDateString('ar-EG')}</p>
-        <p className="text-[10px] font-black text-slate-400 uppercase">الساعة: {new Date().toLocaleTimeString('ar-EG')}</p>
+        <p className="text-[10px] font-black text-slate-400 uppercase">ساعة الطباعة: {new Date().toLocaleTimeString('ar-EG')}</p>
       </div>
     </div>
   );
 
+  const EmployeeListPrintTable = ({ employees }: { employees: Employee[] }) => (
+    <div className="w-full text-right p-4 bg-white">
+      <PrintableHeader title="قائمة بيانات الموظفين" subtitle={`إجمالي العدد: ${employees.length} موظف`} />
+      <table className="w-full border-collapse border border-slate-300">
+        <thead className="bg-slate-100 font-black">
+          <tr>
+            <th className="p-2 border border-slate-300">الاسم</th>
+            <th className="p-2 border border-slate-300">القسم</th>
+            <th className="p-2 border border-slate-300">المنصب</th>
+            <th className="p-2 border border-slate-300">الراتب</th>
+            <th className="p-2 border border-slate-300">الهاتف</th>
+            <th className="p-2 border border-slate-300">الهوية الوطنية</th>
+            <th className="p-2 border border-slate-300 text-center">تاريخ التعيين</th>
+          </tr>
+        </thead>
+        <tbody>
+          {employees.map(emp => (
+            <tr key={emp.id} className="text-sm border-b border-slate-200">
+              <td className="p-2 border border-slate-300 font-bold">{emp.name}</td>
+              <td className="p-2 border border-slate-300">{emp.department}</td>
+              <td className="p-2 border border-slate-300">{emp.position}</td>
+              <td className="p-2 border border-slate-300 text-center">{emp.baseSalary.toLocaleString()}</td>
+              <td className="p-2 border border-slate-300 text-center">{emp.phone}</td>
+              <td className="p-2 border border-slate-300 text-center">{emp.nationalId}</td>
+              <td className="p-2 border border-slate-300 text-center">{emp.joinDate}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
   const DocumentPrintCard = ({ title, type, data }: { title: string, type: PrintType, data: any }) => {
+    if (type === 'employee_list' || type === 'department_list') {
+      return <EmployeeListPrintTable employees={data} />;
+    }
+
     const emp = db.employees.find(e => e.id === data.employeeId) || { name: data.employeeName || '.......', department: 'غير محدد', position: 'غير محدد' };
     return (
       <div className="bg-white print-card w-full max-w-4xl mx-auto shadow-none relative overflow-hidden">
@@ -283,8 +318,8 @@ const App: React.FC = () => {
   const renderActiveTab = () => {
     switch (activeTab) {
       case 'dashboard': return <Dashboard employeesCount={db.employees.length} todayAttendance={db.attendance.filter(a => a.date === new Date().toISOString().split('T')[0]).length} totalLoans={db.loans.reduce((acc, l) => acc + (l.remainingAmount || 0), 0)} totalSalaryBudget={currentPayrolls.reduce((acc, p) => acc + p.netSalary, 0)} />;
-      case 'employees': return <Employees employees={db.employees} departments={db.departments} settings={db.settings} onAdd={e => updateList('employees', e)} onDelete={id => deleteFromList('employees', id)} />;
-      case 'departments': return <Departments departments={db.departments || []} employees={db.employees || []} onUpdate={depts => setDb(prev => ({...prev, departments: [...depts]}))} onUpdateEmployee={emp => updateList('employees', emp)} />;
+      case 'employees': return <Employees employees={db.employees} departments={db.departments} settings={db.settings} onAdd={e => updateList('employees', e)} onDelete={id => deleteFromList('employees', id)} onPrintList={(list) => setIndividualPrintItem({ title: 'قائمة الموظفين الكاملة', type: 'employee_list', data: list })} />;
+      case 'departments': return <Departments departments={db.departments || []} employees={db.employees || []} onUpdate={depts => setDb(prev => ({...prev, departments: [...depts]}))} onUpdateEmployee={emp => updateList('employees', emp)} onPrintDept={(name, emps) => setIndividualPrintItem({ title: `قائمة موظفي قسم ${name}`, type: 'department_list', data: emps })} />;
       case 'attendance': return <Attendance employees={db.employees} records={db.attendance} settings={db.settings} onSaveRecord={r => updateList('attendance', r)} onDeleteRecord={id => deleteFromList('attendance', id)} lang={db.settings.language} onPrint={() => window.print()} />;
       case 'leaves': return (
         <GenericModule<LeaveRequest> 

@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Employee, CompanySettings } from '../types';
-import { UserPlus, Search, Edit2, Trash2, Settings2, Clock, Calculator, CalendarCheck } from 'lucide-react';
+import { UserPlus, Search, Edit2, Trash2, Settings2, Clock, Calculator, CalendarCheck, Printer } from 'lucide-react';
 
 interface Props {
   employees: Employee[];
@@ -9,9 +9,10 @@ interface Props {
   settings: CompanySettings;
   onAdd: (e: Employee) => void;
   onDelete: (id: string) => void;
+  onPrintList?: (list: Employee[]) => void;
 }
 
-const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, onDelete }) => {
+const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, onDelete, onPrintList }) => {
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -82,7 +83,19 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <button onClick={() => { setFormData({ baseSalary: 325000, transportAllowance: 25000, vacationBalance: 21, workDaysPerCycle: defaultWorkDays, customOvertimeRate: 1.5, customDeductionRate: 1 }); setShowModal(true); }} className="w-full md:w-auto flex items-center justify-center gap-2 bg-indigo-600 text-white px-8 py-3 rounded-2xl hover:bg-indigo-700 transition shadow-xl font-black"><UserPlus size={20} /> إضافة موظف</button>
+        <div className="flex gap-2 w-full md:w-auto">
+          {onPrintList && (
+            <button 
+              onClick={() => onPrintList(filtered)} 
+              className="bg-indigo-100 text-indigo-700 px-6 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-indigo-200 transition"
+            >
+              <Printer size={20}/> طباعة القائمة
+            </button>
+          )}
+          <button onClick={() => { setFormData({ baseSalary: 325000, transportAllowance: 25000, vacationBalance: 21, workDaysPerCycle: defaultWorkDays, customOvertimeRate: 1.5, customDeductionRate: 1 }); setShowModal(true); }} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-indigo-600 text-white px-8 py-3 rounded-2xl hover:bg-indigo-700 transition shadow-xl font-black">
+            <UserPlus size={20} /> إضافة موظف
+          </button>
+        </div>
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden">

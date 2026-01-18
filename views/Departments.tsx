@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Plus, Trash2, Building, Users, ChevronDown, ChevronUp, UserPlus } from 'lucide-react';
+import { Plus, Trash2, Building, Users, ChevronDown, ChevronUp, UserPlus, Printer } from 'lucide-react';
 import { Employee } from '../types';
 
 interface Props {
@@ -8,9 +8,10 @@ interface Props {
   employees: Employee[];
   onUpdate: (depts: string[]) => void;
   onUpdateEmployee: (emp: Employee) => void;
+  onPrintDept?: (deptName: string, employees: Employee[]) => void;
 }
 
-const Departments: React.FC<Props> = ({ departments = [], employees = [], onUpdate, onUpdateEmployee }) => {
+const Departments: React.FC<Props> = ({ departments = [], employees = [], onUpdate, onUpdateEmployee, onPrintDept }) => {
   const [newDept, setNewDept] = useState('');
   const [expandedDept, setExpandedDept] = useState<string | null>(null);
 
@@ -84,6 +85,16 @@ const Departments: React.FC<Props> = ({ departments = [], employees = [], onUpda
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
+                    {onPrintDept && (
+                      <button 
+                        type="button" 
+                        onClick={(e) => { e.stopPropagation(); onPrintDept(dept, deptEmps); }} 
+                        className="p-3 text-indigo-600 hover:bg-indigo-50 rounded-xl transition"
+                        title="طباعة موظفي هذا القسم"
+                      >
+                        <Printer size={20}/>
+                      </button>
+                    )}
                     <button 
                       type="button"
                       onClick={(e) => { e.stopPropagation(); removeDept(dept); }} 
