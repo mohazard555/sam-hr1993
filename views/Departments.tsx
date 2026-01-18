@@ -16,15 +16,21 @@ const Departments: React.FC<Props> = ({ departments = [], employees = [], onUpda
 
   const addDept = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newDept && !departments.includes(newDept)) {
-      onUpdate([...departments, newDept]);
+    const trimmedDept = newDept.trim();
+    if (trimmedDept && !departments.includes(trimmedDept)) {
+      // نرسل نسخة جديدة من المصفوفة لضمان تحديث الـ State في React
+      const updatedDepts = [...departments, trimmedDept];
+      onUpdate(updatedDepts);
       setNewDept('');
+    } else if (departments.includes(trimmedDept)) {
+      alert('هذا القسم موجود بالفعل!');
     }
   };
 
   const removeDept = (dept: string) => {
     if (window.confirm(`هل أنت متأكد من حذف قسم "${dept}"؟ سيتم إلغاء تعيين الموظفين منه.`)) {
-      onUpdate(departments.filter(d => d !== dept));
+      const updatedDepts = departments.filter(d => d !== dept);
+      onUpdate(updatedDepts);
     }
   };
 
@@ -40,14 +46,17 @@ const Departments: React.FC<Props> = ({ departments = [], employees = [], onUpda
           إدارة هيكلية الأقسام والوحدات
         </h3>
         
-        <form onSubmit={addDept} className="flex gap-4 mb-12">
+        <form onSubmit={addDept} className="flex flex-col md:flex-row gap-4 mb-12">
           <input 
             className="flex-1 p-4 border-2 border-slate-200 dark:border-slate-800 dark:bg-slate-800 rounded-2xl font-black text-slate-950 dark:text-white outline-none focus:border-indigo-600 transition"
             placeholder="اسم القسم الجديد (مثال: قسم الجودة)..."
             value={newDept}
             onChange={e => setNewDept(e.target.value)}
           />
-          <button type="submit" className="bg-indigo-600 text-white px-10 rounded-2xl font-black shadow-xl hover:bg-indigo-700 transition-all flex items-center gap-2">
+          <button 
+            type="submit" 
+            className="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black shadow-xl hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center gap-2"
+          >
             <Plus size={24}/> إضافة القسم
           </button>
         </form>
@@ -75,7 +84,11 @@ const Departments: React.FC<Props> = ({ departments = [], employees = [], onUpda
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <button onClick={(e) => { e.stopPropagation(); removeDept(dept); }} className="p-3 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition">
+                    <button 
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); removeDept(dept); }} 
+                      className="p-3 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition"
+                    >
                       <Trash2 size={20}/>
                     </button>
                     <div className="p-2 text-slate-400 bg-white dark:bg-slate-900 rounded-full shadow-sm">

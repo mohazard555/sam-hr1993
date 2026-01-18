@@ -13,8 +13,8 @@ import PrintForms from './views/PrintForms';
 import { GenericModule } from './views/GenericModule';
 import { loadDB, saveDB, DB } from './db/store';
 import { Employee, PayrollRecord, FinancialEntry, Loan, LeaveRequest, ProductionEntry, AttendanceRecord, Warning } from './types';
-import { generateMonthlyPayroll } from './utils/calculations';
-import { Printer, X, ReceiptText, CalendarDays, Loader2, FileText, CheckCircle, Info, ShieldAlert, Package, Layers, Clock, TrendingUp, Lock, HelpCircle, ToggleLeft, ToggleRight, AlertCircle } from 'lucide-react';
+import { generatePayrollForRange } from './utils/calculations';
+import { Printer, X, ReceiptText, CalendarDays, Loader2, FileText, CheckCircle, Info, ShieldAlert, Package, Layers, Clock, TrendingUp, Lock, HelpCircle, ToggleLeft, ToggleRight, AlertCircle, Calendar } from 'lucide-react';
 
 type PrintType = 'production' | 'loan' | 'leave' | 'financial' | 'document' | 'vouchers' | 'report_attendance' | 'report_financial' | 'warning';
 
@@ -27,6 +27,10 @@ const App: React.FC = () => {
   const [individualPrintItem, setIndividualPrintItem] = useState<{title: string, type: PrintType, data: any} | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
   
+  // حالات فلترة الرواتب
+  const [payrollDateFrom, setPayrollDateFrom] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]);
+  const [payrollDateTo, setPayrollDateTo] = useState(new Date().toISOString().split('T')[0]);
+
   const [archiveModes, setArchiveModes] = useState<Record<string, boolean>>({
     leaves: false, financials: false, loans: false, production: false
   });
@@ -75,19 +79,17 @@ const App: React.FC = () => {
     }
   };
 
-  const currentMonth = new Date().getMonth() + 1;
-  const currentYear = new Date().getFullYear();
-
-  const currentPayrolls = useMemo(() => generateMonthlyPayroll(
-    currentMonth, currentYear, db.employees || [], 
+  const currentPayrolls = useMemo(() => generatePayrollForRange(
+    payrollDateFrom, 
+    payrollDateTo, 
+    db.employees || [], 
     db.attendance || [], 
     db.loans || [], 
     db.financials || [], 
     db.production || [], 
     db.settings
-  ), [currentMonth, currentYear, db]);
+  ), [payrollDateFrom, payrollDateTo, db]);
 
-  // حساب الإجماليات لكافة أعمدة مسير الرواتب
   const payrollTotals = useMemo(() => {
     return currentPayrolls.reduce((acc, p) => ({
       base: acc.base + p.baseSalary,
@@ -164,7 +166,6 @@ const App: React.FC = () => {
         <div className="print:hidden">
             <PrintableHeader title={title} />
         </div>
-        {/* ترويسة مخصصة للقسائم والوثائق الفردية */}
         <div className="hidden print:block">
             <div className="flex justify-between items-center border-b-2 border-indigo-100 pb-4 mb-6">
                 <div className="text-right">
@@ -283,7 +284,7 @@ const App: React.FC = () => {
     switch (activeTab) {
       case 'dashboard': return <Dashboard employeesCount={db.employees.length} todayAttendance={db.attendance.filter(a => a.date === new Date().toISOString().split('T')[0]).length} totalLoans={db.loans.reduce((acc, l) => acc + (l.remainingAmount || 0), 0)} totalSalaryBudget={currentPayrolls.reduce((acc, p) => acc + p.netSalary, 0)} />;
       case 'employees': return <Employees employees={db.employees} departments={db.departments} settings={db.settings} onAdd={e => updateList('employees', e)} onDelete={id => deleteFromList('employees', id)} />;
-      case 'departments': return <Departments departments={db.departments || []} employees={db.employees || []} onUpdate={depts => setDb({...db, departments: depts})} onUpdateEmployee={emp => updateList('employees', emp)} />;
+      case 'departments': return <Departments departments={db.departments || []} employees={db.employees || []} onUpdate={depts => setDb(prev => ({...prev, departments: [...depts]}))} onUpdateEmployee={emp => updateList('employees', emp)} />;
       case 'attendance': return <Attendance employees={db.employees} records={db.attendance} settings={db.settings} onSaveRecord={r => updateList('attendance', r)} onDeleteRecord={id => deleteFromList('attendance', id)} lang={db.settings.language} onPrint={() => window.print()} />;
       case 'leaves': return (
         <GenericModule<LeaveRequest> 
@@ -383,18 +384,26 @@ const App: React.FC = () => {
       case 'production': return <Production employees={db.employees} items={db.production || []} settings={db.settings} onSave={i => updateList('production', i)} onDelete={id => deleteFromList('production', id)} archiveMode={archiveModes.production} onToggleArchive={() => setArchiveModes(p => ({...p, production: !p.production}))} onPrintIndividual={i => setIndividualPrintItem({title: "إشعار إنتاجية موظف", type: 'production', data: i})} />;
       case 'payroll': return (
         <div className="space-y-8 animate-in fade-in duration-700">
-          <PrintableHeader title={`مسير رواتب الموظفين لشهر ${currentMonth} / ${currentYear}`} subtitle={`نظام الدوام المعتمد: ${db.settings.salaryCycle === 'weekly' ? 'أسبوعي' : 'شهري'}`} />
+          <PrintableHeader title={`مسير رواتب الموظفين للفترة من ${payrollDateFrom} إلى ${payrollDateTo}`} subtitle={`نظام الدوام المعتمد: ${db.settings.salaryCycle === 'weekly' ? 'أسبوعي' : 'شهري'}`} />
           
           <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 flex flex-col md:flex-row justify-between items-center no-print text-right gap-4">
              <div className="flex items-center gap-4">
                 <div className="p-4 bg-indigo-600 text-white rounded-2xl">
                    <TrendingUp size={32}/>
                 </div>
-                <div>
-                   <h2 className="text-3xl font-black text-indigo-700">مسير رواتب الموظفين - {currentMonth}/{currentYear}</h2>
-                   <div className="flex items-center gap-2 text-slate-400 font-bold mt-1 text-sm bg-slate-50 dark:bg-slate-800 p-2 rounded-xl">
-                      <AlertCircle size={14} className="text-indigo-500"/>
-                      <span>يتم احتساب الغياب بناءً على دورة العمل المحددة في الإعدادات (ثابت).</span>
+                <div className="flex flex-col md:flex-row items-center gap-4">
+                   <div>
+                      <h2 className="text-2xl font-black text-indigo-700">تصفية مسير الرواتب</h2>
+                      <div className="flex items-center gap-2 mt-2">
+                        <div className="flex flex-col">
+                           <label className="text-[10px] font-black mr-2">من تاريخ</label>
+                           <input type="date" className="p-2 border rounded-xl font-bold text-xs outline-none focus:border-indigo-600" value={payrollDateFrom} onChange={e => setPayrollDateFrom(e.target.value)} />
+                        </div>
+                        <div className="flex flex-col">
+                           <label className="text-[10px] font-black mr-2">إلى تاريخ</label>
+                           <input type="date" className="p-2 border rounded-xl font-bold text-xs outline-none focus:border-indigo-600" value={payrollDateTo} onChange={e => setPayrollDateTo(e.target.value)} />
+                        </div>
+                      </div>
                    </div>
                 </div>
              </div>
@@ -406,7 +415,7 @@ const App: React.FC = () => {
           
           <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl border dark:border-slate-800 overflow-hidden relative print:border-none print:shadow-none print:w-full">
              <div className="overflow-x-auto print:overflow-visible">
-               <table className="w-full text-center text-[13px] font-bold print:text-[10px] print:w-full print:table-fixed">
+               <table className="w-full text-center text-[13px] font-bold print:text-[10px] print:w-full">
                  <thead className="bg-indigo-950 text-white font-black text-[15px] uppercase">
                    <tr>
                      <th className="px-4 py-5 text-right sticky right-0 bg-indigo-950 z-10 min-w-[180px] print:min-w-[120px]">الموظف</th>
@@ -445,7 +454,6 @@ const App: React.FC = () => {
                      </tr>
                    ))}
                  </tbody>
-                 {/* صف الإجماليات الجديد */}
                  <tfoot className="bg-indigo-950 text-white font-black text-[13px] border-t-4 border-indigo-900 print:bg-slate-100 print:text-black">
                     <tr className="shadow-2xl">
                        <td className="px-4 py-6 text-right sticky right-0 bg-indigo-950 z-10 print:bg-slate-100">إجمالي المسير:</td>
