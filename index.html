@@ -40,7 +40,7 @@
         @media print {
             @page {
                 size: landscape;
-                margin: 10mm;
+                margin: 5mm;
             }
 
             body.printing-individual > *:not(#sam-print-portal) {
@@ -75,30 +75,17 @@
                 position: absolute !important;
                 top: 0 !important;
                 left: 0 !important;
-                width: 100% !important;
+                padding: 5mm !important;
                 z-index: 9999999 !important;
-            }
-
-            /* إصلاح قص البيانات في الجداول */
-            .overflow-x-auto, .overflow-hidden {
-                overflow: visible !important;
             }
 
             table {
                 width: 100% !important;
-                table-layout: auto !important; /* لضمان تمدد الأعمدة حسب المحتوى */
-                border-collapse: collapse !important;
+                table-layout: fixed !important;
             }
 
             th, td {
                 word-wrap: break-word !important;
-                border: 1px solid #e2e8f0 !important;
-                padding: 8px !important;
-                font-size: 10pt !important;
-            }
-
-            thead {
-                display: table-header-group !important; /* تكرار الترويسة في كل صفحة */
             }
 
             * {
@@ -110,14 +97,15 @@
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
                 border: 1px solid #e2e8f0 !important;
-                border-radius: 12px !important;
+                border-radius: 20px !important;
                 background-color: #ffffff !important;
-                margin-bottom: 10px !important;
-                padding: 15px !important;
+                margin-bottom: 5px !important;
+                padding: 10px !important;
                 box-shadow: none !important;
             }
         }
 
+        /* تنسيق تنبيه الأوفلاين */
         #offline-notification {
             display: none;
             position: fixed;

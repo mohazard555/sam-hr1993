@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Plus, Trash2, Building, Users, ChevronDown, ChevronUp, UserPlus } from 'lucide-react';
+import { Plus, Trash2, Building, Users, ChevronDown, ChevronUp, UserPlus, Printer } from 'lucide-react';
 import { Employee } from '../types';
 
 interface Props {
@@ -8,24 +8,22 @@ interface Props {
   employees: Employee[];
   onUpdate: (depts: string[]) => void;
   onUpdateEmployee: (emp: Employee) => void;
+  onPrintDept?: (deptName: string, employees: Employee[]) => void;
 }
 
-const Departments: React.FC<Props> = ({ departments = [], employees = [], onUpdate, onUpdateEmployee }) => {
+const Departments: React.FC<Props> = ({ departments = [], employees = [], onUpdate, onUpdateEmployee, onPrintDept }) => {
   const [newDept, setNewDept] = useState('');
   const [expandedDept, setExpandedDept] = useState<string | null>(null);
 
   const addDept = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedDept = newDept.trim();
-    
-    if (!trimmedDept) return;
-
-    if (!departments.includes(trimmedDept)) {
-      // نرسل نسخة جديدة تماماً من المصفوفة لضمان استجابة React
+    if (trimmedDept && !departments.includes(trimmedDept)) {
+      // نرسل نسخة جديدة من المصفوفة لضمان تحديث الـ State في React
       const updatedDepts = [...departments, trimmedDept];
       onUpdate(updatedDepts);
       setNewDept('');
-    } else {
+    } else if (departments.includes(trimmedDept)) {
       alert('هذا القسم موجود بالفعل!');
     }
   };
@@ -65,7 +63,7 @@ const Departments: React.FC<Props> = ({ departments = [], employees = [], onUpda
         </form>
 
         <div className="space-y-6">
-          {Array.isArray(departments) && departments.map(dept => {
+          {departments.map(dept => {
             const deptEmps = (employees || []).filter(e => e.department === dept);
             const isExpanded = expandedDept === dept;
 
@@ -87,6 +85,16 @@ const Departments: React.FC<Props> = ({ departments = [], employees = [], onUpda
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
+                    {onPrintDept && (
+                      <button 
+                        type="button" 
+                        onClick={(e) => { e.stopPropagation(); onPrintDept(dept, deptEmps); }} 
+                        className="p-3 text-indigo-600 hover:bg-indigo-50 rounded-xl transition"
+                        title="طباعة موظفي هذا القسم"
+                      >
+                        <Printer size={20}/>
+                      </button>
+                    )}
                     <button 
                       type="button"
                       onClick={(e) => { e.stopPropagation(); removeDept(dept); }} 
@@ -132,7 +140,7 @@ const Departments: React.FC<Props> = ({ departments = [], employees = [], onUpda
               </div>
             );
           })}
-          {(!Array.isArray(departments) || departments.length === 0) && (
+          {departments.length === 0 && (
             <div className="py-24 text-center text-slate-400 italic font-black">لم يتم تعريف أية أقسام بعد في هيكلية الشركة.</div>
           )}
         </div>
