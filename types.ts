@@ -54,6 +54,7 @@ export interface Employee {
   joinDate: string;
   phone: string;
   nationalId: string;
+  address?: string;
   vacationBalance: number;
   workDaysPerCycle: number; // الحقل الجديد: عدد أيام العمل الفعلية في الدورة (مثلاً 6 أيام للأسبوع)
   customOvertimeRate?: number;

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Plus, Trash2, Building, Users, ChevronDown, ChevronUp, UserPlus, Printer } from 'lucide-react';
+import { Plus, Trash2, Building, Users, ChevronDown, ChevronUp, UserPlus, Printer, X } from 'lucide-react';
 import { Employee } from '../types';
 
 interface Props {
@@ -14,15 +14,16 @@ interface Props {
 const Departments: React.FC<Props> = ({ departments = [], employees = [], onUpdate, onUpdateEmployee, onPrintDept }) => {
   const [newDept, setNewDept] = useState('');
   const [expandedDept, setExpandedDept] = useState<string | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
 
   const addDept = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedDept = newDept.trim();
     if (trimmedDept && !departments.includes(trimmedDept)) {
-      // نرسل نسخة جديدة من المصفوفة لضمان تحديث الـ State في React
       const updatedDepts = [...departments, trimmedDept];
       onUpdate(updatedDepts);
       setNewDept('');
+      setIsAdding(false);
     } else if (departments.includes(trimmedDept)) {
       alert('هذا القسم موجود بالفعل!');
     }
@@ -42,28 +43,52 @@ const Departments: React.FC<Props> = ({ departments = [], employees = [], onUpda
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
       <div className="bg-white dark:bg-slate-900 p-10 rounded-[3rem] shadow-2xl border border-slate-200 dark:border-slate-800">
-        <h3 className="text-2xl font-black mb-8 text-indigo-700 dark:text-indigo-400 flex items-center gap-3">
-          <Building size={28}/>
-          إدارة هيكلية الأقسام والوحدات
-        </h3>
+        <div className="flex justify-between items-center mb-10">
+          <h3 className="text-2xl font-black text-indigo-700 dark:text-indigo-400 flex items-center gap-3">
+            <Building size={28}/>
+            إدارة هيكلية الأقسام والوحدات
+          </h3>
+          {!isAdding && (
+            <button 
+              onClick={() => setIsAdding(true)}
+              className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black shadow-lg hover:bg-indigo-700 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+            >
+              <Plus size={20}/> إضافة قسم جديد
+            </button>
+          )}
+        </div>
         
-        <form onSubmit={addDept} className="flex flex-col md:flex-row gap-4 mb-12">
-          <input 
-            className="flex-1 p-4 border-2 border-slate-200 dark:border-slate-800 dark:bg-slate-800 rounded-2xl font-black text-slate-950 dark:text-white outline-none focus:border-indigo-600 transition"
-            placeholder="اسم القسم الجديد (مثال: قسم الجودة)..."
-            value={newDept}
-            onChange={e => setNewDept(e.target.value)}
-          />
-          <button 
-            type="submit" 
-            className="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black shadow-xl hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center gap-2"
-          >
-            <Plus size={24}/> إضافة القسم
-          </button>
-        </form>
+        {isAdding && (
+          <form onSubmit={addDept} className="flex flex-col md:flex-row gap-4 mb-12 p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border-2 border-indigo-100 dark:border-indigo-900 animate-in slide-in-from-top-4">
+            <div className="flex-1 relative">
+              <input 
+                autoFocus
+                className="w-full p-4 border-2 border-slate-200 dark:border-slate-800 dark:bg-slate-900 rounded-2xl font-black text-slate-950 dark:text-white outline-none focus:border-indigo-600 transition"
+                placeholder="اسم القسم الجديد (مثال: قسم الجودة)..."
+                value={newDept}
+                onChange={e => setNewDept(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2">
+              <button 
+                type="submit" 
+                className="flex-1 md:flex-none bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black shadow-xl hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                حفظ القسم
+              </button>
+              <button 
+                type="button"
+                onClick={() => { setIsAdding(false); setNewDept(''); }}
+                className="p-4 text-rose-500 hover:bg-rose-50 rounded-2xl transition"
+              >
+                <X size={24}/>
+              </button>
+            </div>
+          </form>
+        )}
 
         <div className="space-y-6">
-          {departments.map(dept => {
+          {(departments || []).map(dept => {
             const deptEmps = (employees || []).filter(e => e.department === dept);
             const isExpanded = expandedDept === dept;
 
@@ -140,7 +165,7 @@ const Departments: React.FC<Props> = ({ departments = [], employees = [], onUpda
               </div>
             );
           })}
-          {departments.length === 0 && (
+          {(!departments || departments.length === 0) && (
             <div className="py-24 text-center text-slate-400 italic font-black">لم يتم تعريف أية أقسام بعد في هيكلية الشركة.</div>
           )}
         </div>
