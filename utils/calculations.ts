@@ -29,10 +29,11 @@ export const generatePayrollForRange = (
   return employees.map(emp => {
     // عدد الأيام المستهدفة بناءً على إعدادات الموظف أو الشركة
     const cycleDays = emp.workDaysPerCycle || (isWeekly ? (settings.weeklyCycleDays || 6) : (settings.monthlyCycleDays || 26));
+    const workingHoursPerDay = emp.workingHoursPerDay || 8;
     
     // الراتب اليومي والساعة
     const dailyRate = emp.baseSalary / cycleDays;
-    const hourlyRate = dailyRate / 8;
+    const hourlyRate = dailyRate / workingHoursPerDay;
 
     // تصفية البيانات ضمن النطاق الزمني
     const empAttendance = attendance.filter(a => a.employeeId === emp.id && a.date >= startDate && a.date <= endDate && !a.isArchived);
@@ -94,7 +95,7 @@ export const generatePayrollForRange = (
       manualDeductions: Math.round(manualDeductions),
       deductions: Math.round(totalDeductions),
       lateMinutes: totalLateMinutes,
-      workingHours: Number(((workingDays * 8)).toFixed(1)),
+      workingHours: Number(((workingDays * workingHoursPerDay)).toFixed(1)),
       workingDays,
       netSalary: Math.round(Math.max(0, netSalary)),
       isPaid: false

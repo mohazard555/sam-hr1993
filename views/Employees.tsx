@@ -24,14 +24,16 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
     transportAllowance: 25000,
     vacationBalance: 21,
     workDaysPerCycle: defaultWorkDays,
+    workingHoursPerDay: 8,
     customOvertimeRate: 1.5,
     customDeductionRate: 1,
     joinDate: new Date().toISOString().split('T')[0],
   });
 
   const cycleDays = formData.workDaysPerCycle || defaultWorkDays;
+  const workingHours = formData.workingHoursPerDay || 8;
   const dailyRate = (formData.baseSalary || 0) / cycleDays;
-  const hourlyRate = dailyRate / 8;
+  const hourlyRate = dailyRate / workingHours;
   const finalOvertimeHourPrice = hourlyRate * (formData.customOvertimeRate || 1.5);
   const finalDeductionHourPrice = hourlyRate * (formData.customDeductionRate || 1);
 
@@ -50,6 +52,7 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
       joinDate: formData.joinDate || new Date().toISOString().split('T')[0],
       vacationBalance: Number(formData.vacationBalance),
       workDaysPerCycle: Number(formData.workDaysPerCycle || defaultWorkDays),
+      workingHoursPerDay: Number(formData.workingHoursPerDay || 8),
       customOvertimeRate: formData.customOvertimeRate ? Number(formData.customOvertimeRate) : 1.5,
       customDeductionRate: formData.customDeductionRate ? Number(formData.customDeductionRate) : 1,
       customCheckIn: formData.customCheckIn || undefined,
@@ -57,7 +60,7 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
     };
     onAdd(newEmp);
     setShowModal(false);
-    setFormData({ baseSalary: 325000, transportAllowance: 25000, vacationBalance: 21, workDaysPerCycle: defaultWorkDays, customOvertimeRate: 1.5, customDeductionRate: 1, joinDate: new Date().toISOString().split('T')[0] });
+    setFormData({ baseSalary: 325000, transportAllowance: 25000, vacationBalance: 21, workDaysPerCycle: defaultWorkDays, workingHoursPerDay: 8, customOvertimeRate: 1.5, customDeductionRate: 1, joinDate: new Date().toISOString().split('T')[0] });
   };
 
   const handleEdit = (emp: Employee) => {
@@ -93,7 +96,7 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
               <Printer size={20}/> طباعة القائمة
             </button>
           )}
-          <button onClick={() => { setFormData({ baseSalary: 325000, transportAllowance: 25000, vacationBalance: 21, workDaysPerCycle: defaultWorkDays, customOvertimeRate: 1.5, customDeductionRate: 1, joinDate: new Date().toISOString().split('T')[0] }); setShowModal(true); }} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-indigo-600 text-white px-8 py-3 rounded-2xl hover:bg-indigo-700 transition shadow-xl font-black">
+          <button onClick={() => { setFormData({ baseSalary: 325000, transportAllowance: 25000, vacationBalance: 21, workDaysPerCycle: defaultWorkDays, workingHoursPerDay: 8, customOvertimeRate: 1.5, customDeductionRate: 1, joinDate: new Date().toISOString().split('T')[0] }); setShowModal(true); }} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-indigo-600 text-white px-8 py-3 rounded-2xl hover:bg-indigo-700 transition shadow-xl font-black">
             <UserPlus size={20} /> إضافة موظف
           </button>
         </div>
@@ -197,15 +200,18 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
               </div>
 
               {/* القسم الثالث: البيانات المالية */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="p-4 bg-indigo-50/50 dark:bg-slate-800/50 rounded-2xl border-2 border-indigo-100 dark:border-indigo-900">
-                  <label className="text-[10px] font-black text-indigo-600 uppercase mb-2 block">الراتب الأساسي ({isWeekly ? 'أسبوعي' : 'شهري'})</label>
+                  <label className="text-[10px] font-black text-indigo-600 uppercase mb-2 block">الراتب الأساسي</label>
                   <input type="number" className="w-full p-3 border-2 dark:bg-slate-800 rounded-xl font-black text-xl text-indigo-700" value={formData.baseSalary || 0} onChange={e => setFormData({...formData, baseSalary: Number(e.target.value)})} />
                 </div>
                 <div className="p-4 bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl border-2 border-slate-200 dark:border-slate-700">
                   <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block">أيام العمل في الدورة</label>
                   <input type="number" className="w-full p-3 border-2 dark:bg-slate-800 rounded-xl font-black text-xl text-slate-700" placeholder={`مثلاً: ${isWeekly ? '6' : '26'}`} value={formData.workDaysPerCycle || ''} onChange={e => setFormData({...formData, workDaysPerCycle: Number(e.target.value)})} />
-                  <p className="text-[9px] font-bold text-slate-400 mt-1">* يحدد سعر اليوم بناءً على هذا الرقم لتجنب احتساب العطل.</p>
+                </div>
+                <div className="p-4 bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl border-2 border-slate-200 dark:border-slate-700">
+                  <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block">ساعات العمل يومياً</label>
+                  <input type="number" className="w-full p-3 border-2 dark:bg-slate-800 rounded-xl font-black text-xl text-slate-700" placeholder="مثلاً: 8" value={formData.workingHoursPerDay || ''} onChange={e => setFormData({...formData, workingHoursPerDay: Number(e.target.value)})} />
                 </div>
                 <div><label className="text-[10px] font-black text-slate-500 uppercase mb-2 block mr-2">بدل المواصلات</label><input type="number" className="w-full p-4 border-2 dark:bg-slate-800 rounded-xl font-bold" value={formData.transportAllowance || 0} onChange={e => setFormData({...formData, transportAllowance: Number(e.target.value)})} /></div>
               </div>
