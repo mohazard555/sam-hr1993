@@ -489,8 +489,18 @@ const App: React.FC = () => {
                        </td>
                        <td className="px-1 py-5 text-emerald-600">+{p.bonuses.toLocaleString()}</td>
                        <td className="px-1 py-5 text-emerald-600">+{p.production.toLocaleString()}</td>
-                       <td className="px-1 py-5 text-emerald-600">+{p.overtimePay.toLocaleString()}</td>
-                       <td className={`px-1 py-5 ${p.lateDeduction > 0 ? 'text-rose-600' : 'text-slate-400'}`}>-{p.lateDeduction.toLocaleString()}</td>
+                       <td className="px-1 py-5 text-emerald-600">
+                         <div className="flex flex-col items-center">
+                           <span className="text-[9px] font-black opacity-60">{(p.overtimeMinutes / 60).toFixed(1)} س</span>
+                           <span>+{p.overtimePay.toLocaleString()}</span>
+                         </div>
+                       </td>
+                       <td className={`px-1 py-5 ${p.lateDeduction > 0 ? 'text-rose-600' : 'text-slate-400'}`}>
+                         <div className="flex flex-col items-center">
+                           <span className="text-[9px] font-black opacity-60">{(p.lateMinutes / 60).toFixed(1)} س</span>
+                           <span>-{p.lateDeduction.toLocaleString()}</span>
+                         </div>
+                       </td>
                        <td className="px-1 py-5 text-rose-600">-{p.loanInstallment.toLocaleString()}</td>
                        <td className="px-1 py-5 text-rose-600">-{p.manualDeductions.toLocaleString()}</td>
                        <td className="px-4 py-5 font-black bg-indigo-50/80 dark:bg-indigo-900/10 text-[18px] text-indigo-900 dark:text-indigo-300 border-r border-indigo-100 print:bg-white print:text-black print:text-[12px]">
