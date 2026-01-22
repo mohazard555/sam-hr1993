@@ -331,7 +331,7 @@ const App: React.FC = () => {
           initialData={{ type: 'annual', status: 'approved', isPaid: true, startDate: new Date().toISOString().split('T')[0], endDate: new Date().toISOString().split('T')[0] }} 
           tableHeaders={['الموظف', 'النوع', 'مأجورة', 'من', 'إلى']} 
           renderForm={(data, set) => (
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-2 gap-6 text-right">
                 <div className="col-span-2">
                    <label className="text-[11pt] font-black mb-1 block">نوع الإجازة</label>
                    <select className="w-full p-4 border-2 rounded-xl font-bold text-lg bg-slate-50" value={data.type} onChange={e => set({...data, type: e.target.value as any})}>
@@ -375,9 +375,19 @@ const App: React.FC = () => {
           initialData={{ amount: 0, installmentsCount: 1, monthlyInstallment: 0, remainingAmount: 0, date: new Date().toISOString().split('T')[0], collectionDate: new Date().toISOString().split('T')[0] }} 
           tableHeaders={['الموظف', 'المبلغ', 'الأقساط', 'قيمة القسط', 'بداية التحصيل']} 
           renderForm={(data, set) => (
-            <div className="grid grid-cols-2 gap-4">
-              <input type="number" placeholder="المبلغ" className="p-4 border rounded-xl font-black text-lg" value={data.amount || ''} onChange={e => set({...data, amount: Number(e.target.value), remainingAmount: Number(e.target.value)})} />
-              <input type="number" placeholder="الأقساط" className="p-4 border rounded-xl font-black text-lg" value={data.installmentsCount || ''} onChange={e => set({...data, installmentsCount: Number(e.target.value), monthlyInstallment: Number(data.amount || 0) / Number(e.target.value || 1)})} />
+            <div className="grid grid-cols-2 gap-6 text-right">
+              <div className="col-span-2">
+                <label className="text-[11pt] font-black mb-1 block">إجمالي مبلغ السلفة</label>
+                <input type="number" placeholder="المبلغ" className="w-full p-4 border rounded-xl font-black text-xl text-indigo-700" value={data.amount || ''} onChange={e => set({...data, amount: Number(e.target.value), remainingAmount: Number(e.target.value)})} />
+              </div>
+              <div>
+                <label className="text-[11pt] font-black mb-1 block">قيمة القسط الشهري</label>
+                <input type="number" placeholder="قيمة القسط" className="w-full p-4 border rounded-xl font-black text-xl text-rose-700" value={data.monthlyInstallment || ''} onChange={e => set({...data, monthlyInstallment: Number(e.target.value)})} />
+              </div>
+              <div>
+                <label className="text-[11pt] font-black mb-1 block">تاريخ بدء التحصيل</label>
+                <input type="date" className="w-full p-4 border rounded-xl font-bold text-lg" value={data.collectionDate || ''} onChange={e => set({...data, collectionDate: e.target.value})} />
+              </div>
             </div>
           )} 
           renderRow={(i, name) => (<><td className="px-6 py-4 font-black text-lg">{name}</td><td className="px-6 py-4 font-bold">{i.amount.toLocaleString()}</td><td className="px-6 py-4">{i.installmentsCount}</td><td className="px-6 py-4 font-black text-indigo-700">{Math.round(i.monthlyInstallment).toLocaleString()}</td><td className="px-6 py-4">{i.collectionDate}</td></>)} 
