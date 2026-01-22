@@ -278,13 +278,13 @@ const App: React.FC = () => {
                <div className="col-span-2 text-[10px] font-black text-indigo-800 mb-1 border-b">المستحقات (+)</div>
                <div className="flex justify-between text-slate-600 border-b border-slate-50"><span>الراتب الأساسي:</span> <span>{p.baseSalary.toLocaleString()}</span></div>
                <div className="flex justify-between text-emerald-600 border-b border-slate-50"><span>المواصلات:</span> <span>+{p.transport.toLocaleString()}</span></div>
-               <div className="flex justify-between text-emerald-600 border-b border-slate-50"><span>العمل الإضافي:</span> <span>+{p.overtimePay.toLocaleString()}</span></div>
+               <div className="flex justify-between text-emerald-600 border-b border-slate-50"><span>العمل الإضافي ({(p.overtimeMinutes / 60).toFixed(1)} س):</span> <span>+{p.overtimePay.toLocaleString()}</span></div>
                <div className="flex justify-between text-emerald-600 border-b border-slate-50"><span>المكافآت:</span> <span>+{p.bonuses.toLocaleString()}</span></div>
                <div className="flex justify-between text-emerald-600 border-b border-slate-50"><span>الإنتاج:</span> <span>+{p.production.toLocaleString()}</span></div>
                
                <div className="col-span-2 text-[10px] font-black text-rose-800 mb-1 mt-2 border-b">الاستقطاعات (-)</div>
-               <div className="flex justify-between text-rose-600 border-b border-slate-50"><span>تأخير:</span> <span>-{p.lateDeduction.toLocaleString()}</span></div>
-               <div className="flex justify-between text-rose-600 border-b border-slate-50"><span>انصراف مبكر:</span> <span>-{p.earlyDepartureDeduction.toLocaleString()}</span></div>
+               <div className="flex justify-between text-rose-600 border-b border-slate-50"><span>تأخير ({(p.lateMinutes / 60).toFixed(1)} س):</span> <span>-{p.lateDeduction.toLocaleString()}</span></div>
+               <div className="flex justify-between text-rose-600 border-b border-slate-50"><span>انصراف مبكر ({(p.earlyDepartureMinutes / 60).toFixed(1)} س):</span> <span>-{p.earlyDepartureDeduction.toLocaleString()}</span></div>
                <div className="flex justify-between text-rose-600 border-b border-slate-50"><span>أيام غياب:</span> <span>-{p.absenceDeduction.toLocaleString()} ({p.absenceDays} ي)</span></div>
                <div className="flex justify-between text-rose-600 border-b border-slate-50"><span>أقساط سلف:</span> <span>-{p.loanInstallment.toLocaleString()}</span></div>
                <div className="flex justify-between text-rose-600 border-b border-slate-50"><span>خصومات أخرى:</span> <span>-{p.manualDeductions.toLocaleString()}</span></div>
@@ -381,7 +381,7 @@ const App: React.FC = () => {
                 <input type="number" placeholder="المبلغ" className="w-full p-4 border rounded-xl font-black text-xl text-indigo-700" value={data.amount || ''} onChange={e => set({...data, amount: Number(e.target.value), remainingAmount: Number(e.target.value)})} />
               </div>
               <div>
-                <label className="text-[11pt] font-black mb-1 block">قيمة القسط الشهري</label>
+                <label className="text-[11pt] font-black mb-1 block">{db.settings.salaryCycle === 'weekly' ? 'قيمة القسط الأسبوعي' : 'قيمة القسط الشهري'}</label>
                 <input type="number" placeholder="قيمة القسط" className="w-full p-4 border rounded-xl font-black text-xl text-rose-700" value={data.monthlyInstallment || ''} onChange={e => set({...data, monthlyInstallment: Number(e.target.value)})} />
               </div>
               <div>
@@ -401,7 +401,7 @@ const App: React.FC = () => {
           onSave={i => updateList('financials', i)} onDelete={id => deleteFromList('financials', id)} onArchive={i => archiveItem('financials', i)}
           onPrintIndividual={i => setIndividualPrintItem({title: "سند مالي معتمد", type: 'financial', data: i})} 
           initialData={{ type: 'bonus', amount: 0, date: new Date().toISOString().split('T')[0], reason: '' }} 
-          tableHeaders={['الموظف', 'النوع', 'المبلغ', 'التاريخ']} 
+          tableHeaders={['الموظط', 'النوع', 'المبلغ', 'التاريخ']} 
           renderForm={(data, set) => (
             <div className="grid grid-cols-1 gap-6">
                 <div>

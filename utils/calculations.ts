@@ -50,9 +50,17 @@ export const generatePayrollForRange = (
     const totalProductionValue = empProduction.reduce((acc, p) => acc + p.totalValue, 0);
     const manualDeductions = empFinancials.filter(f => f.type === 'deduction' || f.type === 'payment').reduce((acc, f) => acc + f.amount, 0);
 
-    const empLoan = loans.find(l => l.employeeId === emp.id && l.remainingAmount > 0 && !l.isArchived);
-    // القسط يحسب إذا كان النطاق يغطي فترة زمنية كافية (مثلاً أكثر من 20 يوم)
-    const loanInstallment = (empLoan && diffDays >= 20) ? Math.min(empLoan.monthlyInstallment, empLoan.remainingAmount) : 0;
+    // البحث عن سلفة للموظف تكون غير مؤرشفة وبها مبلغ متبقي
+    const empLoan = loans.find(l => {
+      if (l.employeeId !== emp.id || l.remainingAmount <= 0 || l.isArchived) return false;
+      // التحقق من تاريخ بدء التحصيل: إذا كان تاريخ التحصيل مسجل ويقع قبل أو خلال فترة الراتب الحالية
+      if (l.collectionDate && l.collectionDate > endDate) return false;
+      return true;
+    });
+
+    // القسط يحسب إذا كان النطاق يغطي فترة زمنية كافية للدورة (أسبوع للأسبوعي، أو شهر للشهري)
+    const minDaysToDeduct = isWeekly ? 5 : 20; 
+    const loanInstallment = (empLoan && diffDays >= minDaysToDeduct) ? Math.min(empLoan.monthlyInstallment, empLoan.remainingAmount) : 0;
 
     const shiftIn = emp.customCheckIn || settings.officialCheckIn;
     const shiftOut = emp.customCheckOut || settings.officialCheckOut;
