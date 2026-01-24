@@ -96,10 +96,11 @@ const App: React.FC = () => {
       production: acc.production + p.production,
       overtime: acc.overtime + p.overtimePay,
       late: acc.late + p.lateDeduction,
+      early: acc.early + p.earlyDepartureDeduction,
       loans: acc.loans + p.loanInstallment,
       manual: acc.manual + p.manualDeductions,
       net: acc.net + p.netSalary
-    }), { base: 0, transport: 0, bonuses: 0, production: 0, overtime: 0, late: 0, loans: 0, manual: 0, net: 0 });
+    }), { base: 0, transport: 0, bonuses: 0, production: 0, overtime: 0, late: 0, early: 0, loans: 0, manual: 0, net: 0 });
   }, [currentPayrolls]);
 
   const updateList = <K extends keyof DB>(key: K, item: any) => {
@@ -254,6 +255,12 @@ const App: React.FC = () => {
     );
   };
 
+  const formatMinutes = (totalMinutes: number) => {
+    const hours = Math.floor(totalMinutes / 60);
+    const mins = Math.round(totalMinutes % 60);
+    return `${hours}س ${mins}د`;
+  };
+
   const VouchersPrintGrid = ({ payrolls }: { payrolls: PayrollRecord[] }) => (
     <div className="vouchers-grid-print grid grid-cols-2 gap-4 p-4" dir="rtl">
       {payrolls.map(p => {
@@ -291,7 +298,11 @@ const App: React.FC = () => {
                {/* قسم الإضافات */}
                <div className="text-[#00a693] font-black border-b pb-1 mb-1">الإضافات (+)</div>
                <div className="flex justify-between items-center text-[#00a693]">
-                 <span className="font-black">العمل الإضافي ({(p.overtimeMinutes / 60).toFixed(1)} س):</span>
+                 <span className="font-black">بدل مواصلات:</span>
+                 <span className="font-black">{p.transport.toLocaleString()}+</span>
+               </div>
+               <div className="flex justify-between items-center text-[#00a693]">
+                 <span className="font-black">العمل الإضافي ({formatMinutes(p.overtimeMinutes)}):</span>
                  <span className="font-black">{p.overtimePay.toLocaleString()}+</span>
                </div>
                <div className="flex justify-between items-center text-[#00a693]">
@@ -310,11 +321,11 @@ const App: React.FC = () => {
                {/* قسم الاستقطاعات */}
                <div className="text-[#d91e5b] font-black border-t pt-2 mt-2">الاستقطاعات (-)</div>
                <div className="flex justify-between items-center text-[#d91e5b]">
-                 <span className="font-black">تأخير ({(p.lateMinutes / 60).toFixed(1)} س):</span>
+                 <span className="font-black">تأخير ({formatMinutes(p.lateMinutes)}):</span>
                  <span className="font-black">{p.lateDeduction.toLocaleString()}-</span>
                </div>
                <div className="flex justify-between items-center text-[#d91e5b]">
-                 <span className="font-black">انصراف مبكر ({(p.earlyDepartureMinutes / 60).toFixed(1)} س):</span>
+                 <span className="font-black">انصراف مبكر ({formatMinutes(p.earlyDepartureMinutes)}):</span>
                  <span className="font-black">{p.earlyDepartureDeduction.toLocaleString()}-</span>
                </div>
                <div className="flex justify-between items-center text-[#d91e5b]">
@@ -514,6 +525,7 @@ const App: React.FC = () => {
                      <th className="px-1 py-5 text-emerald-300">إنتاج</th>
                      <th className="px-1 py-5 text-emerald-300">إضافي</th>
                      <th className="px-1 py-5 text-rose-300">تأخير</th>
+                     <th className="px-1 py-5 text-rose-300">انصراف</th>
                      <th className="px-1 py-5 text-rose-300">سلف</th>
                      <th className="px-1 py-5 text-rose-300">أخرى</th>
                      <th className="px-4 py-5 text-center bg-indigo-900 min-w-[130px] shadow-2xl print:bg-slate-200 print:text-black">الصافي</th>
@@ -533,14 +545,20 @@ const App: React.FC = () => {
                        <td className="px-1 py-5 text-emerald-600">+{p.production.toLocaleString()}</td>
                        <td className="px-1 py-5 text-emerald-600">
                          <div className="flex flex-col items-center">
-                           <span className="text-[9px] font-black opacity-60">{(p.overtimeMinutes / 60).toFixed(1)} س</span>
+                           <span className="text-[9px] font-black opacity-60">{formatMinutes(p.overtimeMinutes)}</span>
                            <span>+{p.overtimePay.toLocaleString()}</span>
                          </div>
                        </td>
                        <td className={`px-1 py-5 ${p.lateDeduction > 0 ? 'text-rose-600' : 'text-slate-400'}`}>
                          <div className="flex flex-col items-center">
-                           <span className="text-[9px] font-black opacity-60">{(p.lateMinutes / 60).toFixed(1)} س</span>
+                           <span className="text-[9px] font-black opacity-60">{formatMinutes(p.lateMinutes)}</span>
                            <span>-{p.lateDeduction.toLocaleString()}</span>
+                         </div>
+                       </td>
+                       <td className={`px-1 py-5 ${p.earlyDepartureDeduction > 0 ? 'text-rose-600' : 'text-slate-400'}`}>
+                         <div className="flex flex-col items-center">
+                           <span className="text-[9px] font-black opacity-60">{formatMinutes(p.earlyDepartureMinutes)}</span>
+                           <span>-{p.earlyDepartureDeduction.toLocaleString()}</span>
                          </div>
                        </td>
                        <td className="px-1 py-5 text-rose-600">-{p.loanInstallment.toLocaleString()}</td>
@@ -561,6 +579,7 @@ const App: React.FC = () => {
                        <td className="px-1 py-6 text-emerald-400">+{payrollTotals.production.toLocaleString()}</td>
                        <td className="px-1 py-6 text-emerald-400">+{payrollTotals.overtime.toLocaleString()}</td>
                        <td className="px-1 py-6 text-rose-300">-{payrollTotals.late.toLocaleString()}</td>
+                       <td className="px-1 py-6 text-rose-300">-{payrollTotals.early.toLocaleString()}</td>
                        <td className="px-1 py-6 text-rose-300">-{payrollTotals.loans.toLocaleString()}</td>
                        <td className="px-1 py-6 text-rose-300">-{payrollTotals.manual.toLocaleString()}</td>
                        <td className="px-4 py-6 text-[22px] bg-indigo-900 text-white shadow-2xl print:bg-slate-300 print:text-black print:text-[14px]">
