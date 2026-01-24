@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Employee, CompanySettings } from '../types';
-import { UserPlus, Search, Edit2, Trash2, Settings2, Clock, Calculator, CalendarCheck, Printer, X, Phone, User as UserIcon, MapPin, Calendar } from 'lucide-react';
+import { UserPlus, Search, Edit2, Trash2, Settings2, Clock, Calculator, CalendarCheck, Printer, X, Phone, User as UserIcon, MapPin, Calendar, ToggleLeft, ToggleRight, Bus } from 'lucide-react';
 
 interface Props {
   employees: Employee[];
@@ -22,6 +22,7 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
   const [formData, setFormData] = useState<Partial<Employee>>({
     baseSalary: 325000,
     transportAllowance: 25000,
+    isTransportExempt: false,
     vacationBalance: 21,
     workDaysPerCycle: defaultWorkDays,
     workingHoursPerDay: 8,
@@ -46,6 +47,7 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
       department: formData.department || '',
       baseSalary: Number(formData.baseSalary),
       transportAllowance: Number(formData.transportAllowance),
+      isTransportExempt: !!formData.isTransportExempt,
       nationalId: formData.nationalId || '',
       phone: formData.phone || '',
       address: formData.address || '',
@@ -60,7 +62,7 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
     };
     onAdd(newEmp);
     setShowModal(false);
-    setFormData({ baseSalary: 325000, transportAllowance: 25000, vacationBalance: 21, workDaysPerCycle: defaultWorkDays, workingHoursPerDay: 8, customOvertimeRate: 1.5, customDeductionRate: 1, joinDate: new Date().toISOString().split('T')[0] });
+    setFormData({ baseSalary: 325000, transportAllowance: 25000, isTransportExempt: false, vacationBalance: 21, workDaysPerCycle: defaultWorkDays, workingHoursPerDay: 8, customOvertimeRate: 1.5, customDeductionRate: 1, joinDate: new Date().toISOString().split('T')[0] });
   };
 
   const handleEdit = (emp: Employee) => {
@@ -96,7 +98,7 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
               <Printer size={20}/> طباعة القائمة
             </button>
           )}
-          <button onClick={() => { setFormData({ baseSalary: 325000, transportAllowance: 25000, vacationBalance: 21, workDaysPerCycle: defaultWorkDays, workingHoursPerDay: 8, customOvertimeRate: 1.5, customDeductionRate: 1, joinDate: new Date().toISOString().split('T')[0] }); setShowModal(true); }} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-indigo-600 text-white px-8 py-3 rounded-2xl hover:bg-indigo-700 transition shadow-xl font-black">
+          <button onClick={() => { setFormData({ baseSalary: 325000, transportAllowance: 25000, isTransportExempt: false, vacationBalance: 21, workDaysPerCycle: defaultWorkDays, workingHoursPerDay: 8, customOvertimeRate: 1.5, customDeductionRate: 1, joinDate: new Date().toISOString().split('T')[0] }); setShowModal(true); }} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-indigo-600 text-white px-8 py-3 rounded-2xl hover:bg-indigo-700 transition shadow-xl font-black">
             <UserPlus size={20} /> إضافة موظف
           </button>
         </div>
@@ -121,7 +123,10 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-700 dark:text-indigo-400 font-black">{emp.name[0]}</div>
                       <div>
-                        <p className="font-black text-slate-900 dark:text-white">{emp.name}</p>
+                        <div className="flex items-center gap-1">
+                           <p className="font-black text-slate-900 dark:text-white">{emp.name}</p>
+                           {emp.isTransportExempt && <Bus size={12} className="text-emerald-500" title="مستثنى من خصم المواصلات" />}
+                        </div>
                         <p className="text-[10px] text-slate-600 dark:text-slate-400 font-bold">{emp.nationalId || 'بدون رقم وطني'}</p>
                       </div>
                     </div>
@@ -135,7 +140,9 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
                   </td>
                   <td className="px-6 py-5 text-center">
                     <p className="font-black text-slate-900 dark:text-white">{emp.baseSalary.toLocaleString()}</p>
-                    <p className="text-[10px] text-emerald-700 font-bold">+{emp.transportAllowance.toLocaleString()}</p>
+                    <p className={`text-[10px] font-bold ${emp.isTransportExempt ? 'text-emerald-600' : 'text-slate-500'}`}>
+                       +{emp.transportAllowance.toLocaleString()} {emp.isTransportExempt && '(ثابت)'}
+                    </p>
                   </td>
                   <td className="px-6 py-5">
                     <div className="flex justify-center gap-2">
@@ -213,7 +220,21 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
                   <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block">ساعات العمل يومياً</label>
                   <input type="number" className="w-full p-3 border-2 dark:bg-slate-800 rounded-xl font-black text-xl text-slate-700" placeholder="مثلاً: 8" value={formData.workingHoursPerDay || ''} onChange={e => setFormData({...formData, workingHoursPerDay: Number(e.target.value)})} />
                 </div>
-                <div><label className="text-[10px] font-black text-slate-500 uppercase mb-2 block mr-2">بدل المواصلات</label><input type="number" className="w-full p-4 border-2 dark:bg-slate-800 rounded-xl font-bold" value={formData.transportAllowance || 0} onChange={e => setFormData({...formData, transportAllowance: Number(e.target.value)})} /></div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block mr-2">بدل المواصلات</label>
+                    <input type="number" className="w-full p-4 border-2 dark:bg-slate-800 rounded-xl font-bold" value={formData.transportAllowance || 0} onChange={e => setFormData({...formData, transportAllowance: Number(e.target.value)})} />
+                  </div>
+                  <div className="flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/10 p-4 rounded-2xl border-2 border-emerald-100 dark:border-emerald-900/30">
+                     <div className="flex flex-col">
+                        <span className="text-[10px] font-black text-emerald-700 uppercase leading-none mb-1">استثناء الخصم</span>
+                        <span className="text-[8px] font-bold text-slate-400 leading-none">صرف كامل البدل عند الغياب</span>
+                     </div>
+                     <button type="button" onClick={() => setFormData({...formData, isTransportExempt: !formData.isTransportExempt})} className="transition-transform active:scale-90">
+                        {formData.isTransportExempt ? <ToggleRight size={36} className="text-emerald-600" /> : <ToggleLeft size={36} className="text-slate-300" />}
+                     </button>
+                  </div>
+                </div>
               </div>
 
               {/* شريط معلومات الحساب التلقائية */}

@@ -51,13 +51,14 @@ export interface Employee {
   department: string;
   baseSalary: number;
   transportAllowance: number;
+  isTransportExempt?: boolean; // استثناء من خصم المواصلات عند الغياب
   joinDate: string;
   phone: string;
   nationalId: string;
   address?: string;
   vacationBalance: number;
   workDaysPerCycle: number;
-  workingHoursPerDay: number; // الحقل الجديد لتحديد ساعات العمل اليومية
+  workingHoursPerDay: number; 
   customOvertimeRate?: number;
   customDeductionRate?: number;
   customCheckIn?: string;

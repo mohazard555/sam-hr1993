@@ -41,6 +41,12 @@ export const generatePayrollForRange = (
     const absenceDays = Math.max(0, diffDays - workingDays); 
     const absenceDeduction = Math.round(absenceDays * dailyRate);
 
+    // حساب استحقاق المواصلات (خصم عند الغياب ما لم يكن هناك استثناء)
+    const dailyTransportRate = emp.transportAllowance / cycleDays;
+    const transportEarned = emp.isTransportExempt 
+      ? emp.transportAllowance 
+      : Math.max(0, emp.transportAllowance - (absenceDays * dailyTransportRate));
+
     const bonuses = empFinancials.filter(f => f.type === 'bonus').reduce((acc, f) => acc + f.amount, 0);
     const productionIncentives = empFinancials.filter(f => f.type === 'production_incentive').reduce((acc, f) => acc + f.amount, 0);
     const totalProductionValue = empProduction.reduce((acc, p) => acc + p.totalValue, 0);
@@ -75,7 +81,7 @@ export const generatePayrollForRange = (
     const totalOTMins = empAttendance.reduce((acc, r) => Math.max(0, calculateTimeDiffMinutes(r.checkOut, shiftOut)) + acc, 0);
     const overtimePay = (totalOTMins / 60) * hourlyRate * otRate;
 
-    const totalEarnings = emp.baseSalary + emp.transportAllowance + bonuses + productionIncentives + totalProductionValue + overtimePay;
+    const totalEarnings = emp.baseSalary + Math.round(transportEarned) + bonuses + productionIncentives + totalProductionValue + overtimePay;
     const totalDeductions = absenceDeduction + manualDeductions + Math.round(lateDeductionValue) + Math.round(earlyDeductionValue) + loanInstallment;
     
     const netSalary = totalEarnings - totalDeductions;
@@ -87,7 +93,7 @@ export const generatePayrollForRange = (
       year: start.getFullYear(),
       baseSalary: emp.baseSalary,
       bonuses: bonuses + productionIncentives,
-      transport: emp.transportAllowance,
+      transport: Math.round(transportEarned),
       production: totalProductionValue,
       overtimePay: Math.round(overtimePay),
       overtimeMinutes: totalOTMins,
