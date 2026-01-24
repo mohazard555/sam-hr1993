@@ -72,6 +72,21 @@ const Production: React.FC<Props> = ({ employees, items, settings, onSave, onDel
     }
   };
 
+  const handleExportExcel = () => {
+    const dataToExport = filteredItems.map(item => {
+      const emp = employees.find(e => e.id === item.employeeId);
+      return {
+        'التاريخ': item.date,
+        'اسم الموظف': emp?.name || 'غير معروف',
+        'الكمية (قطع)': item.piecesCount,
+        'سعر القطعة': item.valuePerPiece,
+        'الإجمالي المستحق': item.totalValue,
+        'ملاحظات': item.notes || '-'
+      };
+    });
+    exportToExcel(dataToExport, "Production_Report");
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 no-print text-right">
@@ -108,13 +123,12 @@ const Production: React.FC<Props> = ({ employees, items, settings, onSave, onDel
             <Calendar className="absolute right-3 top-3.5 text-slate-400" size={18}/>
             <input type="date" className="w-full pr-10 p-3 bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold text-center" value={dateTo} onChange={e => setDateTo(e.target.value)} />
          </div>
-         <button onClick={() => exportToExcel(filteredItems, "Production_Report")} className="bg-emerald-600 text-white font-black rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-700 transition">
+         <button onClick={handleExportExcel} className="bg-emerald-600 text-white font-black rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-700 transition">
             <FileDown size={18}/> تصدير البيانات
          </button>
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border dark:border-slate-800 overflow-hidden relative">
-        {/* ترويسة مطبوعة رسمية */}
         <div className="hidden print:flex justify-between items-start border-b-4 border-indigo-900 pb-6 mb-8 w-full text-indigo-950 p-8">
           <div className="text-right">
             <h1 className="text-3xl font-black leading-none">{settings.name}</h1>

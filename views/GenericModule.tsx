@@ -63,9 +63,33 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
     setFormData(initialData);
   };
 
+  const handleExportExcel = () => {
+    const dataToExport = filteredItems.map(item => {
+      const emp = employees.find(e => e.id === item.employeeId);
+      const row: any = {};
+      
+      // تعبئة البيانات بناءً على الرؤوس الموجودة في المكون
+      tableHeaders.forEach((header, idx) => {
+        if (idx === 0) row[header] = emp?.name || 'غير معروف';
+        else {
+          // جلب القيم برمجياً بناءً على الحقول المشتركة
+          if (header.includes('التاريخ') || header.includes('من')) row[header] = item.date || item.startDate;
+          else if (header.includes('إلى')) row[header] = item.endDate;
+          else {
+             // محاولة جلب القيم الأخرى ديناميكياً
+             const keys = Object.keys(item);
+             const targetKey = keys.find(k => typeof (item as any)[k] === 'number' || typeof (item as any)[k] === 'string');
+             if (targetKey) row[header] = (item as any)[targetKey];
+          }
+        }
+      });
+      return row;
+    });
+    exportToExcel(dataToExport, `${title}_Report`);
+  };
+
   return (
     <div className="space-y-6">
-      {/* ترويسة تقرير رسمية للطباعة */}
       <div className="hidden print:flex justify-between items-start border-b-4 border-indigo-900 pb-6 mb-8 w-full text-indigo-950">
         <div className="text-right">
           <h1 className="text-3xl font-black leading-none">{companyName}</h1>
@@ -111,7 +135,7 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
             <Calendar className="absolute right-3 top-3.5 text-slate-400" size={18}/>
             <input type="date" className="w-full pr-10 p-3 bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold text-center" value={dateTo} onChange={e => setDateTo(e.target.value)} />
          </div>
-         <button onClick={() => exportToExcel(filteredItems, title + "_Archive")} className="bg-emerald-600 text-white font-black rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-700 transition">
+         <button onClick={handleExportExcel} className="bg-emerald-600 text-white font-black rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-700 transition">
             <FileDown size={18}/> تصدير Excel
          </button>
       </div>

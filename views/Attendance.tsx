@@ -45,7 +45,6 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
       date, checkIn, checkOut, lateMinutes, overtimeMinutes, status: 'present'
     });
     
-    // تصفير المدخلات فوراً لمنع التكرار
     setEditingId(null); 
     setSelectedEmp('');
   };
@@ -84,9 +83,24 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
     return `${h} س ${m} د`;
   };
 
+  const handleExportExcel = () => {
+    const dataToExport = archivedRecords.map(r => {
+      const emp = employees.find(e => e.id === r.employeeId);
+      return {
+        'التاريخ': r.date,
+        'اسم الموظف': emp?.name || 'غير معروف',
+        'وقت الحضور': r.checkIn,
+        'وقت الانصراف': r.checkOut,
+        'دقائق التأخير': r.lateMinutes,
+        'دقائق الإضافي': r.overtimeMinutes,
+        'ساعات العمل': formatHours(calculateTimeDiffMinutes(r.checkOut, r.checkIn))
+      };
+    });
+    exportToExcel(dataToExport, "Attendance_Report");
+  };
+
   return (
     <div className="space-y-8">
-      {/* ترويسة الطباعة الرسمية */}
       <div className="hidden print:flex justify-between items-start border-b-4 border-indigo-900 pb-6 mb-8 w-full text-indigo-950">
         <div className="text-right">
           <h1 className="text-3xl font-black leading-none">{settings.name}</h1>
@@ -218,7 +232,7 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
                 <input type="date" className="w-full p-3 bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold" value={dateTo} onChange={e => setDateTo(e.target.value)} />
               </div>
               <div className="flex items-end gap-2">
-                 <button onClick={() => exportToExcel(archivedRecords, "AttendanceArchive")} className="flex-1 bg-emerald-600 text-white p-3 rounded-xl flex items-center justify-center gap-2 font-black shadow-lg"><FileDown size={18}/> Excel</button>
+                 <button onClick={handleExportExcel} className="flex-1 bg-emerald-600 text-white p-3 rounded-xl flex items-center justify-center gap-2 font-black shadow-lg"><FileDown size={18}/> Excel</button>
                  <button onClick={() => window.print()} className="flex-1 bg-slate-900 text-white p-3 rounded-xl flex items-center justify-center gap-2 font-black shadow-lg"><Printer size={18}/> طباعة</button>
               </div>
            </div>
