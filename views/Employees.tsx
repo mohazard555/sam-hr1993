@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
 import { Employee, CompanySettings } from '../types';
-import { UserPlus, Search, Edit2, Trash2, Settings2, Clock, Calculator, CalendarCheck, Printer, X, Phone, User as UserIcon, MapPin, Calendar, ToggleLeft, ToggleRight, Bus } from 'lucide-react';
+import { UserPlus, Search, Edit2, Trash2, Settings2, Clock, Calculator, CalendarCheck, Printer, X, Phone, User as UserIcon, MapPin, Calendar, ToggleLeft, ToggleRight, Bus, FileDown } from 'lucide-react';
+import { exportToExcel } from '../utils/export';
 
 interface Props {
   employees: Employee[];
@@ -76,6 +77,20 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
     e.department.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleExportExcel = () => {
+    const exportData = filtered.map(e => ({
+      'الاسم': e.name,
+      'المنصب': e.position,
+      'القسم': e.department,
+      'الراتب الأساسي': e.baseSalary,
+      'بدل المواصلات': e.transportAllowance,
+      'رقم الهاتف': e.phone,
+      'الهوية الوطنية': e.nationalId,
+      'تاريخ التعيين': e.joinDate
+    }));
+    exportToExcel(exportData, "Employees_List");
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
@@ -90,12 +105,18 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
           />
         </div>
         <div className="flex gap-2 w-full md:w-auto">
+          <button 
+            onClick={handleExportExcel} 
+            className="bg-emerald-100 text-emerald-700 px-6 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-emerald-200 transition"
+          >
+            <FileDown size={20}/> Excel
+          </button>
           {onPrintList && (
             <button 
               onClick={() => onPrintList(filtered)} 
               className="bg-indigo-100 text-indigo-700 px-6 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-indigo-200 transition"
             >
-              <Printer size={20}/> طباعة القائمة
+              <Printer size={20}/> طباعة
             </button>
           )}
           <button onClick={() => { setFormData({ baseSalary: 325000, transportAllowance: 25000, isTransportExempt: false, vacationBalance: 21, workDaysPerCycle: defaultWorkDays, workingHoursPerDay: 8, customOvertimeRate: 1.5, customDeductionRate: 1, joinDate: new Date().toISOString().split('T')[0] }); setShowModal(true); }} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-indigo-600 text-white px-8 py-3 rounded-2xl hover:bg-indigo-700 transition shadow-xl font-black">

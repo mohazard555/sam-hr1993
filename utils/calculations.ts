@@ -64,21 +64,30 @@ export const generatePayrollForRange = (
     const shiftIn = emp.customCheckIn || settings.officialCheckIn;
     const shiftOut = emp.customCheckOut || settings.officialCheckOut;
 
-    // حساب التأخير مع فترة السماح
+    // إصلاح حساب التأخير مع فترة السماح لضمان الاحتساب في الرواتب
+    const gracePeriod = Number(settings.gracePeriodMinutes || 0);
     const totalLateMinutes = empAttendance.reduce((acc, record) => {
       const lateMins = Math.max(0, calculateTimeDiffMinutes(record.checkIn, shiftIn));
-      // إذا تجاوز التأخير فترة السماح، يُحسب كامل التأخير
-      return acc + (lateMins > (settings.gracePeriodMinutes || 0) ? lateMins : 0);
+      // إذا تجاوز التأخير فترة السماح، يُحسب كامل التأخير كدقائق مخصومة
+      return acc + (lateMins > gracePeriod ? lateMins : 0);
     }, 0);
+    
+    // تحويل دقائق التأخير إلى قيمة نقدية بناءً على سعر الساعة ومضاعف الخصم
     const lateDeductionValue = (totalLateMinutes / 60) * (emp.customDeductionRate || 1) * hourlyRate;
 
     // حساب الانصراف المبكر
-    const totalEarlyMins = empAttendance.reduce((acc, record) => Math.max(0, calculateTimeDiffMinutes(shiftOut, record.checkOut)) + acc, 0);
+    const totalEarlyMins = empAttendance.reduce((acc, record) => {
+      const earlyMins = Math.max(0, calculateTimeDiffMinutes(shiftOut, record.checkOut));
+      return acc + earlyMins;
+    }, 0);
     const earlyDeductionValue = (totalEarlyMins / 60) * (emp.customDeductionRate || 1) * hourlyRate;
 
     // حساب العمل الإضافي
     const otRate = emp.customOvertimeRate ?? settings.overtimeHourRate;
-    const totalOTMins = empAttendance.reduce((acc, r) => Math.max(0, calculateTimeDiffMinutes(r.checkOut, shiftOut)) + acc, 0);
+    const totalOTMins = empAttendance.reduce((acc, r) => {
+      const otMins = Math.max(0, calculateTimeDiffMinutes(r.checkOut, shiftOut));
+      return acc + otMins;
+    }, 0);
     const overtimePay = (totalOTMins / 60) * hourlyRate * otRate;
 
     const totalEarnings = emp.baseSalary + Math.round(transportEarned) + bonuses + productionIncentives + totalProductionValue + overtimePay;

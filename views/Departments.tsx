@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
-import { Plus, Trash2, Building, Users, ChevronDown, ChevronUp, UserPlus, Printer, X } from 'lucide-react';
+import { Plus, Trash2, Building, Users, ChevronDown, ChevronUp, UserPlus, Printer, X, FileDown } from 'lucide-react';
 import { Employee } from '../types';
+import { exportToExcel } from '../utils/export';
 
 interface Props {
   departments: string[];
@@ -40,22 +41,41 @@ const Departments: React.FC<Props> = ({ departments = [], employees = [], onUpda
     onUpdateEmployee({ ...emp, department: newD });
   };
 
+  const handleExportAllDepartments = () => {
+    const exportData = employees.map(emp => ({
+      'القسم': emp.department,
+      'اسم الموظف': emp.name,
+      'المنصب': emp.position,
+      'رقم الهاتف': emp.phone
+    })).sort((a, b) => a['القسم'].localeCompare(b['القسم']));
+    
+    exportToExcel(exportData, "Departments_Structure");
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
       <div className="bg-white dark:bg-slate-900 p-10 rounded-[3rem] shadow-2xl border border-slate-200 dark:border-slate-800">
-        <div className="flex justify-between items-center mb-10">
+        <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
           <h3 className="text-2xl font-black text-indigo-700 dark:text-indigo-400 flex items-center gap-3">
             <Building size={28}/>
             إدارة هيكلية الأقسام والوحدات
           </h3>
-          {!isAdding && (
+          <div className="flex gap-2 w-full md:w-auto">
             <button 
-              onClick={() => setIsAdding(true)}
-              className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black shadow-lg hover:bg-indigo-700 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+              onClick={handleExportAllDepartments}
+              className="bg-emerald-100 text-emerald-700 px-6 py-3 rounded-2xl font-black shadow-lg hover:bg-emerald-200 transition flex items-center gap-2"
             >
-              <Plus size={20}/> إضافة قسم جديد
+              <FileDown size={20}/> Excel
             </button>
-          )}
+            {!isAdding && (
+              <button 
+                onClick={() => setIsAdding(true)}
+                className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black shadow-lg hover:bg-indigo-700 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+              >
+                <Plus size={20}/> إضافة قسم
+              </button>
+            )}
+          </div>
         </div>
         
         {isAdding && (

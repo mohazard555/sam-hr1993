@@ -14,7 +14,8 @@ import { GenericModule } from './views/GenericModule';
 import { loadDB, saveDB, DB } from './db/store';
 import { Employee, PayrollRecord, FinancialEntry, Loan, LeaveRequest, ProductionEntry, AttendanceRecord, Warning } from './types';
 import { generatePayrollForRange } from './utils/calculations';
-import { Printer, X, ReceiptText, CalendarDays, Loader2, FileText, CheckCircle, Info, ShieldAlert, Package, Layers, Clock, TrendingUp, Lock, HelpCircle, ToggleLeft, ToggleRight, AlertCircle, Calendar } from 'lucide-react';
+import { exportToExcel } from './utils/export';
+import { Printer, X, ReceiptText, CalendarDays, Loader2, FileText, CheckCircle, Info, ShieldAlert, Package, Layers, Clock, TrendingUp, Lock, HelpCircle, ToggleLeft, ToggleRight, AlertCircle, Calendar, FileDown } from 'lucide-react';
 
 type PrintType = 'production' | 'loan' | 'leave' | 'financial' | 'document' | 'vouchers' | 'report_attendance' | 'report_financial' | 'warning' | 'employee_list' | 'department_list';
 
@@ -368,6 +369,29 @@ const App: React.FC = () => {
     }, 600);
   };
 
+  const handleExportPayrollExcel = () => {
+    const exportData = currentPayrolls.map(p => {
+      const emp = db.employees.find(e => e.id === p.employeeId);
+      return {
+        'اسم الموظف': emp?.name,
+        'القسم': emp?.department,
+        'الأساسي': p.baseSalary,
+        'بدل المواصلات': p.transport,
+        'أيام الحضور': p.workingDays,
+        'أيام الغياب': p.absenceDays,
+        'مكافآت': p.bonuses,
+        'إنتاج': p.production,
+        'إضافي': p.overtimePay,
+        'تأخير': p.lateDeduction,
+        'انصراف مبكر': p.earlyDepartureDeduction,
+        'سلف': p.loanInstallment,
+        'خصومات أخرى': p.manualDeductions,
+        'صافي الراتب': p.netSalary
+      };
+    });
+    exportToExcel(exportData, "Payroll_Report");
+  };
+
   const renderActiveTab = () => {
     switch (activeTab) {
       case 'dashboard': return <Dashboard employeesCount={db.employees.length} todayAttendance={db.attendance.filter(a => a.date === new Date().toISOString().split('T')[0]).length} totalLoans={db.loans.reduce((acc, l) => acc + (l.remainingAmount || 0), 0)} totalSalaryBudget={currentPayrolls.reduce((acc, p) => acc + p.netSalary, 0)} />;
@@ -505,9 +529,10 @@ const App: React.FC = () => {
                    </div>
                 </div>
              </div>
-             <div className="flex gap-3">
+             <div className="flex gap-2">
+                <button onClick={handleExportPayrollExcel} className="bg-emerald-600 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-emerald-700 transition shadow-lg"><FileDown size={20}/> Excel</button>
                 <button onClick={() => setIndividualPrintItem({ title: 'قسائم رواتب الموظفين', type: 'vouchers', data: currentPayrolls })} className="bg-indigo-100 text-indigo-700 px-8 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-indigo-200 transition"><ReceiptText size={20}/> القسائم</button>
-                <button onClick={() => window.print()} className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg"><Printer size={20}/> طباعة المسير</button>
+                <button onClick={() => window.print()} className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg"><Printer size={20}/> طباعة</button>
              </div>
           </div>
           
