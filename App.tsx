@@ -27,7 +27,6 @@ const App: React.FC = () => {
   const [individualPrintItem, setIndividualPrintItem] = useState<{title: string, type: PrintType, data: any} | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
   
-  // حالات فلترة الرواتب
   const [payrollDateFrom, setPayrollDateFrom] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]);
   const [payrollDateTo, setPayrollDateTo] = useState(new Date().toISOString().split('T')[0]);
 
@@ -256,47 +255,90 @@ const App: React.FC = () => {
   };
 
   const VouchersPrintGrid = ({ payrolls }: { payrolls: PayrollRecord[] }) => (
-    <div className="vouchers-grid-print grid grid-cols-2 gap-4 p-4">
+    <div className="vouchers-grid-print grid grid-cols-2 gap-4 p-4" dir="rtl">
       {payrolls.map(p => {
         const emp = db.employees.find(e => e.id === p.employeeId);
+        // الراتب المستحق هو مجموع الراتب الأساسي + الإضافات
+        const grossEarnings = p.baseSalary + p.transport + p.bonuses + p.production + p.overtimePay;
+        
         return (
-          <div key={p.id} className="print-card border-2 border-slate-200 p-8 bg-white relative mb-4 rounded-[2rem] shadow-sm">
-            <div className="flex justify-between items-start border-b-2 border-indigo-100 pb-4 mb-4">
+          <div key={p.id} className="print-card border-2 border-slate-200 p-6 bg-white relative mb-4 rounded-3xl">
+            <div className="flex justify-between items-start border-b-2 border-slate-100 pb-4 mb-4">
                <div className="text-right">
-                  <p className="text-[10px] font-black text-indigo-500 uppercase">قسيمة راتب معتمدة</p>
-                  <h3 className="text-xl font-black text-slate-900 leading-none">{emp?.name}</h3>
+                  <p className="text-[10px] font-black text-indigo-600 uppercase">قسيمة راتب معتمدة</p>
+                  <h3 className="text-lg font-black text-slate-900">{emp?.name}</h3>
                   <p className="text-[9px] font-bold text-slate-500 mt-1">{emp?.position} - {emp?.department}</p>
                </div>
-               <div className="text-left text-[10px] font-black text-slate-400">
+               <div className="text-left text-[9px] font-bold text-slate-400">
                   <p>الفترة: {p.month} / {p.year}</p>
-                  <p>تاريخ: {new Date().toLocaleDateString()}</p>
-                  <p>ساعات العمل: {p.workingHours} س</p>
+                  <p>تاريخ الطباعة: {new Date().toLocaleDateString()}</p>
                </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-[10px] font-bold">
-               <div className="col-span-2 text-[10px] font-black text-indigo-800 mb-1 border-b">المستحقات (+)</div>
-               <div className="flex justify-between text-slate-600 border-b border-slate-50"><span>الراتب الأساسي:</span> <span>{p.baseSalary.toLocaleString()}</span></div>
-               <div className="flex justify-between text-emerald-600 border-b border-slate-50"><span>المواصلات:</span> <span>+{p.transport.toLocaleString()}</span></div>
-               <div className="flex justify-between text-emerald-600 border-b border-slate-50"><span>العمل الإضافي ({(p.overtimeMinutes / 60).toFixed(1)} س):</span> <span>+{p.overtimePay.toLocaleString()}</span></div>
-               <div className="flex justify-between text-emerald-600 border-b border-slate-50"><span>المكافآت:</span> <span>+{p.bonuses.toLocaleString()}</span></div>
-               <div className="flex justify-between text-emerald-600 border-b border-slate-50"><span>الإنتاج:</span> <span>+{p.production.toLocaleString()}</span></div>
+            <div className="space-y-1.5 text-[11px] font-bold">
+               {/* البيانات التعاقدية والعملية */}
+               <div className="bg-slate-50 p-2 rounded-xl mb-3 space-y-1 border border-slate-100">
+                  <div className="flex justify-between items-center text-slate-700">
+                    <span className="font-black">الراتب التعاقدي:</span>
+                    <span className="font-black text-indigo-700">{p.baseSalary.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-slate-700">
+                    <span className="font-black">ساعات العمل الفعلية:</span>
+                    <span className="font-black text-indigo-700">{p.workingHours.toFixed(1)} ساعة</span>
+                  </div>
+               </div>
+
+               {/* قسم الإضافات */}
+               <div className="text-[#00a693] font-black border-b pb-1 mb-1">الإضافات (+)</div>
+               <div className="flex justify-between items-center text-[#00a693]">
+                 <span className="font-black">العمل الإضافي ({(p.overtimeMinutes / 60).toFixed(1)} س):</span>
+                 <span className="font-black">{p.overtimePay.toLocaleString()}+</span>
+               </div>
+               <div className="flex justify-between items-center text-[#00a693]">
+                 <span className="font-black">المكافآت:</span>
+                 <span className="font-black">{p.bonuses.toLocaleString()}+</span>
+               </div>
+               <div className="flex justify-between items-center text-[#00a693]">
+                 <span className="font-black">الإنتاج:</span>
+                 <span className="font-black">{p.production.toLocaleString()}+</span>
+               </div>
+               <div className="flex justify-between items-center text-[#00a693] border-t border-dotted mt-1 pt-1 opacity-80">
+                 <span className="font-black italic">الراتب المستحق (الإجمالي):</span>
+                 <span className="font-black">{grossEarnings.toLocaleString()}</span>
+               </div>
                
-               <div className="col-span-2 text-[10px] font-black text-rose-800 mb-1 mt-2 border-b">الاستقطاعات (-)</div>
-               <div className="flex justify-between text-rose-600 border-b border-slate-50"><span>تأخير ({(p.lateMinutes / 60).toFixed(1)} س):</span> <span>-{p.lateDeduction.toLocaleString()}</span></div>
-               <div className="flex justify-between text-rose-600 border-b border-slate-50"><span>انصراف مبكر ({(p.earlyDepartureMinutes / 60).toFixed(1)} س):</span> <span>-{p.earlyDepartureDeduction.toLocaleString()}</span></div>
-               <div className="flex justify-between text-rose-600 border-b border-slate-50"><span>أيام غياب:</span> <span>-{p.absenceDeduction.toLocaleString()} ({p.absenceDays} ي)</span></div>
-               <div className="flex justify-between text-rose-600 border-b border-slate-50"><span>أقساط سلف:</span> <span>-{p.loanInstallment.toLocaleString()}</span></div>
-               <div className="flex justify-between text-rose-600 border-b border-slate-50"><span>خصومات أخرى:</span> <span>-{p.manualDeductions.toLocaleString()}</span></div>
+               {/* قسم الاستقطاعات */}
+               <div className="text-[#d91e5b] font-black border-t pt-2 mt-2">الاستقطاعات (-)</div>
+               <div className="flex justify-between items-center text-[#d91e5b]">
+                 <span className="font-black">تأخير ({(p.lateMinutes / 60).toFixed(1)} س):</span>
+                 <span className="font-black">{p.lateDeduction.toLocaleString()}-</span>
+               </div>
+               <div className="flex justify-between items-center text-[#d91e5b]">
+                 <span className="font-black">انصراف مبكر ({(p.earlyDepartureMinutes / 60).toFixed(1)} س):</span>
+                 <span className="font-black">{p.earlyDepartureDeduction.toLocaleString()}-</span>
+               </div>
+               <div className="flex justify-between items-center text-[#d91e5b]">
+                 <span className="font-black">أيام غياب ({p.absenceDays} ي):</span>
+                 <span className="font-black">{p.absenceDeduction.toLocaleString()}-</span>
+               </div>
+               <div className="flex justify-between items-center text-[#d91e5b]">
+                 <span className="font-black">أقساط سلف:</span>
+                 <span className="font-black">{p.loanInstallment.toLocaleString()}-</span>
+               </div>
+               <div className="flex justify-between items-center text-[#d91e5b]">
+                 <span className="font-black">خصومات أخرى:</span>
+                 <span className="font-black">{p.manualDeductions.toLocaleString()}-</span>
+               </div>
                
-               <div className="col-span-2 flex justify-between text-lg font-black text-indigo-950 pt-3 mt-3 border-t-2 border-indigo-900 items-baseline">
+               <div className="flex justify-between text-lg font-black text-indigo-900 pt-3 mt-3 border-t-2 border-indigo-900">
                  <span>صافي الراتب:</span>
-                 <div className="text-right">
-                    <span className="text-2xl">{p.netSalary.toLocaleString()}</span>
-                    <span className="text-[10px] mr-2 opacity-60 font-black">{db.settings.currency}</span>
+                 <div className="text-left">
+                    <span>{p.netSalary.toLocaleString()}</span>
+                    <span className="text-[10px] mr-1 opacity-60">{db.settings.currency}</span>
                  </div>
                </div>
             </div>
+            
             <div className="mt-4 flex justify-between items-center text-[8px] font-black opacity-40">
                <p>توقيع المحاسب</p>
                <p>توقيع الموظف</p>
