@@ -241,7 +241,6 @@ const App: React.FC = () => {
              </div>
            </div>
 
-           {/* قسم تفاصيل البيانات - يظهر حسب النوع */}
            <div className="p-8 border-4 border-dashed border-slate-200 rounded-[2rem] text-right">
               {type === 'production' ? (
                 <div className="space-y-6">
@@ -788,12 +787,11 @@ const App: React.FC = () => {
       <Layout activeTab={activeTab} setActiveTab={setActiveTab} lang={db.settings.language} theme={db.settings.theme} toggleTheme={() => setDb(p => ({...p, settings: {...p.settings, theme: p.settings.theme === 'light' ? 'dark' : 'light'}}))} currentUser={currentUser} onLogout={() => setCurrentUser(null)}>
         {renderActiveTab()}
         {individualPrintItem && (
-          <div className="fixed inset-0 bg-slate-950/95 z-[500] flex items-center justify-center p-6 no-print overflow-y-auto">
-            <div className="bg-white p-10 w-full max-w-5xl shadow-2xl rounded-[3.5rem] border-4 border-white/20 transition-all">
+          <div className="fixed inset-0 bg-slate-950/95 z-[500] flex items-start justify-center p-6 no-print overflow-y-auto">
+            <div className="bg-white p-10 w-full max-w-5xl shadow-2xl rounded-[3.5rem] border-4 border-white/20 transition-all my-10">
                <div className="flex justify-between items-center mb-10 border-b-2 pb-6 text-right">
                   <div className="flex items-center gap-6">
                     <h3 className="font-black text-indigo-800 text-2xl">معاينة المستند الرسمي</h3>
-                    {/* ميزة اختيار الاتجاه متاحة الآن لجميع التقارير */}
                     <div className="flex bg-slate-100 p-1.5 rounded-2xl gap-2 no-print">
                       <button 
                         onClick={() => setPrintOrientation('landscape')}
