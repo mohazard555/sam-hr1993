@@ -158,3 +158,14 @@ export interface PayrollRecord {
   isPaid: boolean;
   finalizedAt?: string;
 }
+
+// Add PrintHistoryRecord interface to fix compilation error in App.tsx
+export interface PrintHistoryRecord {
+  id: string;
+  title: string;
+  type: string;
+  employeeId: string;
+  employeeName: string;
+  date: string;
+  notes: string;
+}

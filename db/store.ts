@@ -9,7 +9,8 @@ import {
   FinancialEntry,
   Warning,
   PayrollRecord,
-  ProductionEntry
+  ProductionEntry,
+  PrintHistoryRecord
 } from '../types';
 
 const STORAGE_KEY = 'SAM_HR_DB_V6_ARCHIVE';
@@ -27,6 +28,7 @@ export interface DB {
   payrolls: PayrollRecord[];
   payrollHistory: PayrollRecord[];
   departments: string[];
+  printHistory: PrintHistoryRecord[];
 }
 
 const DEFAULT_SETTINGS: CompanySettings = {
@@ -76,7 +78,8 @@ export const loadDB = (): DB => {
       warnings: [],
       payrolls: [],
       payrollHistory: [],
-      departments: ['الإدارة العامة', 'المحاسبة', 'الموارد البشرية', 'الإنتاج', 'المبيعات']
+      departments: ['الإدارة العامة', 'المحاسبة', 'الموارد البشرية', 'الإنتاج', 'المبيعات'],
+      printHistory: []
     };
     saveDB(initialDB);
     return initialDB;
@@ -97,7 +100,8 @@ export const loadDB = (): DB => {
       warnings: parsed.warnings || [],
       payrolls: parsed.payrolls || [],
       payrollHistory: parsed.payrollHistory || [],
-      departments: parsed.departments || ['الإدارة العامة', 'المحاسبة', 'الموارد البشرية', 'الإنتاج', 'المبيعات']
+      departments: parsed.departments || ['الإدارة العامة', 'المحاسبة', 'الموارد البشرية', 'الإنتاج', 'المبيعات'],
+      printHistory: parsed.printHistory || []
     };
   } catch (e) {
     console.error("Failed to parse DB", e);
@@ -113,7 +117,8 @@ export const loadDB = (): DB => {
       warnings: [],
       payrolls: [],
       payrollHistory: [],
-      departments: ['الإدارة العامة', 'المحاسبة', 'الموارد البشرية', 'الإنتاج', 'المبيعات']
+      departments: ['الإدارة العامة', 'المحاسبة', 'الموارد البشرية', 'الإنتاج', 'المبيعات'],
+      printHistory: []
     };
   }
 };

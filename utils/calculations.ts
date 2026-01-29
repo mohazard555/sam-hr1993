@@ -41,7 +41,6 @@ export const generatePayrollForRange = (
     const absenceDays = Math.max(0, diffDays - workingDays); 
     const absenceDeduction = Math.round(absenceDays * dailyRate);
 
-    // حساب استحقاق المواصلات (خصم عند الغياب ما لم يكن هناك استثناء)
     const dailyTransportRate = emp.transportAllowance / cycleDays;
     const transportEarned = emp.isTransportExempt 
       ? emp.transportAllowance 
@@ -52,37 +51,40 @@ export const generatePayrollForRange = (
     const totalProductionValue = empProduction.reduce((acc, p) => acc + p.totalValue, 0);
     const manualDeductions = empFinancials.filter(f => f.type === 'deduction' || f.type === 'payment').reduce((acc, f) => acc + f.amount, 0);
 
-    const empLoan = loans.find(l => {
-      if (l.employeeId !== emp.id || l.remainingAmount <= 0 || l.isArchived) return false;
-      if (l.collectionDate && l.collectionDate > endDate) return false;
-      return true;
-    });
-
+    // إصلاح منطق السلف: جمع كافة السلف النشطة التي بدأ تاريخ تحصيلها
     const minDaysToDeduct = isWeekly ? 5 : 20; 
-    const loanInstallment = (empLoan && diffDays >= minDaysToDeduct) ? Math.min(empLoan.monthlyInstallment, empLoan.remainingAmount) : 0;
+    let totalLoanInstallments = 0;
+    
+    if (diffDays >= minDaysToDeduct) {
+      const activeLoans = loans.filter(l => {
+        if (l.employeeId !== emp.id || l.remainingAmount <= 0 || l.isArchived) return false;
+        // التحقق من أن تاريخ التحصيل قبل أو ضمن تاريخ نهاية الفلتر المختار
+        if (l.collectionDate && l.collectionDate > endDate) return false;
+        return true;
+      });
+
+      totalLoanInstallments = activeLoans.reduce((sum, loan) => {
+        return sum + Math.min(loan.monthlyInstallment, loan.remainingAmount);
+      }, 0);
+    }
 
     const shiftIn = emp.customCheckIn || settings.officialCheckIn;
     const shiftOut = emp.customCheckOut || settings.officialCheckOut;
 
-    // إصلاح حساب التأخير مع فترة السماح لضمان الاحتساب في الرواتب
     const gracePeriod = Number(settings.gracePeriodMinutes || 0);
     const totalLateMinutes = empAttendance.reduce((acc, record) => {
       const lateMins = Math.max(0, calculateTimeDiffMinutes(record.checkIn, shiftIn));
-      // إذا تجاوز التأخير فترة السماح، يُحسب كامل التأخير كدقائق مخصومة
       return acc + (lateMins > gracePeriod ? lateMins : 0);
     }, 0);
     
-    // تحويل دقائق التأخير إلى قيمة نقدية بناءً على سعر الساعة ومضاعف الخصم
     const lateDeductionValue = (totalLateMinutes / 60) * (emp.customDeductionRate || 1) * hourlyRate;
 
-    // حساب الانصراف المبكر
     const totalEarlyMins = empAttendance.reduce((acc, record) => {
       const earlyMins = Math.max(0, calculateTimeDiffMinutes(shiftOut, record.checkOut));
       return acc + earlyMins;
     }, 0);
     const earlyDeductionValue = (totalEarlyMins / 60) * (emp.customDeductionRate || 1) * hourlyRate;
 
-    // حساب العمل الإضافي
     const otRate = emp.customOvertimeRate ?? settings.overtimeHourRate;
     const totalOTMins = empAttendance.reduce((acc, r) => {
       const otMins = Math.max(0, calculateTimeDiffMinutes(r.checkOut, shiftOut));
@@ -91,7 +93,7 @@ export const generatePayrollForRange = (
     const overtimePay = (totalOTMins / 60) * hourlyRate * otRate;
 
     const totalEarnings = emp.baseSalary + Math.round(transportEarned) + bonuses + productionIncentives + totalProductionValue + overtimePay;
-    const totalDeductions = absenceDeduction + manualDeductions + Math.round(lateDeductionValue) + Math.round(earlyDeductionValue) + loanInstallment;
+    const totalDeductions = absenceDeduction + manualDeductions + Math.round(lateDeductionValue) + Math.round(earlyDeductionValue) + totalLoanInstallments;
     
     const netSalary = totalEarnings - totalDeductions;
 
@@ -106,7 +108,7 @@ export const generatePayrollForRange = (
       production: totalProductionValue,
       overtimePay: Math.round(overtimePay),
       overtimeMinutes: totalOTMins,
-      loanInstallment: loanInstallment,
+      loanInstallment: totalLoanInstallments,
       lateDeduction: Math.round(lateDeductionValue),
       earlyDepartureMinutes: totalEarlyMins,
       earlyDepartureDeduction: Math.round(earlyDeductionValue),

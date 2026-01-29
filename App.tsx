@@ -12,10 +12,10 @@ import Production from './views/Production';
 import PrintForms from './views/PrintForms';
 import { GenericModule } from './views/GenericModule';
 import { loadDB, saveDB, DB } from './db/store';
-import { Employee, PayrollRecord, FinancialEntry, Loan, LeaveRequest, ProductionEntry, AttendanceRecord, Warning } from './types';
+import { Employee, PayrollRecord, FinancialEntry, Loan, LeaveRequest, ProductionEntry, AttendanceRecord, Warning, PrintHistoryRecord } from './types';
 import { generatePayrollForRange } from './utils/calculations';
 import { exportToExcel } from './utils/export';
-import { Printer, X, ReceiptText, CalendarDays, Loader2, FileText, CheckCircle, Info, ShieldAlert, Package, Layers, Clock, TrendingUp, Lock, HelpCircle, ToggleLeft, ToggleRight, AlertCircle, Calendar, FileDown } from 'lucide-react';
+import { Printer, X, ReceiptText, CalendarDays, Loader2, FileText, CheckCircle, Info, ShieldAlert, Package, Layers, Clock, TrendingUp, Lock, HelpCircle, ToggleLeft, ToggleRight, AlertCircle, Calendar, FileDown, LayoutPanelLeft, LayoutPanelTop } from 'lucide-react';
 
 type PrintType = 'production' | 'loan' | 'leave' | 'financial' | 'document' | 'vouchers' | 'report_attendance' | 'report_financial' | 'warning' | 'employee_list' | 'department_list';
 
@@ -27,6 +27,7 @@ const App: React.FC = () => {
   const [showHint, setShowHint] = useState(false);
   const [individualPrintItem, setIndividualPrintItem] = useState<{title: string, type: PrintType, data: any} | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
+  const [printOrientation, setPrintOrientation] = useState<'portrait' | 'landscape'>('landscape');
   
   const [payrollDateFrom, setPayrollDateFrom] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]);
   const [payrollDateTo, setPayrollDateTo] = useState(new Date().toISOString().split('T')[0]);
@@ -71,7 +72,8 @@ const App: React.FC = () => {
         warnings: [],
         payrolls: [],
         payrollHistory: [],
-        departments: ['الإدارة العامة', 'المحاسبة', 'الموارد البشرية', 'الإنتاج', 'المبيعات']
+        departments: ['الإدارة العامة', 'المحاسبة', 'الموارد البشرية', 'الإنتاج', 'المبيعات'],
+        printHistory: []
       };
       setDb(resetDB);
       saveDB(resetDB);
@@ -194,6 +196,19 @@ const App: React.FC = () => {
     }
 
     const emp = db.employees.find(e => e.id === data.employeeId) || { name: data.employeeName || '.......', department: 'غير محدد', position: 'غير محدد' };
+    
+    let description = data.notes || "بيان رسمي معتمد بناء على السجلات الجارية الموثقة في النظام.";
+    
+    if (type === 'warning') {
+      description = `إقرار إداري: تم رصد مخالفة إدارية للموظف المذكور تتعلق بـ (${data.reason || 'سياسة العمل'})، وبناءً عليه تم إصدار هذا التنبيه الرسمي (${data.type === 'verbal' ? 'شفهي' : data.type === 'written' ? 'خطي' : 'نهائي'}) لضمان الالتزام بالمعايير المهنية.`;
+    } else if (type === 'financial' && data.type === 'bonus') {
+      description = `إشعار استحقاق: تقديراً للأداء والتميز، تم منح الموظف مكافأة مالية بقيمة (${data.amount.toLocaleString()}) كحافز تشجيعي، تضاف إلى الرصيد المالي في الدورة الحالية.`;
+    } else if (type === 'leave') {
+      description = `تصريح إجازة: تمت الموافقة على طلب الإجازة المقدم من الموظف لتبدأ من تاريخ (${data.startDate}) وتستمر حتى (${data.endDate})، مع التأكيد على الالتزام بموعد العودة المحدد.`;
+    } else if (type === 'production') {
+      description = `بيان إنتاجية: توثيق دقيق للكميات المنجزة من قبل الموظف في تاريخ (${data.date})، حيث بلغت الكمية (${data.piecesCount}) قطعة، مما يعكس مستوى الكفاءة والإنتاجية المحقق.`;
+    }
+
     return (
       <div className="bg-white print-card w-full max-w-4xl mx-auto shadow-none relative overflow-hidden">
         <div className="absolute inset-0 opacity-[0.03] flex items-center justify-center pointer-events-none rotate-12">
@@ -240,16 +255,22 @@ const App: React.FC = () => {
                     <span className="text-lg font-black text-indigo-900">إجمالي قيمة الاستحقاق:</span>
                     <span className="text-3xl font-black text-indigo-700">{data.totalValue?.toLocaleString()} {db.settings.currency}</span>
                   </div>
-                  {data.notes && (
-                    <div className="p-4 border border-slate-100 rounded-2xl bg-slate-50/30">
-                      <span className="text-[10px] font-black text-slate-400 block mb-1">ملاحظات إضافية:</span>
-                      <p className="text-sm font-bold text-slate-700 leading-relaxed italic">"{data.notes}"</p>
-                    </div>
-                  )}
                 </div>
-              ) : (
-                <p className="text-lg font-bold leading-relaxed">بيان رسمي معتمد بناء على السجلات الجارية.</p>
-              )}
+              ) : null}
+              <div className="mt-6 pt-4 border-t border-slate-100">
+                <p className="text-lg font-bold leading-relaxed text-slate-800">{description}</p>
+              </div>
+           </div>
+           
+           <div className="grid grid-cols-2 gap-10 mt-10">
+              <div className="text-center">
+                <p className="text-[10px] font-black text-slate-400 mb-8 uppercase">خـتـم المؤسسة</p>
+                <div className="w-24 h-24 border-2 border-slate-100 rounded-full mx-auto opacity-20 flex items-center justify-center font-black">STAMP</div>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] font-black text-slate-400 mb-8 uppercase">توقيع المسؤول</p>
+                <div className="h-px bg-slate-200 w-32 mx-auto"></div>
+              </div>
            </div>
         </div>
       </div>
@@ -263,10 +284,9 @@ const App: React.FC = () => {
   };
 
   const VouchersPrintGrid = ({ payrolls }: { payrolls: PayrollRecord[] }) => (
-    <div className="vouchers-grid-print grid grid-cols-2 gap-4 p-4" dir="rtl">
+    <div className={`vouchers-grid-print grid ${printOrientation === 'landscape' ? 'grid-cols-2' : 'grid-cols-1'} gap-4 p-4`} dir="rtl">
       {payrolls.map(p => {
         const emp = db.employees.find(e => e.id === p.employeeId);
-        // الراتب المستحق هو مجموع الراتب الأساسي + الإضافات
         const grossEarnings = p.baseSalary + p.transport + p.bonuses + p.production + p.overtimePay;
         
         return (
@@ -284,7 +304,6 @@ const App: React.FC = () => {
             </div>
             
             <div className="space-y-1.5 text-[11px] font-bold">
-               {/* البيانات التعاقدية والعملية */}
                <div className="bg-slate-50 p-2 rounded-xl mb-3 space-y-1 border border-slate-100">
                   <div className="flex justify-between items-center text-slate-700">
                     <span className="font-black">الراتب التعاقدي:</span>
@@ -296,7 +315,6 @@ const App: React.FC = () => {
                   </div>
                </div>
 
-               {/* قسم الإضافات */}
                <div className="text-[#00a693] font-black border-b pb-1 mb-1">الإضافات (+)</div>
                <div className="flex justify-between items-center text-[#00a693]">
                  <span className="font-black">بدل مواصلات:</span>
@@ -319,7 +337,6 @@ const App: React.FC = () => {
                  <span className="font-black">{grossEarnings.toLocaleString()}</span>
                </div>
                
-               {/* قسم الاستقطاعات */}
                <div className="text-[#d91e5b] font-black border-t pt-2 mt-2">الاستقطاعات (-)</div>
                <div className="flex justify-between items-center text-[#d91e5b]">
                  <span className="font-black">تأخير ({formatMinutes(p.lateMinutes)}):</span>
@@ -363,6 +380,27 @@ const App: React.FC = () => {
 
   const executePrintAction = () => {
     setIsPrinting(true);
+    
+    if (individualPrintItem) {
+      const empId = individualPrintItem.data?.employeeId || '';
+      const emp = db.employees.find(e => e.id === empId);
+      
+      const newHistoryRecord: PrintHistoryRecord = {
+        id: Math.random().toString(36).substr(2, 9),
+        title: individualPrintItem.title,
+        type: individualPrintItem.type,
+        employeeId: empId,
+        employeeName: emp?.name || 'غير محدد',
+        date: new Date().toISOString(),
+        notes: individualPrintItem.data?.notes || ''
+      };
+
+      setDb(prev => ({
+        ...prev,
+        printHistory: [newHistoryRecord, ...(prev.printHistory || [])]
+      }));
+    }
+
     setTimeout(() => {
       window.print();
       setIsPrinting(false);
@@ -531,7 +569,7 @@ const App: React.FC = () => {
              </div>
              <div className="flex gap-2">
                 <button onClick={handleExportPayrollExcel} className="bg-emerald-600 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-emerald-700 transition shadow-lg"><FileDown size={20}/> Excel</button>
-                <button onClick={() => setIndividualPrintItem({ title: 'قسائم رواتب الموظفين', type: 'vouchers', data: currentPayrolls })} className="bg-indigo-100 text-indigo-700 px-8 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-indigo-200 transition"><ReceiptText size={20}/> القسائم</button>
+                <button onClick={() => { setPrintOrientation('landscape'); setIndividualPrintItem({ title: 'قسائم رواتب الموظفين', type: 'vouchers', data: currentPayrolls }); }} className="bg-indigo-100 text-indigo-700 px-8 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-indigo-200 transition"><ReceiptText size={20}/> القسائم</button>
                 <button onClick={() => window.print()} className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg"><Printer size={20}/> طباعة</button>
              </div>
           </div>
@@ -625,7 +663,7 @@ const App: React.FC = () => {
           </div>
         </div>
       );
-      case 'documents': return <PrintForms employees={db.employees || []} attendance={db.attendance || []} financials={db.financials || []} warnings={db.warnings || []} leaves={db.leaves || []} settings={db.settings} onPrint={(doc) => setIndividualPrintItem(doc as any)} />;
+      case 'documents': return <PrintForms employees={db.employees || []} attendance={db.attendance || []} financials={db.financials || []} warnings={db.warnings || []} leaves={db.leaves || []} settings={db.settings} printHistory={db.printHistory || []} onPrint={(doc) => setIndividualPrintItem(doc as any)} />;
       case 'settings': return <SettingsView settings={db.settings} admin={db.users[0]} db={db} onUpdateSettings={s => setDb(p => ({...p, settings: {...p.settings, ...s}}))} onUpdateAdmin={u => setDb(p => ({...p, users: [{...p.users[0], ...u}, ...p.users.slice(1)]}))} onImport={json => setDb(json)} onRunArchive={() => {}} onClearData={handleClearData} />;
       case 'reports': return <ReportsView db={db} payrolls={currentPayrolls} lang={db.settings.language} onPrint={() => window.print()} />;
       default: return null;
@@ -705,6 +743,12 @@ const App: React.FC = () => {
     if (!individualPrintItem || !portalNode) return null;
     return createPortal(
       <div className="print-isolated-wrapper text-right w-full" dir="rtl">
+        <style dangerouslySetInnerHTML={{ __html: `
+          @page { size: ${printOrientation}; margin: 5mm; }
+          .vouchers-grid-print { 
+            grid-template-columns: ${printOrientation === 'landscape' ? 'repeat(2, minmax(0, 1fr))' : 'repeat(1, minmax(0, 1fr))'}; 
+          }
+        ` }} />
         {individualPrintItem.type === 'vouchers' 
           ? <VouchersPrintGrid payrolls={individualPrintItem.data} />
           : <DocumentPrintCard title={individualPrintItem.title} type={individualPrintItem.type} data={individualPrintItem.data} />}
@@ -721,7 +765,25 @@ const App: React.FC = () => {
           <div className="fixed inset-0 bg-slate-950/95 z-[500] flex items-center justify-center p-6 no-print overflow-y-auto">
             <div className="bg-white p-10 w-full max-w-5xl shadow-2xl rounded-[3.5rem] border-4 border-white/20 transition-all">
                <div className="flex justify-between items-center mb-10 border-b-2 pb-6 text-right">
-                  <h3 className="font-black text-indigo-800 text-2xl">معاينة المستند الرسمي</h3>
+                  <div className="flex items-center gap-6">
+                    <h3 className="font-black text-indigo-800 text-2xl">معاينة المستند الرسمي</h3>
+                    {individualPrintItem.type === 'vouchers' && (
+                      <div className="flex bg-slate-100 p-1.5 rounded-2xl gap-2 no-print">
+                        <button 
+                          onClick={() => setPrintOrientation('landscape')}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black transition-all ${printOrientation === 'landscape' ? 'bg-white shadow-md text-indigo-700' : 'text-slate-400'}`}
+                        >
+                          <LayoutPanelLeft size={18}/> عرضي
+                        </button>
+                        <button 
+                          onClick={() => setPrintOrientation('portrait')}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black transition-all ${printOrientation === 'portrait' ? 'bg-white shadow-md text-indigo-700' : 'text-slate-400'}`}
+                        >
+                          <LayoutPanelTop size={18}/> طولي
+                        </button>
+                      </div>
+                    )}
+                  </div>
                   <button onClick={() => setIndividualPrintItem(null)} className="text-rose-500 p-2 hover:bg-rose-50 rounded-full transition transform hover:rotate-90" disabled={isPrinting}><X size={44}/></button>
                </div>
                <div className="bg-white rounded-[2rem] text-right overflow-hidden border border-slate-100 p-2">
