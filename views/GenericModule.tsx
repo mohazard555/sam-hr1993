@@ -22,10 +22,12 @@ interface GenericModuleProps<T> {
   initialData: Partial<T>;
   companyName: string;
   logo?: string;
+  // خاصية جديدة لضمان دقة التصدير
+  exportMapper?: (item: T, empName: string) => Record<string, any>;
 }
 
 export function GenericModule<T extends { id: string; employeeId: string; date?: string; startDate?: string; endDate?: string; isArchived?: boolean }>({ 
-  title, lang, employees, items, onSave, onDelete, onArchive, onPrintIndividual, archiveMode, onToggleArchive, renderForm, renderRow, renderFooter, tableHeaders, initialData, companyName, logo 
+  title, lang, employees, items, onSave, onDelete, onArchive, onPrintIndividual, archiveMode, onToggleArchive, renderForm, renderRow, renderFooter, tableHeaders, initialData, companyName, logo, exportMapper 
 }: GenericModuleProps<T>) {
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState<Partial<T>>(initialData);
@@ -66,23 +68,30 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
   const handleExportExcel = () => {
     const dataToExport = filteredItems.map(item => {
       const emp = employees.find(e => e.id === item.employeeId);
-      const row: any = {};
+      const empName = emp?.name || 'غير معروف';
+
+      // إذا كان هناك مابّر مخصص، نستخدمه، وإلا نستخدم المنطق الافتراضي المطور
+      if (exportMapper) {
+        return exportMapper(item, empName);
+      }
+
+      // المنطق الافتراضي (Fall-back)
+      const row: Record<string, any> = { 'اسم الموظف': empName };
+      if (item.date) row['التاريخ'] = item.date;
+      if (item.startDate) row['من تاريخ'] = item.startDate;
+      if (item.endDate) row['إلى تاريخ'] = item.endDate;
       
-      tableHeaders.forEach((header, idx) => {
-        if (idx === 0) row[header] = emp?.name || 'غير معروف';
-        else {
-          if (header.includes('التاريخ') || header.includes('من')) row[header] = item.date || item.startDate;
-          else if (header.includes('إلى')) row[header] = item.endDate;
-          else {
-             const keys = Object.keys(item);
-             const targetKey = keys.find(k => typeof (item as any)[k] === 'number' || typeof (item as any)[k] === 'string');
-             if (targetKey) row[header] = (item as any)[targetKey];
-          }
+      // إضافة باقي الحقول التي ليست معرفات أو حقول تقنية
+      Object.keys(item).forEach(key => {
+        if (!['id', 'employeeId', 'isArchived', 'date', 'startDate', 'endDate'].includes(key)) {
+          row[key] = (item as any)[key];
         }
       });
+
       return row;
     });
-    exportToExcel(dataToExport, `${title}_Report`);
+
+    exportToExcel(dataToExport, `${title}_Export`);
   };
 
   return (

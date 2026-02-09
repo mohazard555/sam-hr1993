@@ -204,7 +204,7 @@ const App: React.FC = () => {
     if (type === 'warning') {
       description = `إقرار إداري: تم رصد مخالفة إدارية للموظف المذكور تتعلق بـ (${data.reason || 'سياسة العمل'})، وبناءً عليه تم إصدار هذا التنبيه الرسمي (${data.type === 'verbal' ? 'شفهي' : data.type === 'written' ? 'خطي' : 'نهائي'}) لضمان الالتزام بالمعايير المهنية.`;
     } else if (type === 'financial' && data.type === 'bonus') {
-      description = `إشعار استحقاق: تقديراً للأداء والتميز، تم منح המوظف مكافأة مالية بقيمة (${data.amount.toLocaleString()}) كحافز تشجيعي، تضاف إلى الرصيد المالي في الدورة الحالية.`;
+      description = `إشعار استحقاق: تقديراً للأداء والتميز، تم منح الموظف مكافأة مالية بقيمة (${data.amount.toLocaleString()}) كحافز تشجيعي، تضاف إلى الرصيد المالي في الدورة الحالية.`;
     } else if (type === 'leave') {
       description = `تصريح إجازة: تمت الموافقة على طلب الإجازة المقدم من الموظف لتبدأ من تاريخ (${data.startDate}) وتستمر حتى (${data.endDate})، مع التأكيد على الالتزام بموعد العودة المحدد.`;
     } else if (type === 'production') {
@@ -467,6 +467,7 @@ const App: React.FC = () => {
   };
 
   const renderActiveTab = () => {
+    const cycleLabel = db.settings.salaryCycle === 'weekly' ? 'أسبوعي' : 'شهري';
     switch (activeTab) {
       case 'dashboard': return <Dashboard employeesCount={db.employees.length} todayAttendance={db.attendance.filter(a => a.date === new Date().toISOString().split('T')[0]).length} totalLoans={db.loans.reduce((acc, l) => acc + (l.remainingAmount || 0), 0)} totalSalaryBudget={currentPayrolls.reduce((acc, p) => acc + p.netSalary, 0)} />;
       case 'employees': return <Employees employees={db.employees} departments={db.departments} settings={db.settings} onAdd={e => updateList('employees', e)} onDelete={id => deleteFromList('employees', id)} onPrintList={(list) => setIndividualPrintItem({ title: 'قائمة الموظفين الكاملة', type: 'employee_list', data: list })} />;
@@ -479,13 +480,21 @@ const App: React.FC = () => {
           archiveMode={archiveModes.leaves} onToggleArchive={() => setArchiveModes(p => ({...p, leaves: !p.leaves}))} 
           onSave={i => updateList('leaves', i)} onDelete={id => deleteFromList('leaves', id)} onArchive={i => archiveItem('leaves', i)}
           onPrintIndividual={i => setIndividualPrintItem({title: "إشعار إجازة رسمي", type: 'leave', data: i})} 
+          exportMapper={(i, name) => ({
+            'اسم الموظف': name,
+            'نوع الإجازة': i.type === 'annual' ? 'سنوية' : i.type === 'sick' ? 'مرضية' : i.type === 'unpaid' ? 'بدون راتب' : i.type,
+            'مأجورة؟': i.isPaid ? 'نعم' : 'لا',
+            'تاريخ البدء': i.startDate,
+            'تاريخ الانتهاء': i.endDate,
+            'السبب': i.reason || '-'
+          })}
           initialData={{ type: 'annual', status: 'approved', isPaid: true, startDate: new Date().toISOString().split('T')[0], endDate: new Date().toISOString().split('T')[0] }} 
           tableHeaders={['الموظف', 'النوع', 'مأجورة', 'من', 'إلى']} 
           renderForm={(data, set) => (
             <div className="grid grid-cols-2 gap-6 text-right">
                 <div className="col-span-2">
                    <label className="text-[11pt] font-black mb-1 block">نوع الإجازة</label>
-                   <select className="w-full p-4 border-2 rounded-xl font-bold text-lg bg-slate-50" value={data.type} onChange={e => set({...data, type: e.target.value as any})}>
+                   <select className="w-full p-4 border-2 rounded-xl font-bold text-lg bg-slate-50 shadow-inner" value={data.type} onChange={e => set({...data, type: e.target.value as any})}>
                       <option value="annual">سنوية</option>
                       <option value="sick">مرضية</option>
                       <option value="emergency">طارئة</option>
@@ -523,6 +532,16 @@ const App: React.FC = () => {
           archiveMode={archiveModes.loans} onToggleArchive={() => setArchiveModes(p => ({...p, loans: !p.loans}))} 
           onSave={i => updateList('loans', i)} onDelete={id => deleteFromList('loans', id)} onArchive={i => archiveItem('loans', i)}
           onPrintIndividual={i => setIndividualPrintItem({title: "سند سلفة موظف", type: 'loan', data: i})} 
+          exportMapper={(i, name) => ({
+            'اسم الموظف': name,
+            'إجمالي المبلغ': i.amount,
+            [`قسط ${cycleLabel}`]: i.monthlyInstallment,
+            'عدد الأقساط': i.installmentsCount,
+            'المبلغ المتبقي': i.remainingAmount,
+            'تحصيل فوري؟': i.isImmediate ? 'نعم' : 'لا',
+            'تاريخ المنح': i.date,
+            'تاريخ بداية التحصيل': i.collectionDate || '-'
+          })}
           initialData={{ amount: 0, installmentsCount: 1, monthlyInstallment: 0, remainingAmount: 0, date: new Date().toISOString().split('T')[0], collectionDate: new Date().toISOString().split('T')[0], isImmediate: false }} 
           tableHeaders={['الموظف', 'المبلغ', 'الأقساط', 'قيمة القسط', 'بداية التحصيل']} 
           renderForm={(data, set) => (
@@ -532,7 +551,7 @@ const App: React.FC = () => {
                 <input type="number" placeholder="المبلغ" className="w-full p-4 border rounded-xl font-black text-xl text-indigo-700" value={data.amount || ''} onChange={e => set({...data, amount: Number(e.target.value), remainingAmount: Number(e.target.value), monthlyInstallment: data.isImmediate ? Number(e.target.value) : data.monthlyInstallment})} />
               </div>
               
-              <div className="col-span-2 flex items-center justify-between bg-rose-50 p-5 rounded-2xl border-2 border-rose-100">
+              <div className="col-span-2 flex items-center justify-between bg-rose-50 p-5 rounded-2xl border-2 border-rose-100 shadow-inner">
                 <div className="flex items-center gap-3">
                    <div className={`w-3 h-3 rounded-full ${data.isImmediate ? 'bg-rose-500 animate-pulse' : 'bg-slate-300'}`}></div>
                    <div>
@@ -540,7 +559,7 @@ const App: React.FC = () => {
                       <span className="text-[10px] font-bold text-slate-500 italic block leading-none mt-1">* سيتم خصم كامل السلفة فوراً ولن تبقى ديناً على الموظف.</span>
                    </div>
                 </div>
-                <button type="button" onClick={() => set({...data, isImmediate: !data.isImmediate, installmentsCount: !data.isImmediate ? 1 : data.installmentsCount, monthlyInstallment: !data.isImmediate ? (data.amount || 0) : data.monthlyInstallment})} className="transition-transform active:scale-90">
+                <button type="button" onClick={() => set({...data, isImmediate: !data.isImmediate, installmentsCount: 1, monthlyInstallment: data.amount || 0})} className="transition-transform active:scale-90">
                    {data.isImmediate ? <ToggleRight size={48} className="text-rose-600" /> : <ToggleLeft size={48} className="text-slate-400" />}
                 </button>
               </div>
@@ -548,7 +567,7 @@ const App: React.FC = () => {
               {!data.isImmediate && (
                 <>
                   <div>
-                    <label className="text-[11pt] font-black mb-1 block">{db.settings.salaryCycle === 'weekly' ? 'قيمة القسط الأسبوعي' : 'قيمة القسط الشهري'}</label>
+                    <label className="text-[11pt] font-black mb-1 block">قيمة القسط {cycleLabel}</label>
                     <input type="number" placeholder="قيمة القسط" className="w-full p-4 border rounded-xl font-black text-xl text-indigo-700" value={data.monthlyInstallment || ''} onChange={e => set({...data, monthlyInstallment: Number(e.target.value)})} />
                   </div>
                   <div>
@@ -574,8 +593,15 @@ const App: React.FC = () => {
           archiveMode={archiveModes.financials} onToggleArchive={() => setArchiveModes(p => ({...p, financials: !p.financials}))} 
           onSave={i => updateList('financials', i)} onDelete={id => deleteFromList('financials', id)} onArchive={i => archiveItem('financials', i)}
           onPrintIndividual={i => setIndividualPrintItem({title: "سند مالي معتمد", type: 'financial', data: i})} 
+          exportMapper={(i, name) => ({
+            'اسم الموظف': name,
+            'نوع السند': i.type === 'bonus' ? 'مكافأة' : i.type === 'deduction' ? 'خصم' : i.type === 'production_incentive' ? 'حافز إنتاج' : 'سلفة فورية',
+            'المبلغ': i.amount,
+            'التاريخ': i.date,
+            'السبب': i.reason
+          })}
           initialData={{ type: 'bonus', amount: 0, date: new Date().toISOString().split('T')[0], reason: '' }} 
-          tableHeaders={['الموظط', 'النوع', 'المبلغ', 'التاريخ']} 
+          tableHeaders={['الموظف', 'النوع', 'المبلغ', 'التاريخ']} 
           renderForm={(data, set) => (
             <div className="grid grid-cols-1 gap-6">
                 <div>

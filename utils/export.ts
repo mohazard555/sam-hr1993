@@ -1,46 +1,57 @@
+
 import * as XLSX from 'xlsx';
 
+/**
+ * دالة احترافية لتصدير البيانات إلى ملف Excel
+ * تدعم العربية، اتجاه RTL، وضبط عرض الأعمدة تلقائياً
+ */
 export const exportToExcel = (data: any[], fileName: string) => {
-  if (!Array.isArray(data) || data.length === 0) return;
+  if (!Array.isArray(data) || data.length === 0) {
+    console.warn("No data provided for export");
+    return;
+  }
 
-  // 1️⃣ استخراج جميع المفاتيح من كل الصفوف (حل مشكلة اختلاف الأعمدة)
+  // 1. استخراج كافة العناوين الفريدة لضمان عدم ضياع أي عمود
   const allHeaders = Array.from(
     new Set(data.flatMap(row => Object.keys(row || {})))
   );
 
-  // 2️⃣ تحويل البيانات إلى مصفوفة (Rows + Columns) بشكل صريح
+  // 2. تحويل البيانات إلى مصفوفة صفوف (AOE) لضمان ثبات الترتيب
   const sheetData = [
-    allHeaders, // الصف الأول = العناوين
+    allHeaders, // الصف الأول: العناوين
     ...data.map(row =>
       allHeaders.map(header => {
         const value = row?.[header];
-
-        // تنظيف القيم
         if (value === null || value === undefined) return '';
-        if (typeof value === 'object') return JSON.stringify(value);
+        if (typeof value === 'boolean') return value ? 'نعم' : 'لا';
         return value;
       })
     )
   ];
 
-  // 3️⃣ إنشاء ورقة العمل
+  // 3. إنشاء ورقة العمل وتفعيل الـ RTL
   const ws = XLSX.utils.aoa_to_sheet(sheetData);
-
-  // 4️⃣ تفعيل اتجاه RTL
+  
+  // ضبط اتجاه الورقة من اليمين لليسار
+  if (!ws['!views']) ws['!views'] = [];
+  ws['!margin'] = { left: 0.7, right: 0.7, top: 0.75, bottom: 0.75, header: 0.3, footer: 0.3 };
+  
+  // خاصية RTL لمكتبة XLSX
   ws['!rtl'] = true;
 
-  // 5️⃣ ضبط عرض الأعمدة تلقائيًا
-  ws['!cols'] = allHeaders.map((_, colIndex) => ({
-    wch: Math.max(
-      15,
-      ...sheetData.map(row => String(row[colIndex] ?? '').length + 2)
-    )
-  }));
+  // 4. ضبط عرض الأعمدة تلقائياً بناءً على طول المحتوى
+  ws['!cols'] = allHeaders.map((_, colIndex) => {
+    const maxLength = sheetData.reduce((max, row) => {
+      const cellValue = String(row[colIndex] || '');
+      return Math.max(max, cellValue.length);
+    }, 10);
+    return { wch: maxLength + 5 }; // إضافة هامش بسيط
+  });
 
-  // 6️⃣ إنشاء ملف Excel
+  // 5. بناء الكتاب وحفظ الملف
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'البيانات');
+  XLSX.utils.book_append_sheet(wb, ws, 'البيانات المصدّرة');
 
-  const date = new Date().toISOString().split('T')[0];
-  XLSX.writeFile(wb, `${fileName}_${date}.xlsx`);
+  const timestamp = new Date().toISOString().split('T')[0];
+  XLSX.writeFile(wb, `${fileName}_${timestamp}.xlsx`);
 };
