@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Employee, CompanySettings } from '../types';
 import { UserPlus, Search, Edit2, Trash2, Settings2, Clock, Calculator, CalendarCheck, Printer, X, Phone, User as UserIcon, MapPin, Calendar, ToggleLeft, ToggleRight, Bus, FileDown } from 'lucide-react';
@@ -146,7 +145,12 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
                       <div>
                         <div className="flex items-center gap-1">
                            <p className="font-black text-slate-900 dark:text-white">{emp.name}</p>
-                           {emp.isTransportExempt && <Bus size={12} className="text-emerald-500" title="مستثنى من خصم المواصلات" />}
+                           {/* Fix: Wrapped Bus icon in a span to use the title attribute as Lucide icons don't support it directly */}
+                           {emp.isTransportExempt && (
+                             <span title="مستثنى من خصم المواصلات">
+                               <Bus size={12} className="text-emerald-500" />
+                             </span>
+                           )}
                         </div>
                         <p className="text-[10px] text-slate-600 dark:text-slate-400 font-bold">{emp.nationalId || 'بدون رقم وطني'}</p>
                       </div>

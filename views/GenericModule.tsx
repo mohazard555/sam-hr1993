@@ -68,15 +68,12 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
       const emp = employees.find(e => e.id === item.employeeId);
       const row: any = {};
       
-      // تعبئة البيانات بناءً على الرؤوس الموجودة في المكون
       tableHeaders.forEach((header, idx) => {
         if (idx === 0) row[header] = emp?.name || 'غير معروف';
         else {
-          // جلب القيم برمجياً بناءً على الحقول المشتركة
           if (header.includes('التاريخ') || header.includes('من')) row[header] = item.date || item.startDate;
           else if (header.includes('إلى')) row[header] = item.endDate;
           else {
-             // محاولة جلب القيم الأخرى ديناميكياً
              const keys = Object.keys(item);
              const targetKey = keys.find(k => typeof (item as any)[k] === 'number' || typeof (item as any)[k] === 'string');
              if (targetKey) row[header] = (item as any)[targetKey];
@@ -174,25 +171,25 @@ export function GenericModule<T extends { id: string; employeeId: string; date?:
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[600] flex items-center justify-center p-4 no-print">
-          <div className="bg-white dark:bg-slate-900 rounded-[3.5rem] shadow-2xl w-full max-w-2xl border-4 border-white/20 overflow-hidden relative">
-            <div className="p-10 bg-indigo-600 text-white flex justify-between items-center text-right relative">
-              <h3 className="text-3xl font-black w-full text-center tracking-tighter">سجل جديد - {title}</h3>
-              <button onClick={() => setShowModal(false)} className="absolute left-10 top-1/2 -translate-y-1/2 text-white/80 hover:text-white transition-all"><X size={40}/></button>
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[600] flex items-start justify-center p-4 no-print overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl w-full max-w-2xl border-4 border-white/20 dark:border-slate-800/50 overflow-hidden relative my-10 max-h-[90vh] flex flex-col">
+            <div className="p-8 bg-indigo-600 text-white flex justify-between items-center text-right shrink-0">
+              <h3 className="text-2xl font-black w-full text-center tracking-tighter">سجل جديد - {title}</h3>
+              <button onClick={() => setShowModal(false)} className="absolute left-6 top-6 text-white/80 hover:text-white transition-all"><X size={32}/></button>
             </div>
             
-            <form onSubmit={handleSubmit} className="p-12 space-y-10 text-right">
+            <form onSubmit={handleSubmit} className="p-8 md:p-12 space-y-8 text-right overflow-y-auto flex-1">
               <div>
                 <label className="block text-[10pt] font-black mb-3 text-slate-400 uppercase tracking-widest mr-2">الموظف المعني</label>
-                <select className="w-full p-5 bg-white border-2 border-slate-100 rounded-[1.5rem] font-black outline-none focus:border-indigo-600 transition-all text-xl shadow-sm text-center" value={formData.employeeId || ''} onChange={e => setFormData({...formData, employeeId: e.target.value})} required>
+                <select className="w-full p-4 bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl font-black outline-none focus:border-indigo-600 transition-all text-lg shadow-sm text-center" value={formData.employeeId || ''} onChange={e => setFormData({...formData, employeeId: e.target.value})} required>
                   <option value="">-- اختر الموظف --</option>
                   {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
                 </select>
               </div>
               <div className="pt-2">{renderForm(formData, setFormData)}</div>
-              <div className="flex gap-6 pt-10">
-                <button type="submit" className="flex-1 bg-indigo-600 text-white py-6 rounded-[2.5rem] font-black text-2xl shadow-xl hover:bg-indigo-700 transition-all">حفظ البيانات</button>
-                <button type="button" onClick={() => setShowModal(false)} className="flex-1 bg-slate-100 py-6 rounded-[2.5rem] font-black text-2xl">إلغاء</button>
+              <div className="flex gap-4 pt-4 shrink-0">
+                <button type="submit" className="flex-1 bg-indigo-600 text-white py-5 rounded-3xl font-black text-xl shadow-xl hover:bg-indigo-700 transition-all">حفظ البيانات</button>
+                <button type="button" onClick={() => setShowModal(false)} className="flex-1 bg-slate-100 dark:bg-slate-800 py-5 rounded-3xl font-black text-xl text-slate-500">إلغاء</button>
               </div>
             </form>
           </div>

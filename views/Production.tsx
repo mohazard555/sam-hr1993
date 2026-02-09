@@ -129,21 +129,6 @@ const Production: React.FC<Props> = ({ employees, items, settings, onSave, onDel
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border dark:border-slate-800 overflow-hidden relative">
-        <div className="hidden print:flex justify-between items-start border-b-4 border-indigo-900 pb-6 mb-8 w-full text-indigo-950 p-8">
-          <div className="text-right">
-            <h1 className="text-3xl font-black leading-none">{settings.name}</h1>
-            <p className="text-sm font-black text-indigo-700 mt-2">سجل إنتاجية الموظفين {archiveMode ? '- الأرشيف العام' : ''}</p>
-            {(dateFrom || dateTo) && <p className="text-[10px] font-bold text-slate-600">الفترة من {dateFrom || '...'} إلى {dateTo || '...'}</p>}
-          </div>
-          <div className="flex flex-col items-center">
-            {settings.logo && <img src={settings.logo} className="h-16 w-auto object-contain mb-2" alt="Logo" />}
-          </div>
-          <div className="text-left">
-            <p className="text-[10px] font-black text-slate-400">تاريخ الطباعة: {new Date().toLocaleDateString('ar-EG')}</p>
-            <p className="text-[10px] font-black text-slate-400">ساعة الطباعة: {new Date().toLocaleTimeString('ar-EG')}</p>
-          </div>
-        </div>
-
         <div className="overflow-x-auto">
           <table className="w-full text-right text-sm">
             <thead className="bg-slate-50 dark:bg-slate-800 border-b">
@@ -193,16 +178,16 @@ const Production: React.FC<Props> = ({ employees, items, settings, onSave, onDel
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xl z-[150] flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl w-full max-w-2xl border dark:border-slate-800 overflow-hidden">
-            <div className="p-8 bg-indigo-600 text-white border-b flex justify-between items-center text-right">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xl z-[150] flex items-start justify-center p-4 overflow-y-auto no-print">
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl w-full max-w-2xl border-4 border-white/10 dark:border-slate-800 overflow-hidden my-10 max-h-[90vh] flex flex-col">
+            <div className="p-8 bg-indigo-600 text-white border-b flex justify-between items-center text-right shrink-0">
               <h3 className="text-2xl font-black flex items-center gap-2"><Package/> تسجيل بيانات الإنتاج</h3>
               <button onClick={() => setShowModal(false)} className="text-white hover:text-slate-200 transition"><X size={32}/></button>
             </div>
-            <form onSubmit={handleSubmit} className="p-8 space-y-6 text-right">
+            <form onSubmit={handleSubmit} className="p-8 space-y-6 text-right overflow-y-auto flex-1">
               <div>
                 <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">الموظف المنفذ</label>
-                <select className="w-full p-4 border rounded-xl font-black dark:bg-slate-800 dark:text-white" value={formData.employeeId || ''} onChange={e => setFormData({...formData, employeeId: e.target.value})} required>
+                <select className="w-full p-4 border dark:bg-slate-800 dark:text-white rounded-xl font-black" value={formData.employeeId || ''} onChange={e => setFormData({...formData, employeeId: e.target.value})} required>
                   <option value="">-- اختر الموظف --</option>
                   {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
                 </select>
@@ -231,7 +216,7 @@ const Production: React.FC<Props> = ({ employees, items, settings, onSave, onDel
                 <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">ملاحظات العمل</label>
                 <textarea className="w-full p-4 border rounded-xl font-bold dark:bg-slate-800 dark:text-white h-24 outline-none focus:border-indigo-600 transition" placeholder="أية ملاحظات إضافية عن نوع القطع أو الجودة..." value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})}></textarea>
               </div>
-              <button type="submit" className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black text-lg shadow-xl hover:bg-indigo-700 transition">تأكيد وحفظ السجل</button>
+              <button type="submit" className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black text-lg shadow-xl hover:bg-indigo-700 transition">تأكيد وحفظ السجل</button>
             </form>
           </div>
         </div>
