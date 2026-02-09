@@ -51,22 +51,31 @@ export const generatePayrollForRange = (
     const totalProductionValue = empProduction.reduce((acc, p) => acc + p.totalValue, 0);
     const manualDeductions = empFinancials.filter(f => f.type === 'deduction' || f.type === 'payment').reduce((acc, f) => acc + f.amount, 0);
 
-    // إصلاح منطق السلف: جمع كافة السلف النشطة التي بدأ تاريخ تحصيلها
+    // التحقق من السلف
     const minDaysToDeduct = isWeekly ? 5 : 20; 
     let totalLoanInstallments = 0;
     
-    if (diffDays >= minDaysToDeduct) {
-      const activeLoans = loans.filter(l => {
-        if (l.employeeId !== emp.id || l.remainingAmount <= 0 || l.isArchived) return false;
-        // التحقق من أن تاريخ التحصيل قبل أو ضمن تاريخ نهاية الفلتر المختار
-        if (l.collectionDate && l.collectionDate > endDate) return false;
-        return true;
-      });
+    // سحب كافة السلف التي بدأت دورة تحصيلها أو السلف الفورية
+    const activeLoans = loans.filter(l => {
+      if (l.employeeId !== emp.id || l.remainingAmount <= 0 || l.isArchived) return false;
+      
+      // السلف الفورية تُخصم فوراً في أقرب مسير رواتب ضمن فترة التحصيل
+      if (l.isImmediate) {
+         if (l.collectionDate && l.collectionDate > endDate) return false;
+         return true;
+      }
+      
+      // السلف المجدولة تتطلب مرور حد أدنى من أيام الفترة (لمنع الاقتطاع المزدوج في فترات قصيرة)
+      if (diffDays < minDaysToDeduct) return false;
+      if (l.collectionDate && l.collectionDate > endDate) return false;
+      return true;
+    });
 
-      totalLoanInstallments = activeLoans.reduce((sum, loan) => {
-        return sum + Math.min(loan.monthlyInstallment, loan.remainingAmount);
-      }, 0);
-    }
+    totalLoanInstallments = activeLoans.reduce((sum, loan) => {
+      // إذا كانت فورية، نخصم كامل المتبقي، وإلا نخصم القسط المجدول
+      const installmentValue = loan.isImmediate ? loan.remainingAmount : loan.monthlyInstallment;
+      return sum + Math.min(installmentValue, loan.remainingAmount);
+    }, 0);
 
     const shiftIn = emp.customCheckIn || settings.officialCheckIn;
     const shiftOut = emp.customCheckOut || settings.officialCheckOut;

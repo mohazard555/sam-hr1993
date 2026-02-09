@@ -87,6 +87,7 @@ export interface Loan {
   collectionDate?: string; 
   remainingAmount: number;
   reason?: string;
+  isImmediate?: boolean; // هل هي سلفة فورية تقتطع لمرة واحدة؟
   isArchived?: boolean;
 }
 
@@ -159,7 +160,6 @@ export interface PayrollRecord {
   finalizedAt?: string;
 }
 
-// Add PrintHistoryRecord interface to fix compilation error in App.tsx
 export interface PrintHistoryRecord {
   id: string;
   title: string;

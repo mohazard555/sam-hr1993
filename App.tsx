@@ -15,7 +15,7 @@ import { loadDB, saveDB, DB } from './db/store';
 import { Employee, PayrollRecord, FinancialEntry, Loan, LeaveRequest, ProductionEntry, AttendanceRecord, Warning, PrintHistoryRecord } from './types';
 import { generatePayrollForRange } from './utils/calculations';
 import { exportToExcel } from './utils/export';
-import { Printer, X, ReceiptText, CalendarDays, Loader2, FileText, CheckCircle, Info, ShieldAlert, Package, Layers, Clock, TrendingUp, Lock, HelpCircle, ToggleLeft, ToggleRight, AlertCircle, Calendar, FileDown, LayoutPanelLeft, LayoutPanelTop } from 'lucide-react';
+import { Printer, X, ReceiptText, CalendarDays, Loader2, FileText, CheckCircle, Info, ShieldAlert, Package, Layers, Clock, TrendingUp, Lock, HelpCircle, ToggleLeft, ToggleRight, AlertCircle, Calendar, FileDown, LayoutPanelLeft, LayoutPanelTop, Zap } from 'lucide-react';
 
 type PrintType = 'production' | 'loan' | 'leave' | 'financial' | 'document' | 'vouchers' | 'report_attendance' | 'report_financial' | 'warning' | 'employee_list' | 'department_list';
 
@@ -196,19 +196,25 @@ const App: React.FC = () => {
     }
 
     const emp = db.employees.find(e => e.id === data.employeeId) || { name: data.employeeName || '.......', department: 'غير محدد', position: 'غير محدد' };
+    const cycleText = db.settings.salaryCycle === 'weekly' ? 'أسبوعياً' : 'شهرياً';
+    const cycleLabel = db.settings.salaryCycle === 'weekly' ? 'أسبوعي' : 'شهري';
     
     let description = data.notes || "بيان رسمي معتمد بناء على السجلات الجارية الموثقة في النظام.";
     
     if (type === 'warning') {
       description = `إقرار إداري: تم رصد مخالفة إدارية للموظف المذكور تتعلق بـ (${data.reason || 'سياسة العمل'})، وبناءً عليه تم إصدار هذا التنبيه الرسمي (${data.type === 'verbal' ? 'شفهي' : data.type === 'written' ? 'خطي' : 'نهائي'}) لضمان الالتزام بالمعايير المهنية.`;
     } else if (type === 'financial' && data.type === 'bonus') {
-      description = `إشعار استحقاق: تقديراً للأداء والتميز، تم منح الموظف مكافأة مالية بقيمة (${data.amount.toLocaleString()}) كحافز تشجيعي، تضاف إلى الرصيد المالي في الدورة الحالية.`;
+      description = `إشعار استحقاق: تقديراً للأداء والتميز، تم منح המوظف مكافأة مالية بقيمة (${data.amount.toLocaleString()}) كحافز تشجيعي، تضاف إلى الرصيد المالي في الدورة الحالية.`;
     } else if (type === 'leave') {
       description = `تصريح إجازة: تمت الموافقة على طلب الإجازة المقدم من الموظف لتبدأ من تاريخ (${data.startDate}) وتستمر حتى (${data.endDate})، مع التأكيد على الالتزام بموعد العودة المحدد.`;
     } else if (type === 'production') {
       description = `بيان إنتاجية: توثيق دقيق للكميات المنجزة من قبل الموظف في تاريخ (${data.date})، حيث بلغت الكمية (${data.piecesCount}) قطعة، مما يعكس مستوى الكفاءة والإنتاجية المحقق.`;
     } else if (type === 'loan') {
-      description = `سند سلفة: تم تسليم الموظف مبلغ سلفة نقدية بقيمة إجمالية قدرها (${data.amount?.toLocaleString()})، يتم سدادها على (${data.installmentsCount}) قسطاً شهرياً، وبقيمة قسط تبلغ (${data.monthlyInstallment?.toLocaleString()}). تبدأ عملية التحصيل اعتباراً من تاريخ (${data.collectionDate}).`;
+      if (data.isImmediate) {
+         description = `سند سلفة فورية: تم تسليم الموظف مبلغ سلفة نقدية طارئة بقيمة إجمالية قدرها (${data.amount?.toLocaleString()})، وقد تقرر تحصيل كامل هذا المبلغ من أقرب استحقاق راتب للموظف لمرة واحدة، ولا يعتبر ديناً مجدولاً.`;
+      } else {
+         description = `سند سلفة: تم تسليم الموظف مبلغ سلفة نقدية بقيمة إجمالية قدرها (${data.amount?.toLocaleString()})، يتم سدادها على (${data.installmentsCount}) قسطاً ${cycleText}، وبقيمة قسط تبلغ (${data.monthlyInstallment?.toLocaleString()}). تبدأ عملية التحصيل اعتباراً من تاريخ (${data.collectionDate}).`;
+      }
     }
 
     return (
@@ -271,7 +277,7 @@ const App: React.FC = () => {
                       <span className="text-xl font-black text-slate-900">{data.installmentsCount}</span>
                     </div>
                     <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100 text-center">
-                      <span className="text-[10px] font-black text-indigo-400 block mb-1">القسط الشهري:</span>
+                      <span className="text-[10px] font-black text-indigo-400 block mb-1">القسط {cycleLabel}:</span>
                       <span className="text-xl font-black text-indigo-700">{data.monthlyInstallment?.toLocaleString()}</span>
                     </div>
                   </div>
@@ -279,6 +285,11 @@ const App: React.FC = () => {
                     <p className="text-xs font-black text-slate-500">تاريخ بداية التحصيل: <span className="text-slate-900">{data.collectionDate}</span></p>
                     <p className="text-xs font-black text-rose-600">الرصيد المتبقي حالياً: <span className="font-black underline">{data.remainingAmount?.toLocaleString()} {db.settings.currency}</span></p>
                   </div>
+                  {data.isImmediate && (
+                    <div className="flex justify-center">
+                       <span className="bg-rose-600 text-white px-6 py-2 rounded-full font-black text-xs uppercase tracking-widest shadow-lg">سلفة فورية - مستردة بالكامل</span>
+                    </div>
+                  )}
                 </div>
               ) : null}
 
@@ -512,25 +523,48 @@ const App: React.FC = () => {
           archiveMode={archiveModes.loans} onToggleArchive={() => setArchiveModes(p => ({...p, loans: !p.loans}))} 
           onSave={i => updateList('loans', i)} onDelete={id => deleteFromList('loans', id)} onArchive={i => archiveItem('loans', i)}
           onPrintIndividual={i => setIndividualPrintItem({title: "سند سلفة موظف", type: 'loan', data: i})} 
-          initialData={{ amount: 0, installmentsCount: 1, monthlyInstallment: 0, remainingAmount: 0, date: new Date().toISOString().split('T')[0], collectionDate: new Date().toISOString().split('T')[0] }} 
+          initialData={{ amount: 0, installmentsCount: 1, monthlyInstallment: 0, remainingAmount: 0, date: new Date().toISOString().split('T')[0], collectionDate: new Date().toISOString().split('T')[0], isImmediate: false }} 
           tableHeaders={['الموظف', 'المبلغ', 'الأقساط', 'قيمة القسط', 'بداية التحصيل']} 
           renderForm={(data, set) => (
             <div className="grid grid-cols-2 gap-6 text-right">
               <div className="col-span-2">
                 <label className="text-[11pt] font-black mb-1 block">إجمالي مبلغ السلفة</label>
-                <input type="number" placeholder="المبلغ" className="w-full p-4 border rounded-xl font-black text-xl text-indigo-700" value={data.amount || ''} onChange={e => set({...data, amount: Number(e.target.value), remainingAmount: Number(e.target.value)})} />
+                <input type="number" placeholder="المبلغ" className="w-full p-4 border rounded-xl font-black text-xl text-indigo-700" value={data.amount || ''} onChange={e => set({...data, amount: Number(e.target.value), remainingAmount: Number(e.target.value), monthlyInstallment: data.isImmediate ? Number(e.target.value) : data.monthlyInstallment})} />
               </div>
-              <div>
-                <label className="text-[11pt] font-black mb-1 block">{db.settings.salaryCycle === 'weekly' ? 'قيمة القسط الأسبوعي' : 'قيمة القسط الشهري'}</label>
-                <input type="number" placeholder="قيمة القسط" className="w-full p-4 border rounded-xl font-black text-xl text-rose-700" value={data.monthlyInstallment || ''} onChange={e => set({...data, monthlyInstallment: Number(e.target.value)})} />
+              
+              <div className="col-span-2 flex items-center justify-between bg-rose-50 p-5 rounded-2xl border-2 border-rose-100">
+                <div className="flex items-center gap-3">
+                   <div className={`w-3 h-3 rounded-full ${data.isImmediate ? 'bg-rose-500 animate-pulse' : 'bg-slate-300'}`}></div>
+                   <div>
+                      <span className="text-[12pt] font-black text-rose-800 block">تحصيل فوري من الراتب القادم؟</span>
+                      <span className="text-[10px] font-bold text-slate-500 italic block leading-none mt-1">* سيتم خصم كامل السلفة فوراً ولن تبقى ديناً على الموظف.</span>
+                   </div>
+                </div>
+                <button type="button" onClick={() => set({...data, isImmediate: !data.isImmediate, installmentsCount: !data.isImmediate ? 1 : data.installmentsCount, monthlyInstallment: !data.isImmediate ? (data.amount || 0) : data.monthlyInstallment})} className="transition-transform active:scale-90">
+                   {data.isImmediate ? <ToggleRight size={48} className="text-rose-600" /> : <ToggleLeft size={48} className="text-slate-400" />}
+                </button>
               </div>
-              <div>
-                <label className="text-[11pt] font-black mb-1 block">تاريخ بدء التحصيل</label>
-                <input type="date" className="w-full p-4 border rounded-xl font-bold text-lg" value={data.collectionDate || ''} onChange={e => set({...data, collectionDate: e.target.value})} />
+
+              {!data.isImmediate && (
+                <>
+                  <div>
+                    <label className="text-[11pt] font-black mb-1 block">{db.settings.salaryCycle === 'weekly' ? 'قيمة القسط الأسبوعي' : 'قيمة القسط الشهري'}</label>
+                    <input type="number" placeholder="قيمة القسط" className="w-full p-4 border rounded-xl font-black text-xl text-indigo-700" value={data.monthlyInstallment || ''} onChange={e => set({...data, monthlyInstallment: Number(e.target.value)})} />
+                  </div>
+                  <div>
+                    <label className="text-[11pt] font-black mb-1 block">عدد الأقساط</label>
+                    <input type="number" className="w-full p-4 border rounded-xl font-bold text-lg" value={data.installmentsCount || ''} onChange={e => set({...data, installmentsCount: Number(e.target.value)})} />
+                  </div>
+                </>
+              )}
+              
+              <div className="col-span-2">
+                <label className="text-[11pt] font-black mb-1 block">تاريخ منح السلفة</label>
+                <input type="date" className="w-full p-4 border rounded-xl font-bold text-lg" value={data.date || ''} onChange={e => set({...data, date: e.target.value})} />
               </div>
             </div>
           )} 
-          renderRow={(i, name) => (<><td className="px-6 py-4 font-black text-lg">{name}</td><td className="px-6 py-4 font-bold">{i.amount.toLocaleString()}</td><td className="px-6 py-4">{i.installmentsCount}</td><td className="px-6 py-4 font-black text-indigo-700">{Math.round(i.monthlyInstallment).toLocaleString()}</td><td className="px-6 py-4">{i.collectionDate}</td></>)} 
+          renderRow={(i, name) => (<><td className="px-6 py-4 font-black text-lg">{name}</td><td className="px-6 py-4 font-bold">{i.amount.toLocaleString()}</td><td className="px-6 py-4">{i.isImmediate ? 'فوري' : i.installmentsCount}</td><td className="px-6 py-4 font-black text-indigo-700">{Math.round(i.monthlyInstallment).toLocaleString()}</td><td className="px-6 py-4 text-xs font-bold text-slate-500">{i.isImmediate ? 'الراتب القادم' : i.collectionDate}</td></>)} 
         />
       );
       case 'financials': return (
