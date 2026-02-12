@@ -97,6 +97,25 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
 
   return (
     <div className="space-y-4">
+      {/* Printable Header - Visible only when printing */}
+      <div className="hidden print:block text-right mb-6 pb-4 border-b-2 border-slate-900">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-black text-slate-900">{settings.name}</h1>
+            <h2 className="text-lg font-bold text-indigo-700 mt-1">
+              {showArchive 
+                ? `تقرير الحضور التاريخي (من ${dateFrom} إلى ${dateTo})` 
+                : `سجل الحضور والانصراف اليومي - بتاريخ: ${date}`}
+            </h2>
+          </div>
+          {settings.logo && <img src={settings.logo} className="h-12 w-auto object-contain" alt="Logo" />}
+        </div>
+        <div className="flex justify-between items-center mt-3 text-[10px] font-bold text-slate-500 uppercase">
+          <p>تاريخ استخراج التقرير: {new Date().toLocaleDateString('ar-EG')}</p>
+          <p>إجمالي السجلات: {showArchive ? archivedRecords.length : filteredRecords.length}</p>
+        </div>
+      </div>
+
       <div className="flex flex-col sm:flex-row justify-between items-center gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border dark:border-slate-800 no-print">
          <h2 className="text-base font-black text-indigo-700">{showArchive ? 'سجل الحضور التاريخي' : 'إدارة الحضور اليومي'}</h2>
          <button onClick={() => setShowArchive(!showArchive)} className={`flex items-center gap-2 px-6 py-2 rounded-xl font-black text-xs transition-all ${showArchive ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-900 text-white'}`}>
@@ -106,7 +125,7 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
 
       {!showArchive ? (
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 animate-in fade-in duration-500">
-          {/* Form Section - Stacked inputs for Desktop App compatibility */}
+          {/* Form Section */}
           <div className="xl:col-span-1 bg-white dark:bg-slate-900 p-5 rounded-2xl border dark:border-slate-800 shadow-sm h-fit no-print">
             <h3 className="text-sm font-black mb-5 flex items-center gap-2 text-indigo-700"><Clock size={18} /> {editingId ? 'تعديل السجل' : 'تسجيل حضور'}</h3>
             <form onSubmit={handleSubmit} className="space-y-4 text-right">
@@ -122,7 +141,6 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
                 </select>
               </div>
               
-              {/* Vertical stacking for time inputs to prevent cut-off in Desktop windows */}
               <div className="space-y-3">
                  <div>
                     <label className="text-[10px] font-black block mb-1">وقت الدخول</label>
@@ -144,10 +162,10 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
           </div>
 
           <div className="xl:col-span-3 space-y-4">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border dark:border-slate-800 shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-right text-[11px] font-bold">
-                  <thead className="bg-slate-50 dark:bg-slate-800 border-b dark:border-slate-700 font-black">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border dark:border-slate-800 shadow-sm overflow-hidden print:border-none print:shadow-none">
+              <div className="overflow-x-auto print:overflow-visible">
+                <table className="w-full text-right text-[11px] font-bold print:w-full">
+                  <thead className="bg-slate-50 dark:bg-slate-800 border-b dark:border-slate-700 font-black print:bg-slate-100 print:text-black">
                     <tr>
                       <th className="px-5 py-3">الموظف</th>
                       <th className="text-center py-3">الوقت</th>
@@ -160,15 +178,15 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
                     {filteredRecords.map(r => {
                       const emp = employees.find(e => e.id === r.employeeId);
                       return (
-                        <tr key={r.id} className="hover:bg-slate-50 transition">
+                        <tr key={r.id} className="hover:bg-slate-50 transition print:border-b">
                           <td className="px-5 py-2">
                             <p className="font-black text-slate-900 dark:text-white">{emp?.name}</p>
-                            <p className="text-[9px] text-slate-400">{r.date}</p>
+                            <p className="text-[9px] text-slate-400 print:hidden">{r.date}</p>
                           </td>
                           <td className="text-center">
-                            <span className="bg-indigo-50 dark:bg-indigo-900/20 px-2 py-1 rounded text-indigo-700 dark:text-indigo-400">{r.checkIn} - {r.checkOut}</span>
+                            <span className="bg-indigo-50 dark:bg-indigo-900/20 px-2 py-1 rounded text-indigo-700 dark:text-indigo-400 print:bg-transparent print:text-black">{r.checkIn} - {r.checkOut}</span>
                           </td>
-                          <td className="text-center text-indigo-600">{formatHours(calculateTimeDiffMinutes(r.checkOut, r.checkIn))}</td>
+                          <td className="text-center text-indigo-600 print:text-black">{formatHours(calculateTimeDiffMinutes(r.checkOut, r.checkIn))}</td>
                           <td className="text-center">
                               {r.lateMinutes > 0 ? (
                                 <span className="text-rose-600 text-[9px]">متأخر {r.lateMinutes}د</span>
@@ -208,11 +226,11 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
               </div>
            </div>
 
-           <div className="bg-white dark:bg-slate-900 rounded-2xl border dark:border-slate-800 shadow-sm overflow-hidden">
-             <div className="overflow-x-auto">
-               <table className="w-full text-right text-[11px] font-bold">
-                  <thead className="bg-slate-50 dark:bg-slate-800 border-b">
-                    <tr className="text-slate-500 font-black uppercase">
+           <div className="bg-white dark:bg-slate-900 rounded-2xl border dark:border-slate-800 shadow-sm overflow-hidden print:border-none print:shadow-none">
+             <div className="overflow-x-auto print:overflow-visible">
+               <table className="w-full text-right text-[11px] font-bold print:w-full">
+                  <thead className="bg-slate-50 dark:bg-slate-800 border-b print:bg-slate-100 print:text-black">
+                    <tr className="text-slate-500 font-black uppercase print:text-black">
                       <th className="px-5 py-3">التاريخ</th>
                       <th className="px-5 py-3">الموظف</th>
                       <th className="text-center py-3">الحضور</th>
@@ -224,13 +242,13 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {archivedRecords.map(r => (
-                      <tr key={r.id} className="hover:bg-slate-50 transition">
-                        <td className="px-5 py-2 text-slate-500">{r.date}</td>
+                      <tr key={r.id} className="hover:bg-slate-50 transition print:border-b">
+                        <td className="px-5 py-2 text-slate-500 print:text-black">{r.date}</td>
                         <td className="px-5 py-2">{employees.find(e => e.id === r.employeeId)?.name}</td>
                         <td className="text-center">{r.checkIn}</td>
                         <td className="text-center">{r.checkOut}</td>
-                        <td className="text-center text-indigo-700">{formatHours(calculateTimeDiffMinutes(r.checkOut, r.checkIn))}</td>
-                        <td className={`text-center ${r.lateMinutes > 0 ? 'text-rose-600' : ''}`}>{r.lateMinutes}د</td>
+                        <td className="text-center text-indigo-700 print:text-black">{formatHours(calculateTimeDiffMinutes(r.checkOut, r.checkIn))}</td>
+                        <td className={`text-center ${r.lateMinutes > 0 ? 'text-rose-600' : ''} print:text-black`}>{r.lateMinutes}د</td>
                         <td className="text-center no-print px-5">
                            <div className="flex justify-center gap-1">
                              <button onClick={() => handleEdit(r)} className="p-1.5 text-indigo-600"><Edit2 size={14}/></button>
