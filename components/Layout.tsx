@@ -45,20 +45,17 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang
   });
 
   return (
-    <div className={`flex h-full w-full bg-slate-50 dark:bg-slate-950 overflow-hidden ${isRtl ? 'text-right' : 'text-left'}`} dir={isRtl ? 'rtl' : 'ltr'}>
-      
-      {/* Sidebar - Desktop Fixed */}
-      <aside className="flex-shrink-0 w-64 h-full bg-indigo-950 text-white flex flex-col no-print border-l dark:border-slate-800 shadow-2xl relative z-20">
-        <div className="p-6 border-b border-indigo-900 shrink-0">
+    <div className={`flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden ${isRtl ? 'text-right' : 'text-left'}`} dir={isRtl ? 'rtl' : 'ltr'}>
+      {/* Sidebar */}
+      <aside className="w-64 bg-indigo-950 text-white flex flex-col no-print border-l dark:border-slate-800 transition-all duration-300">
+        <div className="p-6 border-b border-indigo-900">
           <h1 className="text-2xl font-black text-indigo-400 flex items-center gap-2">
             <div className="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/50">S</div>
             <span>SAM</span>
           </h1>
           <p className="text-[10px] text-indigo-300 mt-1 font-bold tracking-widest uppercase">HRMS PRO</p>
         </div>
-        
-        {/* Scrollable Nav Area */}
-        <nav className="flex-1 overflow-y-auto p-4 space-y-1 custom-scrollbar">
+        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
           {filteredMenu.map((item) => (
             <button
               key={item.id}
@@ -69,14 +66,12 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang
                 : 'text-indigo-300 hover:bg-indigo-900 hover:text-white'
               }`}
             >
-              <item.icon size={20} className="flex-shrink-0" />
-              <span className="font-bold text-sm whitespace-nowrap">{item.label}</span>
+              <item.icon size={20} />
+              <span className="font-bold text-sm">{item.label}</span>
             </button>
           ))}
         </nav>
-
-        {/* Sidebar Footer */}
-        <div className="p-4 border-t border-indigo-900 bg-indigo-950/50 shrink-0">
+        <div className="p-4 border-t border-indigo-900 bg-indigo-950/50">
           <div className="flex items-center justify-between mb-4 bg-indigo-900/40 p-2 rounded-lg">
              <button onClick={toggleTheme} className="p-2 hover:bg-indigo-800 rounded-lg text-indigo-300 transition">
                 {theme === 'light' ? <Moon size={20}/> : <Sun size={20}/>}
@@ -92,11 +87,9 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang
         </div>
       </aside>
 
-      {/* Main Container */}
-      <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden relative">
-        
-        {/* Header - Fixed height */}
-        <header className="flex-shrink-0 h-16 bg-white dark:bg-slate-900 border-b dark:border-slate-800 flex items-center justify-between px-8 no-print shadow-sm z-10">
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
+        <header className="h-16 bg-white dark:bg-slate-900 border-b dark:border-slate-800 flex items-center justify-between px-8 no-print shadow-sm z-10">
           <div>
             <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 uppercase tracking-wide">
               {menuItems.find(m => m.id === activeTab)?.label}
@@ -113,13 +106,10 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang
           </div>
         </header>
 
-        {/* Content Area - Independent Scroll */}
-        <main className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
-          <div className="max-w-[1600px] mx-auto w-full">
-            {children}
-          </div>
-        </main>
-      </div>
+        <section className="flex-1 overflow-y-auto p-8 relative">
+          {children}
+        </section>
+      </main>
     </div>
   );
 };
