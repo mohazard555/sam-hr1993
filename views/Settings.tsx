@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { CompanySettings, User, ArchiveLog } from '../types';
 import { DB } from '../db/store';
-import { Shield, Upload, Download, Database, Trash2, Image as ImageIcon, History, Archive, FileJson, CalendarDays, Clock, Banknote, HelpCircle, Settings2 } from 'lucide-react';
+import { Shield, Upload, Download, Database, Trash2, Image as ImageIcon, History, Archive, FileJson, CalendarDays, Clock, Banknote, HelpCircle, Settings2, FileArchive, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
 
 interface Props {
   settings: CompanySettings;
@@ -17,6 +17,7 @@ interface Props {
 
 const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, onUpdateAdmin, onImport, onRunArchive, onClearData }) => {
   const [adminForm, setAdminForm] = useState({ username: admin.username, password: admin.password || '' });
+  const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -34,6 +35,20 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute("href", dataStr);
     downloadAnchorNode.setAttribute("download", `sam_hrms_backup_${new Date().toISOString().split('T')[0]}.json`);
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+  };
+
+  const handleDownloadSnapshot = (log: ArchiveLog) => {
+    if (!log.snapshotData) {
+        alert("لا تتوفر نسخة ملف لهذا السجل.");
+        return;
+    }
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(log.snapshotData);
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", `sam_archive_snapshot_${log.date}_${log.id}.json`);
     document.body.appendChild(downloadAnchorNode);
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
@@ -64,138 +79,208 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
   };
 
   return (
-    <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 pb-20 text-right">
+    <div className="max-w-6xl mx-auto space-y-10 pb-20 text-right">
       
-      {/* Identity & Policy */}
-      <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 space-y-6">
-        <h3 className="text-xl font-black text-indigo-600 flex items-center gap-2"><Upload size={24} /> إعدادات النظام الأساسية</h3>
-        <div className="space-y-4">
-           <div className="flex flex-col items-center p-6 border-2 border-dashed rounded-3xl bg-slate-50 dark:bg-slate-800/50">
-              {settings.logo ? (
-                <img src={settings.logo} className="h-20 w-auto mb-4 rounded-xl shadow-md object-contain" alt="Logo" />
-              ) : (
-                <div className="w-20 h-20 bg-slate-200 dark:bg-slate-700 rounded-xl mb-4 flex items-center justify-center text-slate-400"><ImageIcon size={32}/></div>
-              )}
-              <label className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-black text-xs cursor-pointer hover:bg-indigo-700 transition">
-                تغيير الشعار
-                <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />
-              </label>
-           </div>
-           
-           <div className="grid grid-cols-1 gap-4">
-              <div>
-                <label className="text-xs font-black text-slate-400 mb-1 block uppercase">اسم المؤسسة</label>
-                <input className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 rounded-2xl font-black outline-none transition" value={settings.name} onChange={e => onUpdateSettings({name: e.target.value})} />
-              </div>
-
-              <div>
-                <label className="text-xs font-black text-slate-400 mb-1 block uppercase flex items-center gap-2">
-                  <HelpCircle size={14} className="text-indigo-500"/> تلميح كلمة المرور
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Identity & Policy */}
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 space-y-6">
+          <h3 className="text-xl font-black text-indigo-600 flex items-center gap-2"><Upload size={24} /> إعدادات النظام الأساسية</h3>
+          <div className="space-y-4">
+             <div className="flex flex-col items-center p-6 border-2 border-dashed rounded-3xl bg-slate-50 dark:bg-slate-800/50">
+                {settings.logo ? (
+                  <img src={settings.logo} className="h-20 w-auto mb-4 rounded-xl shadow-md object-contain" alt="Logo" />
+                ) : (
+                  <div className="w-20 h-20 bg-slate-200 dark:bg-slate-700 rounded-xl mb-4 flex items-center justify-center text-slate-400"><ImageIcon size={32}/></div>
+                )}
+                <label className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-black text-xs cursor-pointer hover:bg-indigo-700 transition">
+                  تغيير الشعار
+                  <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />
                 </label>
-                <input 
-                  className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 rounded-2xl font-black outline-none transition" 
-                  placeholder="مثال: رقم هاتفك أو اسمك المفضل"
-                  value={settings.passwordHint || ''} 
-                  onChange={e => onUpdateSettings({passwordHint: e.target.value})} 
-                />
-              </div>
-              
-              <div className="p-6 bg-indigo-50/50 dark:bg-slate-800 rounded-3xl border-2 border-indigo-100 dark:border-slate-700 space-y-4">
-                <h4 className="text-sm font-black text-indigo-700 flex items-center gap-2"><Settings2 size={18}/> تخصيص دورة الرواتب</h4>
+             </div>
+             
+             <div className="grid grid-cols-1 gap-4">
                 <div>
-                  <label className="text-xs font-black text-slate-500 mb-1 block uppercase">نظام الدورة</label>
-                  <select className="w-full p-3 bg-white dark:bg-slate-900 border rounded-xl font-black outline-none" value={settings.salaryCycle} onChange={e => onUpdateSettings({salaryCycle: e.target.value as any})}>
-                    <option value="monthly">نظام رواتب شهري</option>
-                    <option value="weekly">نظام رواتب أسبوعي</option>
-                  </select>
+                  <label className="text-xs font-black text-slate-400 mb-1 block uppercase">اسم المؤسسة</label>
+                  <input className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 rounded-2xl font-black outline-none transition" value={settings.name} onChange={e => onUpdateSettings({name: e.target.value})} />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                   <div>
-                     <label className="text-[10px] font-black text-slate-400 block mb-1">أيام الشهر المالي</label>
-                     <input type="number" className="w-full p-3 border rounded-xl font-black" value={settings.monthlyCycleDays || 30} onChange={e => onUpdateSettings({monthlyCycleDays: Number(e.target.value)})} />
+
+                <div className="p-6 bg-indigo-50/50 dark:bg-slate-800 rounded-3xl border-2 border-indigo-100 dark:border-slate-700 space-y-4">
+                  <h4 className="text-sm font-black text-indigo-700 flex items-center gap-2"><Settings2 size={18}/> تخصيص دورة الرواتب</h4>
+                  <div>
+                    <label className="text-xs font-black text-slate-500 mb-1 block uppercase">نظام الدورة</label>
+                    <select className="w-full p-3 bg-white dark:bg-slate-900 border rounded-xl font-black outline-none" value={settings.salaryCycle} onChange={e => onUpdateSettings({salaryCycle: e.target.value as any})}>
+                      <option value="monthly">نظام رواتب شهري</option>
+                      <option value="weekly">نظام رواتب أسبوعي</option>
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                     <div>
+                       <label className="text-[10px] font-black text-slate-400 block mb-1">أيام الشهر المالي</label>
+                       <input type="number" className="w-full p-3 border rounded-xl font-black" value={settings.monthlyCycleDays || 30} onChange={e => onUpdateSettings({monthlyCycleDays: Number(e.target.value)})} />
+                     </div>
+                     <div>
+                       <label className="text-[10px] font-black text-slate-400 block mb-1">أيام الأسبوع المالي</label>
+                       <input type="number" className="w-full p-3 border rounded-xl font-black" value={settings.weeklyCycleDays || 7} onChange={e => onUpdateSettings({weeklyCycleDays: Number(e.target.value)})} />
+                     </div>
+                  </div>
+                </div>
+             </div>
+          </div>
+        </div>
+
+        {/* Official Times & Auto Archive */}
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 space-y-6">
+          <h3 className="text-xl font-black text-emerald-600 flex items-center gap-2"><Clock size={24} /> الدوام والأرشفة الذكية</h3>
+          <div className="grid grid-cols-2 gap-4">
+             <div>
+               <label className="text-xs font-black text-slate-400 mb-1 block">الحضور الرسمي</label>
+               <input type="time" className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-emerald-600 rounded-2xl font-black" value={settings.officialCheckIn} onChange={e => onUpdateSettings({officialCheckIn: e.target.value})} />
+             </div>
+             <div>
+               <label className="text-xs font-black text-slate-400 mb-1 block">الانصراف الرسمي</label>
+               <input type="time" className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-emerald-600 rounded-2xl font-black" value={settings.officialCheckOut} onChange={e => onUpdateSettings({officialCheckOut: e.target.value})} />
+             </div>
+          </div>
+
+          <div className="pt-6 border-t dark:border-slate-800">
+             <div className="bg-amber-50 dark:bg-amber-900/10 p-6 rounded-3xl border-2 border-dashed border-amber-200 dark:border-amber-900/30 space-y-4">
+                <h4 className="text-sm font-black text-amber-700 flex items-center gap-2"><FileArchive size={20}/> إعدادات الأرشفة والاحتفاظ</h4>
+                <div className="flex gap-4 items-end">
+                   <div className="flex-1">
+                      <label className="text-[10px] font-black text-slate-500 block mb-1">فترة الاحتفاظ (بالأيام)</label>
+                      <input 
+                        type="number" 
+                        className="w-full p-4 bg-white dark:bg-slate-900 border-2 rounded-2xl font-black text-lg outline-none focus:border-amber-500 transition" 
+                        value={settings.archiveRetentionDays || 90} 
+                        onChange={e => onUpdateSettings({archiveRetentionDays: Number(e.target.value)})} 
+                      />
                    </div>
-                   <div>
-                     <label className="text-[10px] font-black text-slate-400 block mb-1">أيام الأسبوع المالي</label>
-                     <input type="number" className="w-full p-3 border rounded-xl font-black" value={settings.weeklyCycleDays || 7} onChange={e => onUpdateSettings({weeklyCycleDays: Number(e.target.value)})} />
+                   <button 
+                     onClick={onRunArchive} 
+                     className="bg-amber-600 text-white px-8 py-4 rounded-2xl font-black shadow-xl hover:bg-amber-700 transition flex items-center gap-2"
+                   >
+                     <Archive size={20}/> أرشفة الآن
+                   </button>
+                </div>
+                <p className="text-[9px] font-bold text-slate-500 leading-relaxed italic">
+                  * سيقوم النظام بجمع كافة البيانات غير مؤرشفة أقدم من {settings.archiveRetentionDays} يوم ونقلها للأرشيف التاريخي مع توليد نسخة لقطة (Snapshot).
+                </p>
+             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Archive Logs History */}
+      <div className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] shadow-2xl border dark:border-slate-800 space-y-8 animate-in fade-in duration-700">
+        <div className="flex justify-between items-center">
+           <h3 className="text-2xl font-black text-indigo-700 flex items-center gap-3">
+             <History size={28} /> سجل عمليات الأرشفة التاريخية
+           </h3>
+           <span className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 px-6 py-2 rounded-full font-black text-sm border">
+             {settings.archiveLogs?.length || 0} عملية سابقة
+           </span>
+        </div>
+
+        <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar rtl">
+           {settings.archiveLogs?.map((log) => (
+             <div key={log.id} className="bg-slate-50 dark:bg-slate-800/40 border-2 border-transparent hover:border-indigo-100 rounded-[2.5rem] overflow-hidden transition-all shadow-sm">
+                <div 
+                  className="flex items-center justify-between p-6 cursor-pointer"
+                  onClick={() => setExpandedLogId(expandedLogId === log.id ? null : log.id)}
+                >
+                   <div className="flex items-center gap-5">
+                      <div className="w-14 h-14 bg-indigo-100 dark:bg-indigo-900/40 rounded-2xl flex items-center justify-center text-indigo-600">
+                         <FileArchive size={24} />
+                      </div>
+                      <div className="text-right">
+                         <p className="text-lg font-black text-slate-900 dark:text-white">{log.timestamp}</p>
+                         <p className="text-xs font-bold text-slate-400 uppercase flex items-center gap-2 mt-1">
+                            <Database size={12}/> تمت أرشفة {log.recordsCount} سجل
+                            <span className={`px-2 py-0.5 rounded text-[8px] font-black ${log.type === 'auto' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                              {log.type === 'auto' ? 'أرشفة آلية' : 'أرشفة يدوية'}
+                            </span>
+                         </p>
+                      </div>
+                   </div>
+                   <div className="flex items-center gap-4">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleDownloadSnapshot(log); }}
+                        className="bg-indigo-600 text-white p-3 rounded-xl hover:bg-indigo-700 transition shadow-lg flex items-center gap-2 text-xs font-black"
+                        title="تحميل نسخة الأرشيف"
+                      >
+                        <Download size={16}/> تحميل JSON
+                      </button>
+                      <div className="p-2 text-slate-400 bg-white dark:bg-slate-900 rounded-full shadow-sm">
+                        {expandedLogId === log.id ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
+                      </div>
                    </div>
                 </div>
-                <p className="text-[9px] font-bold text-slate-400 italic leading-relaxed">* سيقوم النظام بقسمة الراتب الأساسي للموظف على عدد الأيام المحدد هنا لاستخراج سعر اليوم بدقة.</p>
-              </div>
 
-              <div className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border">
-                 <input 
-                   type="checkbox" 
-                   id="fridayWork"
-                   className="w-5 h-5 accent-indigo-600"
-                   checked={settings.fridayIsWorkDay} 
-                   onChange={e => onUpdateSettings({fridayIsWorkDay: e.target.checked})} 
-                 />
-                 <label htmlFor="fridayWork" className="text-sm font-black text-slate-700 dark:text-slate-200 cursor-pointer">
-                    اعتبار يوم الجمعة يوم دوام رسمي
-                 </label>
-              </div>
-           </div>
+                {expandedLogId === log.id && (
+                  <div className="p-8 pt-0 border-t-2 dark:border-slate-700 bg-white/50 dark:bg-slate-900/50 animate-in slide-in-from-top-4">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6">
+                        <div className="space-y-4">
+                           <h5 className="font-black text-indigo-600 uppercase text-xs flex items-center gap-2"><AlertCircle size={14}/> تفاصيل العملية</h5>
+                           <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border shadow-sm">
+                              <p className="text-sm font-bold text-slate-700 dark:text-slate-300 leading-relaxed">{log.details}</p>
+                              <div className="mt-4 pt-4 border-t flex justify-between text-[10px] font-black text-slate-400 uppercase">
+                                 <span>المنفذ: {log.performedBy}</span>
+                                 <span>المعرف: #{log.id}</span>
+                              </div>
+                           </div>
+                        </div>
+                        <div className="space-y-4">
+                           <h5 className="font-black text-emerald-600 uppercase text-xs flex items-center gap-2"><Database size={14}/> مكونات النسخة</h5>
+                           <div className="bg-slate-900 p-6 rounded-3xl overflow-hidden relative">
+                              <code className="text-[10px] text-emerald-400 font-mono block break-all opacity-80 h-32 overflow-hidden">
+                                 {log.snapshotData}
+                              </code>
+                              <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-slate-900 flex items-center justify-center">
+                                 <span className="text-[10px] font-black text-indigo-400">تحتوي النسخة على بيانات هيكلية مشفرة لغرض الأمان</span>
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+                )}
+             </div>
+           ))}
+           {(!settings.archiveLogs || settings.archiveLogs.length === 0) && (
+             <div className="p-24 text-center text-slate-400 italic font-black bg-slate-50 dark:bg-slate-800/20 rounded-[3rem] border-2 border-dashed">
+                لم يتم تنفيذ أية عمليات أرشفة بعد. يمكنك الضغط على "أرشفة الآن" لبدء تنظيم البيانات.
+             </div>
+           )}
         </div>
       </div>
 
-      {/* Official Times */}
-      <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 space-y-6">
-        <h3 className="text-xl font-black text-emerald-600 flex items-center gap-2"><Clock size={24} /> أوقات الدوام الرسمية</h3>
-        <div className="grid grid-cols-2 gap-4">
-           <div>
-             <label className="text-xs font-black text-slate-400 mb-1 block">الحضور الرسمي</label>
-             <input type="time" className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-emerald-600 rounded-2xl font-black" value={settings.officialCheckIn} onChange={e => onUpdateSettings({officialCheckIn: e.target.value})} />
-           </div>
-           <div>
-             <label className="text-xs font-black text-slate-400 mb-1 block">الانصراف الرسمي</label>
-             <input type="time" className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-emerald-600 rounded-2xl font-black" value={settings.officialCheckOut} onChange={e => onUpdateSettings({officialCheckOut: e.target.value})} />
-           </div>
-           <div className="col-span-2">
-             <label className="text-xs font-black text-slate-400 mb-1 block">فترة السماح (بالدقائق)</label>
-             <input type="number" className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-emerald-600 rounded-2xl font-black" value={settings.gracePeriodMinutes} onChange={e => onUpdateSettings({gracePeriodMinutes: Number(e.target.value)})} />
-           </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Admin Credentials */}
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 space-y-6">
+          <h3 className="text-xl font-black text-slate-800 dark:text-slate-200 flex items-center gap-2"><Shield size={24} /> حساب المسؤول</h3>
+          <div className="space-y-4">
+             <div><label className="text-xs font-black text-slate-400 block mb-1">اسم المستخدم</label><input className="w-full p-4 border rounded-2xl font-bold dark:bg-slate-800" value={adminForm.username} onChange={e => setAdminForm({...adminForm, username: e.target.value})} /></div>
+             <div><label className="text-xs font-black text-slate-400 block mb-1">كلمة المرور</label><input type="password" className="w-full p-4 border rounded-2xl font-bold dark:bg-slate-800" value={adminForm.password} onChange={e => setAdminForm({...adminForm, password: e.target.value})} /></div>
+             <button onClick={() => onUpdateAdmin(adminForm)} className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black shadow-lg">تحديث بيانات الدخول</button>
+          </div>
         </div>
-        <div className="pt-4 border-t">
-           <h4 className="text-sm font-black text-amber-600 flex items-center gap-2 mb-4"><Archive size={20}/> الأرشفة التلقائية</h4>
-           <div className="flex gap-4 items-end">
-              <div className="flex-1">
-                <label className="text-[10px] font-black text-slate-400 block mb-1">الاحتفاظ بـ (يوم)</label>
-                <input type="number" className="w-full p-3 bg-slate-50 border rounded-xl font-black" value={settings.archiveRetentionDays} onChange={e => onUpdateSettings({archiveRetentionDays: Number(e.target.value)})} />
-              </div>
-              <button onClick={onRunArchive} className="bg-amber-100 text-amber-700 px-6 py-3 rounded-xl font-black text-sm hover:bg-amber-200 transition">أرشفة الآن</button>
-           </div>
-        </div>
-      </div>
 
-      {/* Admin Credentials */}
-      <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 space-y-6">
-        <h3 className="text-xl font-black text-slate-800 dark:text-slate-200 flex items-center gap-2"><Shield size={24} /> حساب المسؤول</h3>
-        <div className="space-y-4">
-           <div><label className="text-xs font-black text-slate-400 block mb-1">اسم المستخدم</label><input className="w-full p-4 border rounded-2xl font-bold dark:bg-slate-800" value={adminForm.username} onChange={e => setAdminForm({...adminForm, username: e.target.value})} /></div>
-           <div><label className="text-xs font-black text-slate-400 block mb-1">كلمة المرور</label><input type="password" className="w-full p-4 border rounded-2xl font-bold dark:bg-slate-800" value={adminForm.password} onChange={e => setAdminForm({...adminForm, password: e.target.value})} /></div>
-           <button onClick={() => onUpdateAdmin(adminForm)} className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black shadow-lg">تحديث بيانات الدخول</button>
+        {/* Database Maintenance */}
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 space-y-6">
+          <h3 className="text-xl font-black text-rose-600 flex items-center gap-2"><Database size={24} /> إدارة البيانات</h3>
+          <div className="grid grid-cols-1 gap-3">
+            <button onClick={handleExport} className="w-full bg-indigo-50 text-indigo-700 py-4 rounded-2xl font-black flex items-center justify-center gap-2 border-2 border-dashed border-indigo-200 hover:bg-indigo-100 transition">
+              <Download size={20}/> تصدير نسخة (JSON)
+            </button>
+            <label className="w-full bg-emerald-50 text-emerald-700 py-4 rounded-2xl font-black flex items-center justify-center gap-2 border-2 border-dashed border-emerald-200 hover:bg-emerald-100 transition cursor-pointer">
+              <FileJson size={20}/> استيراد نسخة احتياطية
+              <input type="file" className="hidden" accept=".json" onChange={handleImport} />
+            </label>
+            <button onClick={onClearData} className="w-full bg-rose-50 text-rose-600 py-4 rounded-2xl font-black border-2 border-dashed border-rose-200 hover:bg-rose-100 transition">
+              <Trash2 size={20}/> مسح شامل للبيانات
+            </button>
+          </div>
         </div>
       </div>
-
-      {/* Database Maintenance */}
-      <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 space-y-6">
-        <h3 className="text-xl font-black text-rose-600 flex items-center gap-2"><Database size={24} /> إدارة البيانات</h3>
-        <div className="grid grid-cols-1 gap-3">
-          <button onClick={handleExport} className="w-full bg-indigo-50 text-indigo-700 py-4 rounded-2xl font-black flex items-center justify-center gap-2 border-2 border-dashed border-indigo-200 hover:bg-indigo-100 transition">
-            <Download size={20}/> تصدير نسخة (JSON)
-          </button>
-          
-          <label className="w-full bg-emerald-50 text-emerald-700 py-4 rounded-2xl font-black flex items-center justify-center gap-2 border-2 border-dashed border-emerald-200 hover:bg-emerald-100 transition cursor-pointer">
-            <FileJson size={20}/> استيراد نسخة احتياطية
-            <input type="file" className="hidden" accept=".json" onChange={handleImport} />
-          </label>
-
-          <button onClick={onClearData} className="w-full bg-rose-50 text-rose-600 py-4 rounded-2xl font-black border-2 border-dashed border-rose-200 hover:bg-rose-100 transition">
-            <Trash2 size={20}/> مسح شامل للبيانات
-          </button>
-        </div>
-      </div>
-
     </div>
   );
 };

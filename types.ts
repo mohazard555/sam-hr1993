@@ -16,9 +16,12 @@ export interface User {
 export interface ArchiveLog {
   id: string;
   date: string;
-  type: string;
+  timestamp: string;
+  type: 'manual' | 'auto';
   recordsCount: number;
   performedBy: string;
+  details: string;
+  snapshotData?: string; // نسخة JSON من البيانات التي تمت أرشفتها في هذه العملية
 }
 
 export interface CompanySettings {
@@ -40,7 +43,7 @@ export interface CompanySettings {
   weeklyCycleDays: number;
   passwordHint?: string;
   archiveRetentionDays: number;
-  archiveLogs: [];
+  archiveLogs: ArchiveLog[];
   fridayIsWorkDay: boolean;
 }
 
