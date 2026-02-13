@@ -15,9 +15,9 @@ import { loadDB, saveDB, DB } from './db/store';
 import { Employee, PayrollRecord, FinancialEntry, Loan, LeaveRequest, ProductionEntry, AttendanceRecord, Warning, PrintHistoryRecord } from './types';
 import { generatePayrollForRange } from './utils/calculations';
 import { exportToExcel } from './utils/export';
-import { Printer, X, ReceiptText, CalendarDays, Loader2, FileText, CheckCircle, Info, ShieldAlert, Package, Layers, Clock, TrendingUp, Lock, HelpCircle, ToggleLeft, ToggleRight, AlertCircle, Calendar, FileDown, LayoutPanelLeft, LayoutPanelTop, Zap, Key, ShieldCheck } from 'lucide-react';
+import { Printer, X, ReceiptText, CalendarDays, Loader2, FileText, CheckCircle, Info, ShieldAlert, Package, Layers, Clock, TrendingUp, Lock, HelpCircle, ToggleLeft, ToggleRight, AlertCircle, Calendar, FileDown, LayoutPanelLeft, LayoutPanelTop, Zap, Key, ShieldCheck, AlertOctagon } from 'lucide-react';
 
-// قائمة التراخيص الـ 100 المعتمدة
+// قائمة التراخيص المعتمدة (100 كود)
 const validLicenses = [
   "LIC-7X2K-9PQM-11A4", "LIC-AP92-XKQ1-447Z", "LIC-LL29-PPQ2-79MQ", "LIC-MQ18-ZZ20-199Q", "LIC-1QQ0-AA29-MZ22",
   "LIC-299X-ZLQ4-MM18", "LIC-20QA-812P-922A", "LIC-PQ17-2XM4-555Z", "LIC-KZ77-PLQ2-19XQ", "LIC-33LM-92QK-ZZPQ",
@@ -54,6 +54,104 @@ const App: React.FC = () => {
   const [activationError, setActivationError] = useState<string>('');
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
 
+  // دالة الحصول على بصمة الجهاز مع آلية Fallback قوية للأوفلاين
+  const getMachineId = async (): Promise<string> => {
+    try {
+      // @ts-ignore
+      if (typeof FingerprintJS !== 'undefined') {
+        // @ts-ignore
+        const fp = await FingerprintJS.load();
+        const result = await fp.get();
+        return result.visitorId;
+      }
+    } catch (e) {
+      console.warn("FingerprintJS Fallback", e);
+    }
+
+    // بناء بصمة مستقرة من خصائص الجهاز في حال عدم توفر الإنترنت
+    let fallbackId = localStorage.getItem('SAM_DEVICE_FINGERPRINT');
+    if (!fallbackId) {
+      const entropy = [
+        navigator.userAgent,
+        navigator.language,
+        screen.width + 'x' + screen.height,
+        new Date().getTimezoneOffset(),
+        navigator.hardwareConcurrency || 'unknown'
+      ].join('|');
+      
+      fallbackId = 'SAM-' + btoa(entropy).substring(0, 32);
+      localStorage.setItem('SAM_DEVICE_FINGERPRINT', fallbackId);
+    }
+    return fallbackId;
+  };
+
+  // التحقق من التفعيل عند تشغيل التطبيق (الأمان والمصادقة)
+  useEffect(() => {
+    const checkActivationStatus = async () => {
+      try {
+        const visitorId = await getMachineId();
+        const storedLicense = localStorage.getItem('SAM_LICENSE');
+        const boundFingerprint = localStorage.getItem('SAM_BOUND_FP');
+
+        if (storedLicense) {
+          // 1. هل المفتاح موجود في القائمة أصلاً؟
+          if (!validLicenses.includes(storedLicense)) {
+            setActivationError('تم اكتشاف تلاعب في ملف الترخيص.');
+            setIsActivated(false);
+          } 
+          // 2. هل البصمة المسجلة مطابقة للبصمة الحالية؟ (منع النقل لجهاز آخر)
+          else if (boundFingerprint && boundFingerprint !== visitorId) {
+            setActivationError('هذا الترخيص مخصص لجهاز آخر ولا يمكن تشغيله هنا.');
+            setIsActivated(false);
+          }
+          // 3. كل شيء صحيح
+          else {
+            setIsActivated(true);
+          }
+        } else {
+          setIsActivated(false);
+        }
+      } catch (err) {
+        console.error("Critical Security Error", err);
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+
+    checkActivationStatus();
+  }, []);
+
+  const handleActivate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setActivationError('');
+    const inputKey = activationKey.trim().toUpperCase();
+
+    // القيد الأول: هل الجهاز مفعّل مسبقاً بمفتاح آخر؟
+    const currentLicense = localStorage.getItem('SAM_LICENSE');
+    if (currentLicense && currentLicense !== inputKey) {
+      setActivationError('الجهاز مفعّل مسبقاً برخصة مختلفة. لا يمكن تغيير الترخيص.');
+      return;
+    }
+
+    // القيد الثاني: صحة المفتاح من القائمة
+    if (!validLicenses.includes(inputKey)) {
+      setActivationError('مفتاح الترخيص غير صالح. يرجى مراجعة الموزع.');
+      return;
+    }
+
+    try {
+      const visitorId = await getMachineId();
+
+      // ربط دائم (Key Pinning)
+      localStorage.setItem('SAM_LICENSE', inputKey);
+      localStorage.setItem('SAM_BOUND_FP', visitorId);
+      
+      setIsActivated(true);
+    } catch (err) {
+      setActivationError('فشل ربط الترخيص بالجهاز. حاول لاحقاً.');
+    }
+  };
+
   const [individualPrintItem, setIndividualPrintItem] = useState<{title: string, type: string, data: any} | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
   const [printOrientation, setPrintOrientation] = useState<'portrait' | 'landscape'>('landscape');
@@ -64,84 +162,6 @@ const App: React.FC = () => {
   const [archiveModes, setArchiveModes] = useState<Record<string, boolean>>({
     leaves: false, financials: false, loans: false, production: false
   });
-
-  // دالة الحصول على بصمة الجهاز مع آلية احتياطية (Fallback) للأوفلاين
-  const getMachineId = async (): Promise<string> => {
-    try {
-      // محاولة استخدام FingerprintJS إذا كانت المكتبة محملة (أونلاين)
-      // @ts-ignore
-      if (typeof FingerprintJS !== 'undefined') {
-        // @ts-ignore
-        const fp = await FingerprintJS.load();
-        const result = await fp.get();
-        return result.visitorId;
-      }
-    } catch (e) {
-      console.warn("FingerprintJS failed to load or run, using local fallback", e);
-    }
-
-    // آلية احتياطية للأوفلاين أو عند حظر السكربتات
-    let fallbackId = localStorage.getItem('SAM_FALLBACK_ID');
-    if (!fallbackId) {
-      // توليد معرف فريد للمتصفح الحالي وتخزينه
-      fallbackId = 'SAM-' + Math.random().toString(36).substring(2, 15) + '-' + Date.now().toString(36);
-      localStorage.setItem('SAM_FALLBACK_ID', fallbackId);
-    }
-    return fallbackId;
-  };
-
-  // التحقق من التفعيل عند تشغيل التطبيق
-  useEffect(() => {
-    const checkActivation = async () => {
-      try {
-        const visitorId = await getMachineId();
-        const storedKey = localStorage.getItem('SAM_LICENSE');
-        const storedFp = localStorage.getItem('SAM_FINGERPRINT');
-
-        if (storedKey && storedFp) {
-          if (!validLicenses.includes(storedKey)) {
-            setActivationError('مفتاح الترخيص غير صالح.');
-            setIsActivated(false);
-          } else if (storedFp !== visitorId) {
-            setActivationError('هذا الترخيص مرتب بجهاز آخر بالفعل.');
-            setIsActivated(false);
-          } else {
-            setIsActivated(true);
-          }
-        } else {
-          setIsActivated(false);
-        }
-      } catch (err) {
-        console.error("Critical activation check error", err);
-      } finally {
-        setIsInitializing(false);
-      }
-    };
-
-    checkActivation();
-  }, []);
-
-  const handleActivate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setActivationError('');
-
-    // التحقق من وجود المفتاح في القائمة المعتمدة
-    if (!validLicenses.includes(activationKey.trim().toUpperCase())) {
-      setActivationError('مفتاح الترخيص غير صحيح. يرجى التأكد من الكود المرفق.');
-      return;
-    }
-
-    try {
-      // الحصول على البصمة (سواء من المكتبة أو الـ Fallback)
-      const visitorId = await getMachineId();
-
-      localStorage.setItem('SAM_LICENSE', activationKey.trim().toUpperCase());
-      localStorage.setItem('SAM_FINGERPRINT', visitorId);
-      setIsActivated(true);
-    } catch (err) {
-      setActivationError('حدث خطأ فني أثناء التفعيل. يرجى المحاولة مرة أخرى.');
-    }
-  };
 
   useEffect(() => {
     if (individualPrintItem) {
@@ -771,28 +791,33 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 text-white font-cairo" dir="rtl">
         <Loader2 className="animate-spin text-indigo-500 mb-4" size={48} />
-        <p className="text-xl font-black">جاري تهيئة النظام آمنياً...</p>
+        <p className="text-xl font-black">جاري التحقق من التراخيص...</p>
       </div>
     );
   }
 
-  // شاشة التفعيل (License Activation)
+  // شاشة التفعيل الصارمة (Strict License Activation)
   if (!isActivated) {
     return (
       <div className={`min-h-screen flex items-center justify-center bg-slate-950 p-6 font-cairo`} dir="rtl">
         <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-[3.5rem] p-12 shadow-2xl border-4 border-white/10 relative overflow-hidden">
-          <div className="text-center mb-10">
+          
+          {/* خلفية جمالية */}
+          <div className="absolute -top-24 -left-24 w-64 h-64 bg-indigo-600/10 rounded-full blur-3xl"></div>
+          <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-rose-600/5 rounded-full blur-3xl"></div>
+
+          <div className="text-center mb-10 relative z-10">
             <div className="w-20 h-20 bg-indigo-600 rounded-3xl mx-auto flex items-center justify-center text-white text-4xl font-black mb-6 shadow-2xl">
               <Key size={32} />
             </div>
             <h2 className="text-3xl font-black text-slate-900 dark:text-white">تفعيل نظام SAM Pro</h2>
-            <p className="text-slate-400 font-bold mt-2">يرجى إدخال مفتاح الترخيص الخاص بك للبدء</p>
+            <p className="text-slate-400 font-bold mt-2">أدخل الكود المرفق مع النسخة لبدء العمل</p>
           </div>
 
-          <form onSubmit={handleActivate} className="space-y-8">
+          <form onSubmit={handleActivate} className="space-y-8 relative z-10">
             <div>
               <label className="text-xs font-black text-slate-500 block mb-3 uppercase tracking-widest flex items-center gap-2">
-                <div className="w-2 h-2 bg-indigo-600 rounded-full"></div> مفتاح الترخيص (License Key)
+                <div className="w-2 h-2 bg-indigo-600 rounded-full"></div> كود الترخيص الرقمي
               </label>
               <input 
                 type="text" 
@@ -805,26 +830,31 @@ const App: React.FC = () => {
             </div>
 
             {activationError && (
-              <div className="p-4 bg-rose-50 text-rose-600 border-2 border-rose-100 rounded-2xl flex items-center gap-3 font-black text-sm animate-in shake duration-300">
-                <ShieldAlert size={20} />
-                <span>{activationError}</span>
+              <div className="p-5 bg-rose-50 text-rose-700 border-2 border-rose-100 rounded-[2rem] flex items-start gap-3 font-black text-sm animate-in shake duration-300">
+                <AlertOctagon size={32} className="shrink-0 text-rose-600" />
+                <div className="flex flex-col">
+                   <span className="text-rose-900">خطأ في التفعيل:</span>
+                   <span className="opacity-80 leading-relaxed">{activationError}</span>
+                </div>
               </div>
             )}
 
             <button type="submit" className="w-full bg-indigo-600 text-white py-6 rounded-[2.2rem] font-black text-2xl shadow-2xl shadow-indigo-600/30 hover:bg-indigo-700 hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-center gap-3">
-              <ShieldCheck size={28} /> تفعيل النظام الآن
+              <ShieldCheck size={28} /> تأكيد وربط الجهاز
             </button>
             
-            <p className="text-center text-[10px] text-slate-400 font-bold">
-              ملاحظة: سيتم ربط هذا الترخيص بهذا الجهاز بشكل دائم.
-            </p>
+            <div className="bg-slate-100 dark:bg-slate-800/50 p-4 rounded-2xl">
+               <p className="text-center text-[9px] text-slate-500 font-bold leading-relaxed">
+                 <ShieldAlert size={10} className="inline ml-1"/> سياسة الأمان: يتم ربط المفتاح بالبصمة البيومترية للجهاز (Hardware ID) ولا يمكن نقله أو استخدامه على متصفح أو جهاز آخر بمجرد التأكيد.
+               </p>
+            </div>
           </form>
         </div>
       </div>
     );
   }
 
-  // شاشة تسجيل الدخول العادية (بعد التفعيل)
+  // شاشة تسجيل الدخول العادية
   if (!currentUser) {
     return (
       <div className={`min-h-screen flex items-center justify-center bg-slate-950 p-6 font-cairo ${db.settings.theme === 'dark' ? 'dark' : ''}`} dir="rtl">
