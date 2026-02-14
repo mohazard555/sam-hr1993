@@ -1,195 +1,215 @@
 
+/**
+ * نظام إدارة التراخيص المطور - إصدار SAM Pro 6.0
+ * تطوير: مهند أحمد
+ */
+
+// قائمة 100 مفتاح ترخيص فريدة ومولدة مسبقاً
 export const VALID_LICENSES = [
-  "LIC-7X2K-9PQM-11A4", "LIC-AP92-XKQ1-447Z", "LIC-LL29-PPQ2-79MQ", "LIC-MQ18-ZZ20-199Q", "LIC-1QQ0-AA29-MZ22",
-  "LIC-299X-ZLQ4-MM18", "LIC-20QA-812P-922A", "LIC-PQ17-2XM4-555Z", "LIC-KZ77-PLQ2-19XQ", "LIC-33LM-92QK-ZZPQ"
+  "SAM-PRO-1001-A2B3", "SAM-PRO-1002-C4D5", "SAM-PRO-1003-E6F7", "SAM-PRO-1004-G8H9", "SAM-PRO-1005-I0J1",
+  "SAM-PRO-1006-K2L3", "SAM-PRO-1007-M4N5", "SAM-PRO-1008-O6P7", "SAM-PRO-1009-Q8R9", "SAM-PRO-1010-S0T1",
+  "SAM-PRO-1011-U2V3", "SAM-PRO-1012-W4X5", "SAM-PRO-1013-Y6Z7", "SAM-PRO-1014-A8B9", "SAM-PRO-1015-C0D1",
+  "SAM-PRO-1016-E2F3", "SAM-PRO-1017-G4H5", "SAM-PRO-1018-I6J7", "SAM-PRO-1019-K8L9", "SAM-PRO-1020-M0N1",
+  "SAM-PRO-1021-O2P3", "SAM-PRO-1022-Q4R5", "SAM-PRO-1023-S6T7", "SAM-PRO-1024-U8V9", "SAM-PRO-1025-W0X1",
+  "SAM-PRO-1026-Y2Z3", "SAM-PRO-1027-A4B5", "SAM-PRO-1028-C6D7", "SAM-PRO-1029-E8F9", "SAM-PRO-1030-G0H1",
+  "SAM-PRO-1031-I2J3", "SAM-PRO-1032-K4L5", "SAM-PRO-1033-M6N7", "SAM-PRO-1034-O8P9", "SAM-PRO-1035-Q0R1",
+  "SAM-PRO-1036-S2T3", "SAM-PRO-1037-U4V5", "SAM-PRO-1038-W6X7", "SAM-PRO-1039-Y8Z9", "SAM-PRO-1040-A0B1",
+  "SAM-PRO-1041-C2D3", "SAM-PRO-1042-E4F5", "SAM-PRO-1043-G6H7", "SAM-PRO-1044-I8J9", "SAM-PRO-1045-K0L1",
+  "SAM-PRO-1046-M2N3", "SAM-PRO-1047-O4P5", "SAM-PRO-1048-Q6R7", "SAM-PRO-1049-S8T9", "SAM-PRO-1050-U0V1",
+  "SAM-PRO-1051-W2X3", "SAM-PRO-1052-Y4Z5", "SAM-PRO-1053-A6B7", "SAM-PRO-1054-C8D9", "SAM-PRO-1055-E0F1",
+  "SAM-PRO-1056-G2H3", "SAM-PRO-1057-I4J5", "SAM-PRO-1058-K6L7", "SAM-PRO-1059-M8N9", "SAM-PRO-1060-O0P1",
+  "SAM-PRO-1061-Q2R3", "SAM-PRO-1062-S4T5", "SAM-PRO-1063-U6V7", "SAM-PRO-1064-W8X9", "SAM-PRO-1065-Y0Z1",
+  "SAM-PRO-1066-A2B3", "SAM-PRO-1067-C4D5", "SAM-PRO-1068-E6F7", "SAM-PRO-1069-G8H9", "SAM-PRO-1070-I0J1",
+  "SAM-PRO-1071-K2L3", "SAM-PRO-1072-M4N5", "SAM-PRO-1073-O6P7", "SAM-PRO-1074-Q8R9", "SAM-PRO-1075-S0T1",
+  "SAM-PRO-1076-U2V3", "SAM-PRO-1077-W4X5", "SAM-PRO-1078-Y6Z7", "SAM-PRO-1079-A8B9", "SAM-PRO-1080-C0D1",
+  "SAM-PRO-1081-E2F3", "SAM-PRO-1082-G4H5", "SAM-PRO-1083-I6J7", "SAM-PRO-1084-K8L9", "SAM-PRO-1085-M0N1",
+  "SAM-PRO-1086-O2P3", "SAM-PRO-1087-Q4R5", "SAM-PRO-1088-S6T7", "SAM-PRO-1089-U8V9", "SAM-PRO-1090-W0X1",
+  "SAM-PRO-1091-Y2Z3", "SAM-PRO-1092-A4B5", "SAM-PRO-1093-C6D7", "SAM-PRO-1094-E8F9", "SAM-PRO-1095-G0H1",
+  "SAM-PRO-1096-I2J3", "SAM-PRO-1097-K4L5", "SAM-PRO-1098-M6N7", "SAM-PRO-1099-O8P9", "SAM-PRO-1100-Q0R1"
 ];
 
-const SYSTEM_SALT = "SAM_HR_PRO_SECURE_SALT_2025";
+const SYSTEM_SALT = "SAM_SECURE_VAULT_2025_V100";
+const DB_NAME = "SAM_SECURITY_STORAGE";
+const STORE_NAME = "license_records";
 
 /**
- * تحديد نوع نظام التشغيل الحالي
+ * تهيئة قاعدة بيانات IndexedDB
+ */
+const initDB = (): Promise<IDBDatabase> => {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+};
+
+/**
+ * تخزين البيانات بشكل مخفي في IndexedDB
+ */
+const setHiddenItem = async (key: string, value: string): Promise<void> => {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, "readwrite");
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.put(value, key);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+};
+
+/**
+ * جلب البيانات من IndexedDB
+ */
+const getHiddenItem = async (key: string): Promise<string | null> => {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, "readonly");
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.get(key);
+    request.onsuccess = () => resolve(request.result || null);
+    request.onerror = () => reject(request.error);
+  });
+};
+
+/**
+ * تحديد نوع المنصة
  */
 export const getPlatformType = (): string => {
   const ua = navigator.userAgent.toLowerCase();
   if (ua.includes("android")) return "Android";
   if (ua.includes("windows")) return "Windows";
-  if (ua.includes("electron") || ua.includes("desktop")) return "Desktop";
-  return "Web";
+  return "Web Device";
 };
 
 /**
- * توليد بصمة جهاز فريدة (HWID) بناءً على المنصة
+ * توليد بصمة جهاز عميقة (Fingerprint)
  */
 export const generateHardwareID = async (): Promise<string> => {
-  const platform = getPlatformType();
   const n = window.navigator;
   const s = window.screen;
-
-  let rawIdentifier = "";
-
-  // محاكاة الحصول على معرفات النظام الأصلية (Native IDs) في حال وجود جسر برمجى (Capacitor/Electron)
-  // وفي حال عدم وجودها نعتمد على بصمة المتصفح العميقة
-  if (platform === "Android") {
-    // @ts-ignore (في حال استخدام Capacitor)
-    const androidId = window.Capacitor?.Plugins?.Device?.getId?.() || "WEB_FALLBACK_ID";
-    rawIdentifier = `ANDROID-${androidId}-${n.userAgent}-${s.width}x${s.height}`;
-  } else if (platform === "Windows") {
-    // @ts-ignore (في حال استخدام Electron)
-    const winUuid = window.Electron?.getSystemUUID?.() || "WIN_FALLBACK_UUID";
-    rawIdentifier = `WINDOWS-${winUuid}-${n.hardwareConcurrency}-${s.colorDepth}`;
-  } else {
-    // بصمة متصفح متقدمة (Canvas + AudioContext + Hardware Specs)
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    let canvasHash = "";
-    if (ctx) {
-      ctx.textBaseline = "top";
-      ctx.font = "16px 'Arial'";
-      ctx.fillStyle = "#f60";
-      ctx.fillRect(125, 1, 62, 20);
-      ctx.fillStyle = "#069";
-      ctx.fillText("SAM-SECURITY-PRO", 2, 15);
-      canvasHash = canvas.toDataURL().slice(-50);
-    }
-    rawIdentifier = `WEB-${n.language}-${n.platform}-${n.hardwareConcurrency}-${s.width}x${s.height}-${canvasHash}`;
+  
+  // Canvas Fingerprinting
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  let canvasHash = "C_HASH_ERR";
+  if (ctx) {
+    ctx.textBaseline = "top";
+    ctx.font = "14px 'Arial'";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillStyle = "#f60"; ctx.fillRect(125,1,62,20);
+    ctx.fillStyle = "#069"; ctx.fillText("SAM-SECURITY-VAULT", 2, 15);
+    ctx.fillStyle = "rgba(102, 204, 0, 0.7)"; ctx.fillText("SAM-SECURITY-VAULT", 4, 17);
+    canvasHash = canvas.toDataURL().slice(-60);
   }
 
-  // عمل Hash للبصمة باستخدام SHA-256
-  const msgUint8 = new TextEncoder().encode(rawIdentifier + SYSTEM_SALT);
+  const raw = `${n.userAgent}-${n.language}-${n.hardwareConcurrency}-${s.width}x${s.height}-${s.colorDepth}-${canvasHash}`;
+  
+  const msgUint8 = new TextEncoder().encode(raw + SYSTEM_SALT);
   const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
-  
-  return `SAM-${platform.toUpperCase()}-${hashHex.slice(0, 24)}`;
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase().slice(0, 32);
 };
 
 /**
- * تشفير البيانات باستخدام AES-GCM 256
+ * تشفير متطور يعتمد على بصمة الجهاز كجزء من مفتاح التشفير
  */
-export const encryptData = async (text: string): Promise<string> => {
+export const encryptData = async (text: string, deviceSecret: string): Promise<string> => {
   const encoder = new TextEncoder();
   const data = encoder.encode(text);
-  
-  // توليد مفتاح من الملح (Salt)
   const keyMaterial = await crypto.subtle.importKey(
-    "raw", 
-    encoder.encode(SYSTEM_SALT), 
-    { name: "PBKDF2" }, 
-    false, 
-    ["deriveKey"]
+    "raw", encoder.encode(deviceSecret + SYSTEM_SALT), { name: "PBKDF2" }, false, ["deriveKey"]
   );
-  
   const key = await crypto.subtle.deriveKey(
-    {
-      name: "PBKDF2",
-      salt: encoder.encode("STATIC_IV_SALT"),
-      iterations: 100000,
-      hash: "SHA-256"
-    },
-    keyMaterial,
-    { name: "AES-GCM", length: 256 },
-    false,
-    ["encrypt", "decrypt"]
+    { name: "PBKDF2", salt: encoder.encode("VAULT_SALT"), iterations: 100000, hash: "SHA-256" },
+    keyMaterial, { name: "AES-GCM", length: 256 }, false, ["encrypt"]
   );
-
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, data);
-  
-  // دمج الـ IV مع البيانات المشفرة بصيغة Base64
   const combined = new Uint8Array(iv.length + encrypted.byteLength);
   combined.set(iv);
   combined.set(new Uint8Array(encrypted), iv.length);
-  
   return btoa(String.fromCharCode(...combined));
 };
 
 /**
  * فك تشفير البيانات
  */
-export const decryptData = async (encryptedBase64: string): Promise<string> => {
+export const decryptData = async (encryptedBase64: string, deviceSecret: string): Promise<string> => {
   try {
     const combined = new Uint8Array(atob(encryptedBase64).split("").map(c => c.charCodeAt(0)));
     const iv = combined.slice(0, 12);
     const data = combined.slice(12);
-    
     const encoder = new TextEncoder();
     const keyMaterial = await crypto.subtle.importKey(
-      "raw", 
-      encoder.encode(SYSTEM_SALT), 
-      { name: "PBKDF2" }, 
-      false, 
-      ["deriveKey"]
+      "raw", encoder.encode(deviceSecret + SYSTEM_SALT), { name: "PBKDF2" }, false, ["deriveKey"]
     );
-    
     const key = await crypto.subtle.deriveKey(
-      {
-        name: "PBKDF2",
-        salt: encoder.encode("STATIC_IV_SALT"),
-        iterations: 100000,
-        hash: "SHA-256"
-      },
-      keyMaterial,
-      { name: "AES-GCM", length: 256 },
-      false,
-      ["encrypt", "decrypt"]
+      { name: "PBKDF2", salt: encoder.encode("VAULT_SALT"), iterations: 100000, hash: "SHA-256" },
+      keyMaterial, { name: "AES-GCM", length: 256 }, false, ["decrypt"]
     );
-
     const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, data);
     return new TextDecoder().decode(decrypted);
-  } catch (e) {
-    return "";
-  }
+  } catch (e) { return ""; }
 };
 
 /**
- * استدعاء الخادم للتفعيل (محاكاة API)
+ * محاكاة استدعاء خادم التفعيل (Cloud Registry) لربط المفتاح بالبصمة
  */
-export const callActivationAPI = async (licenseKey: string, hwid: string, platform: string) => {
-  // محاكاة التأخير في الشبكة
-  await new Promise(resolve => setTimeout(resolve, 1500));
+export const callActivationAPI = async (licenseKey: string, hwid: string) => {
+  await new Promise(resolve => setTimeout(resolve, 2000)); // محاكاة زمن الشبكة
 
-  // محاكاة قاعدة بيانات الخادم المركزية (على الإنترنت)
-  const cloudRegistryRaw = localStorage.getItem('SAM_CLOUD_CENTRAL_REGISTRY') || '{}';
-  const cloudRegistry = JSON.parse(cloudRegistryRaw);
+  // محاكاة قاعدة بيانات السحاب (مخزنة في localStorage لمحاكاة الـ Cloud في هذا المثال)
+  const cloudDataRaw = localStorage.getItem('SAM_CLOUD_REGISTRY_V100') || '{}';
+  const cloudRegistry = JSON.parse(cloudDataRaw);
 
-  // الحالة 2: المفتاح مرتبط بجهاز آخر
+  // 1. هل المفتاح مرتبط ببصمة أخرى؟
   if (cloudRegistry[licenseKey] && cloudRegistry[licenseKey] !== hwid) {
-    return {
-      success: false,
-      message: "❌ هذا المفتاح مستخدم مسبقًا على جهاز آخر ولا يمكن استخدامه مرتين."
-    };
+    return { success: false, message: "❌ هذا المفتاح مرتبط بجهاز آخر بالفعل. يرجى شراء ترخيص جديد." };
   }
 
-  // الحالة 1 و 3: تفعيل جديد أو إعادة تفعيل لنفس الجهاز
+  // 2. ربط المفتاح بالجهاز (لأول مرة أو إعادة تفعيل لنفس الجهاز)
   cloudRegistry[licenseKey] = hwid;
-  localStorage.setItem('SAM_CLOUD_CENTRAL_REGISTRY', JSON.stringify(cloudRegistry));
+  localStorage.setItem('SAM_CLOUD_REGISTRY_V100', JSON.stringify(cloudRegistry));
 
-  return {
-    success: true,
-    message: "تم التفعيل والربط بالجهاز بنجاح."
-  };
+  return { success: true, message: "تم التحقق من الترخيص وربطه بجهازك بنجاح." };
 };
 
 /**
- * فحص حالة التفعيل المحلية
+ * فحص حالة التفعيل الحالية
  */
 export const checkActivationStatus = async () => {
-  const encryptedPayload = localStorage.getItem('SAM_SECURE_LIC_DATA');
+  const encryptedPayload = await getHiddenItem('SAM_LIC_BLOB');
   if (!encryptedPayload) return { status: 'unactivated' };
 
-  const decrypted = await decryptData(encryptedPayload);
-  if (!decrypted) return { status: 'unactivated' };
+  const hwid = await generateHardwareID();
+  const decrypted = await decryptData(encryptedPayload, hwid);
+  
+  if (!decrypted) {
+    return { status: 'error', message: '⚠️ خطأ في سلامة البيانات: تم اكتشاف محاولة تشغيل النظام من بيئة غير مرخصة أو تم التلاعب بالبيانات.' };
+  }
 
   try {
-    const { key, hwid, active } = JSON.parse(decrypted);
-    const currentHwid = await generateHardwareID();
-
-    if (active && hwid === currentHwid) {
-      return { status: 'activated', key };
-    } else {
-      return { status: 'error', message: '⚠️ تنبيه أمني: تم اكتشاف محاولة تشغيل النسخة على جهاز غير مرخص أو تم تغيير مكونات الجهاز.' };
+    const data = JSON.parse(decrypted);
+    if (data.hwid === hwid && data.active) {
+      return { status: 'activated', key: data.key };
     }
+    return { status: 'unactivated' };
   } catch (e) {
     return { status: 'unactivated' };
   }
+};
+
+/**
+ * حفظ التفعيل النهائي
+ */
+export const saveActivation = async (key: string, hwid: string) => {
+  const secureData = JSON.stringify({ key, hwid, active: true, timestamp: Date.now() });
+  const encrypted = await encryptData(secureData, hwid);
+  await setHiddenItem('SAM_LIC_BLOB', encrypted);
 };
