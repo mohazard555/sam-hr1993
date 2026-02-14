@@ -23,44 +23,93 @@ export const VALID_LICENSES = [
 ];
 
 /**
- * توليد بصمة جهاز ثابتة تعتمد على الخصائص التقنية للمتصفح والعتاد
+ * دالة متقدمة لتوليد بصمة الجهاز باستخدام Canvas و Audio و Hardware specs
  */
-export const getDeviceFingerprint = (): string => {
+const generateRawFingerprint = (): string => {
   const n = window.navigator;
   const s = window.screen;
+  
+  // 1. بصمة الرسوميات (Canvas Fingerprint)
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  let canvasData = "";
+  if (ctx) {
+    ctx.textBaseline = "top";
+    ctx.font = "14px 'Arial'";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillStyle = "#f60";
+    ctx.fillRect(125, 1, 62, 20);
+    ctx.fillStyle = "#069";
+    ctx.fillText("SAM-HR-PRO-PROTECTION", 2, 15);
+    ctx.fillStyle = "rgba(102, 204, 0, 0.7)";
+    ctx.fillText("SAM-HR-PRO-PROTECTION", 4, 17);
+    canvasData = canvas.toDataURL();
+  }
+
   const parts = [
     n.userAgent,
+    n.language,
     n.platform,
     n.hardwareConcurrency || '8',
     // @ts-ignore
     n.deviceMemory || '4',
-    s.width,
-    s.height,
-    Intl.DateTimeFormat().resolvedOptions().timeZone
+    s.width + "x" + s.height,
+    s.colorDepth,
+    Intl.DateTimeFormat().resolvedOptions().timeZone,
+    canvasData.slice(-100) // نأخذ جزءاً من بيانات الـ Canvas لزيادة الدقة
   ];
-  const str = parts.join('|');
   
-  // دالة تشفير بسيطة للعمل أوفلاين
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) - hash) + str.charCodeAt(i);
-    hash |= 0;
-  }
-  return `SAM-HWID-${Math.abs(hash).toString(16).toUpperCase()}`;
+  return parts.join('###');
 };
 
 /**
- * التحقق من حالة التفعيل المحفوظة
+ * تحويل السلسلة النصية إلى SHA-256 Hash
  */
-export const checkActivationStatus = () => {
+export const getHashedFingerprint = async (): Promise<string> => {
+  const raw = generateRawFingerprint();
+  const msgUint8 = new TextEncoder().encode(raw);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+  return `SAM-PRO-HWID-${hashHex.slice(0, 16)}`;
+};
+
+/**
+ * محاكاة الربط مع الخادم (في الواقع يتم استدعاء API حقيقي)
+ * الخادم يخزن المفتاح -> البصمة المرتبطة به
+ */
+export const verifyLicenseWithServer = async (key: string, currentFp: string): Promise<{ success: boolean; message: string }> => {
+  // محاكاة قاعدة بيانات الخادم في localStorage منفصل تماماً
+  const registryRaw = localStorage.getItem('SAM_CLOUD_REGISTRY') || '{}';
+  const registry = JSON.parse(registryRaw);
+
+  // إذا كان المفتاح مسجلاً مسبقاً ببصمة مختلفة
+  if (registry[key] && registry[key] !== currentFp) {
+    return { 
+      success: false, 
+      message: 'عذرًا، هذا المفتاح مستخدم بالفعل على جهاز آخر. لا يمكن استخدام نفس المفتاح على أكثر من جهاز. يرجى التواصل مع الدعم لنقل الترخيص.' 
+    };
+  }
+
+  // إذا لم يكن مسجلاً، نقوم بربطه الآن (التفعيل الأول)
+  if (!registry[key]) {
+    registry[key] = currentFp;
+    localStorage.setItem('SAM_CLOUD_REGISTRY', JSON.stringify(registry));
+  }
+
+  return { success: true, message: 'تم التفعيل بنجاح' };
+};
+
+export const checkActivationStatus = async () => {
   const key = localStorage.getItem('SAM_LIC_KEY');
   const fp = localStorage.getItem('SAM_LIC_FP');
   const active = localStorage.getItem('SAM_LIC_ACTIVE') === 'true';
-  const currentFp = getDeviceFingerprint();
+  const currentFp = await getHashedFingerprint();
 
   if (active && key && fp) {
+    // التحقق من تطابق البصمة المحلية (لمنع نقل ملفات التخزين)
     if (fp !== currentFp) {
-      return { status: 'error', message: 'هذا الترخيص مرتبط بجهاز آخر.' };
+      return { status: 'error', message: 'تنبيه أمني: تم اكتشاف محاولة تشغيل النسخة على جهاز غير مرخص أو تم العبث بملفات النظام.' };
     }
     return { status: 'activated' };
   }
