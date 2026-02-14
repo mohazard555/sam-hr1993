@@ -1,10 +1,10 @@
 
 /**
- * نظام إدارة التراخيص المطور - إصدار SAM Pro 6.0
+ * نظام إدارة التراخيص العالمي - إصدار SAM Pro 7.0 (Cloud Connected)
  * تطوير: مهند أحمد
  */
 
-// قائمة 100 مفتاح ترخيص فريدة ومولدة مسبقاً
+// قائمة 100 مفتاح ترخيص فريدة
 export const VALID_LICENSES = [
   "SAM-PRO-1001-A2B3", "SAM-PRO-1002-C4D5", "SAM-PRO-1003-E6F7", "SAM-PRO-1004-G8H9", "SAM-PRO-1005-I0J1",
   "SAM-PRO-1006-K2L3", "SAM-PRO-1007-M4N5", "SAM-PRO-1008-O6P7", "SAM-PRO-1009-Q8R9", "SAM-PRO-1010-S0T1",
@@ -28,13 +28,12 @@ export const VALID_LICENSES = [
   "SAM-PRO-1096-I2J3", "SAM-PRO-1097-K4L5", "SAM-PRO-1098-M6N7", "SAM-PRO-1099-O8P9", "SAM-PRO-1100-Q0R1"
 ];
 
-const SYSTEM_SALT = "SAM_SECURE_VAULT_2025_V100";
+// استخدام خدمة RESTful API لتخزين البيانات عالمياً (يمكن استبداله بـ Firebase لاحقاً)
+const CLOUD_DATABASE_URL = "https://api.restful-api.dev/objects";
+const SYSTEM_SALT = "SAM_SECURE_VAULT_2025_V700";
 const DB_NAME = "SAM_SECURITY_STORAGE";
 const STORE_NAME = "license_records";
 
-/**
- * تهيئة قاعدة بيانات IndexedDB
- */
 const initDB = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, 1);
@@ -49,9 +48,6 @@ const initDB = (): Promise<IDBDatabase> => {
   });
 };
 
-/**
- * تخزين البيانات بشكل مخفي في IndexedDB
- */
 const setHiddenItem = async (key: string, value: string): Promise<void> => {
   const db = await initDB();
   return new Promise((resolve, reject) => {
@@ -63,9 +59,6 @@ const setHiddenItem = async (key: string, value: string): Promise<void> => {
   });
 };
 
-/**
- * جلب البيانات من IndexedDB
- */
 const getHiddenItem = async (key: string): Promise<string | null> => {
   const db = await initDB();
   return new Promise((resolve, reject) => {
@@ -77,9 +70,6 @@ const getHiddenItem = async (key: string): Promise<string | null> => {
   });
 };
 
-/**
- * تحديد نوع المنصة
- */
 export const getPlatformType = (): string => {
   const ua = navigator.userAgent.toLowerCase();
   if (ua.includes("android")) return "Android";
@@ -87,38 +77,27 @@ export const getPlatformType = (): string => {
   return "Web Device";
 };
 
-/**
- * توليد بصمة جهاز عميقة (Fingerprint)
- */
 export const generateHardwareID = async (): Promise<string> => {
   const n = window.navigator;
   const s = window.screen;
   
-  // Canvas Fingerprinting
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  let canvasHash = "C_HASH_ERR";
+  let canvasHash = "C_HASH_V1";
   if (ctx) {
     ctx.textBaseline = "top";
-    ctx.font = "14px 'Arial'";
-    ctx.textBaseline = "alphabetic";
-    ctx.fillStyle = "#f60"; ctx.fillRect(125,1,62,20);
-    ctx.fillStyle = "#069"; ctx.fillText("SAM-SECURITY-VAULT", 2, 15);
-    ctx.fillStyle = "rgba(102, 204, 0, 0.7)"; ctx.fillText("SAM-SECURITY-VAULT", 4, 17);
-    canvasHash = canvas.toDataURL().slice(-60);
+    ctx.font = "16px 'Courier'";
+    ctx.fillStyle = "#000"; ctx.fillText("SAM-PRO-SECURITY", 0, 0);
+    canvasHash = canvas.toDataURL().slice(-50);
   }
 
-  const raw = `${n.userAgent}-${n.language}-${n.hardwareConcurrency}-${s.width}x${s.height}-${s.colorDepth}-${canvasHash}`;
-  
+  const raw = `${n.platform}-${n.language}-${n.hardwareConcurrency}-${s.colorDepth}-${canvasHash}`;
   const msgUint8 = new TextEncoder().encode(raw + SYSTEM_SALT);
   const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase().slice(0, 32);
 };
 
-/**
- * تشفير متطور يعتمد على بصمة الجهاز كجزء من مفتاح التشفير
- */
 export const encryptData = async (text: string, deviceSecret: string): Promise<string> => {
   const encoder = new TextEncoder();
   const data = encoder.encode(text);
@@ -126,7 +105,7 @@ export const encryptData = async (text: string, deviceSecret: string): Promise<s
     "raw", encoder.encode(deviceSecret + SYSTEM_SALT), { name: "PBKDF2" }, false, ["deriveKey"]
   );
   const key = await crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt: encoder.encode("VAULT_SALT"), iterations: 100000, hash: "SHA-256" },
+    { name: "PBKDF2", salt: encoder.encode("SAM_V7_SALT"), iterations: 50000, hash: "SHA-256" },
     keyMaterial, { name: "AES-GCM", length: 256 }, false, ["encrypt"]
   );
   const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -137,9 +116,6 @@ export const encryptData = async (text: string, deviceSecret: string): Promise<s
   return btoa(String.fromCharCode(...combined));
 };
 
-/**
- * فك تشفير البيانات
- */
 export const decryptData = async (encryptedBase64: string, deviceSecret: string): Promise<string> => {
   try {
     const combined = new Uint8Array(atob(encryptedBase64).split("").map(c => c.charCodeAt(0)));
@@ -150,7 +126,7 @@ export const decryptData = async (encryptedBase64: string, deviceSecret: string)
       "raw", encoder.encode(deviceSecret + SYSTEM_SALT), { name: "PBKDF2" }, false, ["deriveKey"]
     );
     const key = await crypto.subtle.deriveKey(
-      { name: "PBKDF2", salt: encoder.encode("VAULT_SALT"), iterations: 100000, hash: "SHA-256" },
+      { name: "PBKDF2", salt: encoder.encode("SAM_V7_SALT"), iterations: 50000, hash: "SHA-256" },
       keyMaterial, { name: "AES-GCM", length: 256 }, false, ["decrypt"]
     );
     const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, data);
@@ -159,39 +135,63 @@ export const decryptData = async (encryptedBase64: string, deviceSecret: string)
 };
 
 /**
- * محاكاة استدعاء خادم التفعيل (Cloud Registry) لربط المفتاح بالبصمة
+ * دالة التفعيل الحقيقية التي تتواصل مع قاعدة بيانات عالمية
  */
 export const callActivationAPI = async (licenseKey: string, hwid: string) => {
-  await new Promise(resolve => setTimeout(resolve, 2000)); // محاكاة زمن الشبكة
+  try {
+    // 1. جلب كافة سجلات التفعيل من السيرفر السحابي
+    const response = await fetch(CLOUD_DATABASE_URL);
+    const allRecords = await response.json();
 
-  // محاكاة قاعدة بيانات السحاب (مخزنة في localStorage لمحاكاة الـ Cloud في هذا المثال)
-  const cloudDataRaw = localStorage.getItem('SAM_CLOUD_REGISTRY_V100') || '{}';
-  const cloudRegistry = JSON.parse(cloudDataRaw);
+    // البحث عن هذا المفتاح في السيرفر
+    const existingRecord = allRecords.find((obj: any) => 
+      obj.data && obj.data.licenseKey === licenseKey
+    );
 
-  // 1. هل المفتاح مرتبط ببصمة أخرى؟
-  if (cloudRegistry[licenseKey] && cloudRegistry[licenseKey] !== hwid) {
-    return { success: false, message: "❌ هذا المفتاح مرتبط بجهاز آخر بالفعل. يرجى شراء ترخيص جديد." };
+    if (existingRecord) {
+      // 2. إذا كان المفتاح موجوداً مسبقاً، نتحقق هل هو لنفس الجهاز؟
+      if (existingRecord.data.hwid !== hwid) {
+        return { 
+          success: false, 
+          message: `❌ هذا المفتاح مستخدم بالفعل على جهاز آخر (بصمة: ${existingRecord.data.hwid.slice(0,6)}...). الترخيص يسمح بجهاز واحد فقط.` 
+        };
+      }
+      return { success: true, message: "تمت إعادة التحقق من الترخيص بنجاح." };
+    } else {
+      // 3. إذا كان المفتاح جديداً، نقوم بتسجيله وربطه بهذا الجهاز عالمياً
+      const registrationResponse = await fetch(CLOUD_DATABASE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: `License_${licenseKey}`,
+          data: {
+            licenseKey: licenseKey,
+            hwid: hwid,
+            platform: getPlatformType(),
+            activatedAt: new Date().toISOString()
+          }
+        })
+      });
+
+      if (registrationResponse.ok) {
+        return { success: true, message: "تم تفعيل المفتاح وربطه بجهازك الحالي سحابياً." };
+      }
+      throw new Error("Cloud Error");
+    }
+  } catch (error) {
+    return { success: false, message: "❌ فشل الاتصال بسيرفر التراخيص. يرجى التأكد من جودة الإنترنت." };
   }
-
-  // 2. ربط المفتاح بالجهاز (لأول مرة أو إعادة تفعيل لنفس الجهاز)
-  cloudRegistry[licenseKey] = hwid;
-  localStorage.setItem('SAM_CLOUD_REGISTRY_V100', JSON.stringify(cloudRegistry));
-
-  return { success: true, message: "تم التحقق من الترخيص وربطه بجهازك بنجاح." };
 };
 
-/**
- * فحص حالة التفعيل الحالية
- */
 export const checkActivationStatus = async () => {
-  const encryptedPayload = await getHiddenItem('SAM_LIC_BLOB');
+  const encryptedPayload = await getHiddenItem('SAM_LIC_BLOB_V7');
   if (!encryptedPayload) return { status: 'unactivated' };
 
   const hwid = await generateHardwareID();
   const decrypted = await decryptData(encryptedPayload, hwid);
   
   if (!decrypted) {
-    return { status: 'error', message: '⚠️ خطأ في سلامة البيانات: تم اكتشاف محاولة تشغيل النظام من بيئة غير مرخصة أو تم التلاعب بالبيانات.' };
+    return { status: 'error', message: '⚠️ خطأ أمني: البيانات المحلية لا تتطابق مع بصمة هذا الجهاز. يرجى إعادة التفعيل بالإنترنت.' };
   }
 
   try {
@@ -205,11 +205,8 @@ export const checkActivationStatus = async () => {
   }
 };
 
-/**
- * حفظ التفعيل النهائي
- */
 export const saveActivation = async (key: string, hwid: string) => {
   const secureData = JSON.stringify({ key, hwid, active: true, timestamp: Date.now() });
   const encrypted = await encryptData(secureData, hwid);
-  await setHiddenItem('SAM_LIC_BLOB', encrypted);
+  await setHiddenItem('SAM_LIC_BLOB_V7', encrypted);
 };
