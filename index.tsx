@@ -2,6 +2,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import LicenseGuard from './components/LicenseGuard';
 
 // تسجيل Service Worker للعمل أوفلاين
 if ('serviceWorker' in navigator) {
@@ -20,6 +21,8 @@ if (!rootElement) {
 const root = createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <App />
+    <LicenseGuard>
+      <App />
+    </LicenseGuard>
   </React.StrictMode>
 );
