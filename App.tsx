@@ -88,7 +88,8 @@ const App: React.FC = () => {
     db.loans || [], 
     db.financials || [], 
     db.production || [], 
-    db.settings
+    db.settings,
+    db.leaves || [] // تمرير قائمة الإجازات هنا
   ), [payrollDateFrom, payrollDateTo, db]);
 
   const payrollTotals = useMemo(() => {

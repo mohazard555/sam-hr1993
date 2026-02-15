@@ -1,11 +1,21 @@
 
-import { AttendanceRecord, CompanySettings, Employee, Loan, FinancialEntry, PayrollRecord, ProductionEntry } from '../types';
+import { AttendanceRecord, CompanySettings, Employee, Loan, FinancialEntry, PayrollRecord, ProductionEntry, LeaveRequest } from '../types';
 
 export const calculateTimeDiffMinutes = (time1: string, time2: string): number => {
   if (!time1 || !time2) return 0;
   const [h1, m1] = time1.split(':').map(Number);
   const [h2, m2] = time2.split(':').map(Number);
   return (h1 * 60 + m1) - (h2 * 60 + m2);
+};
+
+/**
+ * دالة لحساب عدد الأيام المشتركة بين فترتين زمنيتين
+ */
+const getOverlapDays = (start1: Date, end1: Date, start2: Date, end2: Date): number => {
+  const start = start1 > start2 ? start1 : start2;
+  const end = end1 < end2 ? end1 : end2;
+  if (start > end) return 0;
+  return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 };
 
 export const generatePayrollForRange = (
@@ -16,13 +26,14 @@ export const generatePayrollForRange = (
   loans: Loan[], 
   financials: FinancialEntry[],
   production: ProductionEntry[],
-  settings: CompanySettings
+  settings: CompanySettings,
+  leaves: LeaveRequest[] = [] // إضافة الإجازات كباراميتر اختياري
 ): PayrollRecord[] => {
   const isWeekly = settings.salaryCycle === 'weekly';
-  const start = new Date(startDate);
-  const end = new Date(endDate);
+  const startPeriod = new Date(startDate);
+  const endPeriod = new Date(endDate);
   
-  const diffTime = Math.abs(end.getTime() - start.getTime());
+  const diffTime = Math.abs(endPeriod.getTime() - startPeriod.getTime());
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
   return employees.map(emp => {
@@ -32,16 +43,31 @@ export const generatePayrollForRange = (
     const dailyRate = emp.baseSalary / cycleDays;
     const hourlyRate = dailyRate / workingHoursPerDay;
 
+    // جلب البيانات الخاصة بالموظف
     const empAttendance = attendance.filter(a => a.employeeId === emp.id && a.date >= startDate && a.date <= endDate && !a.isArchived);
     const empFinancials = financials.filter(f => f.employeeId === emp.id && f.date >= startDate && f.date <= endDate && !f.isArchived);
     const empProduction = production.filter(p => p.employeeId === emp.id && p.date >= startDate && p.date <= endDate && !p.isArchived);
+    
+    // حساب أيام الإجازات المأجورة المعتمدة التي تقع ضمن هذه الفترة
+    const paidLeaveDays = leaves
+      .filter(l => l.employeeId === emp.id && l.status === 'approved' && l.isPaid && !l.isArchived)
+      .reduce((acc, leave) => {
+        const leaveStart = new Date(leave.startDate);
+        const leaveEnd = new Date(leave.endDate);
+        return acc + getOverlapDays(startPeriod, endPeriod, leaveStart, leaveEnd);
+      }, 0);
 
     const workingDays = empAttendance.filter(a => a.status === 'present').length;
     
-    const absenceDays = Math.max(0, diffDays - workingDays); 
+    // أيام الغياب = إجمالي أيام الفترة - (أيام الحضور + أيام الإجازة المأجورة)
+    // هذا يضمن عدم خصم أيام الإجازة المأجورة
+    const absenceDays = Math.max(0, diffDays - (workingDays + paidLeaveDays)); 
     const absenceDeduction = Math.round(absenceDays * dailyRate);
 
     const dailyTransportRate = emp.transportAllowance / cycleDays;
+    // بدل المواصلات يُصرف عن أيام العمل الفعلية + الإجازات المأجورة (حسب رغبتك)
+    // هنا سنعتبر أن الإجازة المأجورة لا تمنع صرف بدل المواصلات إذا كان الموظف مستثنى، 
+    // ولكن في الحالة الطبيعية تخصم عن أيام الغياب الفعلية فقط.
     const transportEarned = emp.isTransportExempt 
       ? emp.transportAllowance 
       : Math.max(0, emp.transportAllowance - (absenceDays * dailyTransportRate));
@@ -55,24 +81,18 @@ export const generatePayrollForRange = (
     const minDaysToDeduct = isWeekly ? 5 : 20; 
     let totalLoanInstallments = 0;
     
-    // سحب كافة السلف التي بدأت دورة تحصيلها أو السلف الفورية
     const activeLoans = loans.filter(l => {
       if (l.employeeId !== emp.id || l.remainingAmount <= 0 || l.isArchived) return false;
-      
-      // السلف الفورية تُخصم فوراً في أقرب مسير رواتب ضمن فترة التحصيل
       if (l.isImmediate) {
          if (l.collectionDate && l.collectionDate > endDate) return false;
          return true;
       }
-      
-      // السلف المجدولة تتطلب مرور حد أدنى من أيام الفترة (لمنع الاقتطاع المزدوج في فترات قصيرة)
       if (diffDays < minDaysToDeduct) return false;
       if (l.collectionDate && l.collectionDate > endDate) return false;
       return true;
     });
 
     totalLoanInstallments = activeLoans.reduce((sum, loan) => {
-      // إذا كانت فورية، نخصم كامل المتبقي، وإلا نخصم القسط المجدول
       const installmentValue = loan.isImmediate ? loan.remainingAmount : loan.monthlyInstallment;
       return sum + Math.min(installmentValue, loan.remainingAmount);
     }, 0);
@@ -109,8 +129,8 @@ export const generatePayrollForRange = (
     return {
       id: `${emp.id}-${startDate}-${endDate}`,
       employeeId: emp.id,
-      month: start.getMonth() + 1,
-      year: start.getFullYear(),
+      month: startPeriod.getMonth() + 1,
+      year: startPeriod.getFullYear(),
       baseSalary: emp.baseSalary,
       bonuses: bonuses + productionIncentives,
       transport: Math.round(transportEarned),
@@ -142,10 +162,11 @@ export const generateMonthlyPayroll = (
   loans: Loan[], 
   financials: FinancialEntry[],
   production: ProductionEntry[],
-  settings: CompanySettings
+  settings: CompanySettings,
+  leaves: LeaveRequest[] = []
 ): PayrollRecord[] => {
   const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
   const lastDay = new Date(year, month, 0).getDate();
   const endDate = `${year}-${String(month).padStart(2, '0')}-${lastDay}`;
-  return generatePayrollForRange(startDate, endDate, employees, attendance, loans, financials, production, settings);
+  return generatePayrollForRange(startDate, endDate, employees, attendance, loans, financials, production, settings, leaves);
 };
