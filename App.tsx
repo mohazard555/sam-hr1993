@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import Layout from './components/Layout';
@@ -557,6 +558,33 @@ const App: React.FC = () => {
              </div>
 
              <div className="p-8 bg-white border-2 border-dashed border-slate-200 rounded-[2rem]">
+                {type === 'production' && (
+                  <div className="space-y-6">
+                     <h4 className="text-2xl font-black text-indigo-700 mb-8 text-center border-b pb-4">إشعار إنتاجية معتمد</h4>
+                     <div className="grid grid-cols-2 gap-8 text-center">
+                        <div className="bg-slate-50 p-6 rounded-2xl border">
+                           <span className="block text-xs font-black text-slate-400 mb-1">تاريخ العملية</span>
+                           <span className="text-xl font-black">{data.date}</span>
+                        </div>
+                        <div className="bg-slate-50 p-6 rounded-2xl border">
+                           <span className="block text-xs font-black text-slate-400 mb-1">الكمية المنجزة</span>
+                           <span className="text-xl font-black">{data.piecesCount} قطعة</span>
+                        </div>
+                        <div className="bg-slate-50 p-6 rounded-2xl border">
+                           <span className="block text-xs font-black text-slate-400 mb-1">سعر القطعة</span>
+                           <span className="text-xl font-black">{data.valuePerPiece?.toLocaleString()} {db.settings.currency}</span>
+                        </div>
+                        <div className="bg-indigo-600 text-white p-6 rounded-2xl shadow-xl flex flex-col justify-center">
+                           <span className="block text-xs font-black opacity-60 mb-1">إجمالي المستحق</span>
+                           <span className="text-3xl font-black">{data.totalValue?.toLocaleString()} {db.settings.currency}</span>
+                        </div>
+                     </div>
+                     <div className="mt-8 p-6 bg-slate-50 border rounded-2xl font-bold italic">
+                        <p className="text-xs font-black text-slate-400 mb-2 underline">البيان / الملاحظات:</p>
+                        <p className="text-lg">"{data.notes || 'لا يوجد ملاحظات إضافية'}"</p>
+                     </div>
+                  </div>
+                )}
                 {type === 'permission' && (
                    <div className="space-y-6 text-center">
                       <h4 className="text-2xl font-black text-indigo-700 mb-8 border-b pb-4">إذن خروج ساعي رسمي</h4>
@@ -600,11 +628,27 @@ const App: React.FC = () => {
                         <p className="text-xs font-black text-emerald-600 uppercase mb-2">المبلغ المعتمد</p>
                         <p className="text-5xl font-black text-emerald-900">{data.amount?.toLocaleString()} {db.settings.currency}</p>
                      </div>
-                     {!data.isImmediate && (
-                        <div className="p-6 border-2 border-dashed rounded-2xl text-center font-bold">
-                           يتم تحصيل المبلغ على <span className="text-emerald-600 font-black">{data.installmentsCount} أقساط</span>، بقيمة <span className="text-emerald-600 font-black">{data.monthlyInstallment?.toLocaleString()}</span> للقسط الواحد.
+                     <div className="grid grid-cols-2 gap-6 mt-8">
+                        <div className="bg-slate-50 p-5 rounded-2xl border text-center">
+                           <span className="block text-[10px] font-black text-slate-400 mb-1">تاريخ منح السلفة</span>
+                           <span className="text-lg font-black">{data.date}</span>
                         </div>
-                     )}
+                        <div className="bg-slate-50 p-5 rounded-2xl border text-center">
+                           <span className="block text-[10px] font-black text-slate-400 mb-1">بداية التحصيل</span>
+                           <span className="text-lg font-black">{data.isImmediate ? 'الراتب القادم (فوري)' : data.collectionDate}</span>
+                        </div>
+                        <div className="col-span-2 bg-indigo-50 p-6 rounded-[2rem] border-2 border-dashed border-indigo-200 text-center font-bold">
+                           {data.isImmediate ? (
+                             <p className="text-indigo-900">سيتم تحصيل كامل المبلغ <span className="font-black">دفعة واحدة</span> من أقرب مسير رواتب.</p>
+                           ) : (
+                             <p className="text-indigo-900">يتم تحصيل المبلغ على <span className="text-indigo-600 font-black">{data.installmentsCount} أقساط</span>، بقيمة <span className="text-indigo-600 font-black">{data.monthlyInstallment?.toLocaleString()}</span> للقسط الواحد.</p>
+                           )}
+                        </div>
+                        <div className="col-span-2 bg-rose-50 p-4 rounded-xl text-center border">
+                           <span className="block text-[10px] font-black text-rose-600 uppercase mb-1">الرصيد المتبقي للذمة</span>
+                           <span className="text-2xl font-black text-rose-900">{data.remainingAmount?.toLocaleString()} {db.settings.currency}</span>
+                        </div>
+                     </div>
                   </div>
                 )}
                 {type === 'financial' && (
