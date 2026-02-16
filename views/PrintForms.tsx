@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Employee, CompanySettings, AttendanceRecord, FinancialEntry, Warning, LeaveRequest, Loan, PrintHistoryRecord } from '../types';
+import { Employee, CompanySettings, AttendanceRecord, FinancialEntry, Warning, LeaveRequest, Loan, PrintHistoryRecord, PermissionRecord } from '../types';
 import { 
   Printer, FileText, User, ClipboardList, AlertTriangle, 
   CheckCircle2, Calendar, Wallet, Zap, Star, Search, Filter, 
@@ -14,12 +14,13 @@ interface Props {
   warnings: Warning[];
   leaves: LeaveRequest[];
   loans: Loan[];
+  permissions?: PermissionRecord[];
   settings: CompanySettings;
   printHistory: PrintHistoryRecord[];
   onPrint: (doc: { title: string, type: string, data: any }) => void;
 }
 
-const PrintForms: React.FC<Props> = ({ employees, attendance, financials, warnings, leaves, loans, settings, printHistory, onPrint }) => {
+const PrintForms: React.FC<Props> = ({ employees, attendance, financials, warnings, leaves, loans, permissions = [], settings, printHistory, onPrint }) => {
   const [selectedEmp, setSelectedEmp] = useState('');
   const [activeCategory, setActiveCategory] = useState<'admin' | 'finance' | 'reports' | 'history'>('admin');
   const [dateFrom, setDateFrom] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]);
@@ -83,6 +84,14 @@ const PrintForms: React.FC<Props> = ({ employees, attendance, financials, warnin
            return;
        }
        data = { ...data, ...lastLeave };
+    } else if (templateId === 'permission') {
+       type = 'permission';
+       const lastPermission = permissions.filter(p => p.employeeId === selectedEmp).sort((a,b) => b.date.localeCompare(a.date))[0];
+       if (!lastPermission) {
+           alert('لا توجد أذونات خروج مسجلة لهذا الموظف لإصدار سند.');
+           return;
+       }
+       data = { ...data, ...lastPermission };
     } else if (templateId === 'loan') {
        type = 'loan';
        const activeLoan = loans.filter(l => l.employeeId === selectedEmp && l.remainingAmount > 0).sort((a,b) => b.date.localeCompare(a.date))[0];

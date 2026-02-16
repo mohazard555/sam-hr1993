@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import Layout from './components/Layout';
@@ -16,9 +15,9 @@ import { loadDB, saveDB, DB } from './db/store';
 import { Employee, PayrollRecord, FinancialEntry, Loan, LeaveRequest, ProductionEntry, AttendanceRecord, Warning, PrintHistoryRecord, PermissionRecord, SalaryCycle } from './types';
 import { generatePayrollForRange, calculateTimeDiffMinutes } from './utils/calculations';
 import { exportToExcel } from './utils/export';
-import { Printer, X, ReceiptText, CalendarDays, Loader2, FileText, CheckCircle, Info, ShieldAlert, Package, Layers, Clock, TrendingUp, Lock, HelpCircle, ToggleLeft, ToggleRight, AlertCircle, Calendar, FileDown, LayoutPanelLeft, LayoutPanelTop, Zap, Timer, Filter } from 'lucide-react';
+import { Printer, X, ReceiptText, CalendarDays, Loader2, FileText, CheckCircle, Info, ShieldAlert, Package, Layers, Clock, TrendingUp, Lock, HelpCircle, ToggleLeft, ToggleRight, AlertCircle, Calendar, FileDown, LayoutPanelLeft, LayoutPanelTop, Zap, Timer, Filter, ShieldCheck, Award } from 'lucide-react';
 
-type PrintType = 'production' | 'loan' | 'leave' | 'financial' | 'document' | 'vouchers' | 'report_attendance' | 'report_financial' | 'warning' | 'employee_list' | 'department_list';
+type PrintType = 'production' | 'loan' | 'leave' | 'financial' | 'document' | 'vouchers' | 'report_attendance' | 'report_financial' | 'warning' | 'employee_list' | 'department_list' | 'permission';
 
 const App: React.FC = () => {
   const [db, setDb] = useState<DB>(loadDB());
@@ -135,23 +134,6 @@ const App: React.FC = () => {
     }
   };
 
-  const PrintableHeader = ({ title, subtitle }: { title: string, subtitle?: string }) => (
-    <div className="flex justify-between items-start border-b-4 border-indigo-900 pb-6 mb-8 w-full text-indigo-950">
-      <div className="text-right">
-        <h1 className="text-3xl font-black leading-none">{db.settings.name}</h1>
-        <p className="text-sm font-black text-indigo-700 mt-2">{title}</p>
-        {subtitle && <p className="text-[10px] font-bold mt-1 text-slate-500">{subtitle}</p>}
-      </div>
-      <div className="flex flex-col items-center">
-        {db.settings.logo && <img src={db.settings.logo} className="h-16 w-auto object-contain mb-2" alt="Logo" />}
-      </div>
-      <div className="text-left">
-        <p className="text-[10px] font-black text-slate-400 uppercase">تاريخ التقرير: {new Date().toLocaleDateString('ar-EG')}</p>
-        <p className="text-[10px] font-black text-slate-400 uppercase">ساعة الطباعة: {new Date().toLocaleTimeString('ar-EG')}</p>
-      </div>
-    </div>
-  );
-
   const formatMinutes = (totalMinutes: number) => {
     const hours = Math.floor(totalMinutes / 60);
     const mins = Math.round(totalMinutes % 60);
@@ -178,6 +160,7 @@ const App: React.FC = () => {
           companyName={db.settings.name} logo={db.settings.logo}
           archiveMode={archiveModes.permissions} onToggleArchive={() => setArchiveModes(p => ({...p, permissions: !p.permissions}))}
           onSave={i => updateList('permissions', i)} onDelete={id => deleteFromList('permissions', id)} onArchive={i => archiveItem('permissions', i)}
+          onPrintIndividual={i => setIndividualPrintItem({title: "إذن خروج ساعي رسمي", type: 'permission', data: i})}
           initialData={{ date: new Date().toISOString().split('T')[0], hours: 0, exitTime: '10:00', returnTime: '11:00', reason: '' }}
           tableHeaders={isRtl ? ['الموظف', 'التاريخ', 'من (خروج)', 'إلى (عودة)', 'المدة', 'السبب'] : ['Employee', 'Date', 'Exit', 'Return', 'Duration', 'Reason']}
           renderForm={(data, set) => {
@@ -358,12 +341,10 @@ const App: React.FC = () => {
       
       case 'payroll': return (
         <div className="space-y-8 animate-in fade-in duration-700">
-          <PrintableHeader title={`مسير رواتب الموظفين للفترة من ${payrollDateFrom} إلى ${payrollDateTo}`} subtitle={`فلترة العرض: ${payrollCycleFilter === 'all' ? 'الكل' : payrollCycleFilter === 'monthly' ? 'شهري فقط' : 'أسبوعي فقط'}`} />
-          
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 flex flex-col md:flex-row justify-between items-center no-print text-right gap-4">
+          <div className="flex flex-col md:flex-row justify-between items-center no-print bg-white dark:bg-slate-900 p-8 rounded-[3rem] border dark:border-slate-800 shadow-xl gap-6 mb-8">
              <div className="flex items-center gap-4">
-                <div className="p-4 bg-indigo-600 text-white rounded-2xl">
-                   <TrendingUp size={32}/>
+                <div className="p-4 bg-indigo-600 text-white rounded-2xl shadow-lg">
+                   <TrendingUp size={28}/>
                 </div>
                 <div className="flex flex-col md:flex-row items-center gap-6">
                    <div>
@@ -506,12 +487,283 @@ const App: React.FC = () => {
           </div>
         </div>
       );
-      case 'documents': return <PrintForms employees={db.employees || []} attendance={db.attendance || []} financials={db.financials || []} warnings={db.warnings || []} leaves={db.leaves || []} loans={db.loans || []} settings={db.settings} printHistory={db.printHistory || []} onPrint={(doc) => setIndividualPrintItem(doc as any)} />;
+      case 'documents': return <PrintForms employees={db.employees || []} attendance={db.attendance || []} financials={db.financials || []} warnings={db.warnings || []} leaves={db.leaves || []} loans={db.loans || []} permissions={db.permissions} settings={db.settings} printHistory={db.printHistory || []} onPrint={(doc) => setIndividualPrintItem(doc as any)} />;
       case 'manager': return <ManagerDashboard />;
       case 'settings': return <SettingsView settings={db.settings} admin={db.users[0]} db={db} onUpdateSettings={s => setDb(p => ({...p, settings: {...p.settings, ...s}}))} onUpdateAdmin={u => setDb(p => ({...p, users: [{...p.users[0], ...u}, ...p.users.slice(1)]}))} onImport={json => setDb(json)} onRunArchive={() => {}} onClearData={() => {}} />;
       case 'reports': return <ReportsView db={db} payrolls={currentPayrolls} lang={db.settings.language} onPrint={() => window.print()} />;
       default: return null;
     }
+  };
+
+  const DocumentPrintCard = ({ title, type, data }: { title: string, type: PrintType, data: any }) => {
+    const emp = db.employees.find(e => e.id === data.employeeId);
+    
+    const PrintHeader = () => (
+      <div className="flex justify-between items-start border-b-4 border-indigo-900 pb-6 mb-8 text-right">
+        <div>
+          <h1 className="text-3xl font-black text-indigo-950 mb-1">{db.settings.name}</h1>
+          <p className="text-indigo-600 font-black text-sm uppercase tracking-widest">{title}</p>
+          <div className="mt-2 text-[10px] font-bold text-slate-500">
+             <p>{db.settings.address}</p>
+             <p>تاريخ الصدور: {new Date().toLocaleDateString('ar-EG')}</p>
+          </div>
+        </div>
+        {db.settings.logo && <img src={db.settings.logo} className="h-16 w-auto object-contain" />}
+      </div>
+    );
+
+    const Signatures = () => (
+      <div className="mt-16 pt-8 border-t-2 border-dashed flex justify-between items-center text-center font-black text-xs text-slate-700">
+         <div className="flex-1">توقيع الموظف</div>
+         <div className="flex-1">توقيع المدير المباشر</div>
+         <div className="flex-1">ختم المؤسسة</div>
+      </div>
+    );
+
+    if (type === 'employee_list' || type === 'department_list') {
+      const employeesList = (data || []) as Employee[];
+      return (
+        <div className="p-4 w-full bg-white min-h-[95vh] flex flex-col border-4 border-indigo-950 rounded-[2rem] overflow-hidden">
+           <PrintHeader />
+          <table className="w-full border-collapse text-[7px] text-right font-bold">
+             <thead className="bg-indigo-950 text-white font-black">
+                <tr>
+                  <th className="p-1 border">#</th><th className="p-1 border">الاسم</th><th className="p-1 border">المنصب</th><th className="p-1 border">القسم</th><th className="p-1 border">الأساسي</th><th className="p-1 border">المواصلات</th><th className="p-1 border">الدوام</th><th className="p-1 border">الهوية</th><th className="p-1 border">تاريخ التعيين</th>
+                </tr>
+             </thead>
+             <tbody className="divide-y">
+                {employeesList.map((emp, idx) => (
+                  <tr key={emp.id} className="hover:bg-slate-50 border-x">
+                    <td className="p-1 border">{idx + 1}</td><td className="p-1 border font-black whitespace-nowrap">{emp.name}</td><td className="p-1 border">{emp.position}</td><td className="p-1 border">{emp.department}</td><td className="p-1 border">{emp.baseSalary.toLocaleString()}</td><td className="p-1 border">{emp.transportAllowance.toLocaleString()}</td><td className="p-1 border">{emp.cycleType === 'weekly' ? 'أسبوعي' : 'شهري'}</td><td className="p-1 border">{emp.nationalId}</td><td className="p-1 border">{emp.joinDate}</td>
+                  </tr>
+                ))}
+             </tbody>
+          </table>
+          <div className="mt-auto pt-4 border-t-2 border-dashed flex justify-between items-center text-[7px] text-slate-400 font-bold uppercase tracking-widest">
+             <p>إجمالي الموظفين: {employeesList.length}</p><p>SAM HRMS PRO - CERTIFIED REPORT</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="p-10 w-full bg-white min-h-[95vh] flex flex-col border-4 border-indigo-950 rounded-[2rem] text-right">
+          <PrintHeader />
+          <div className="flex-1 space-y-10">
+             <div className="bg-slate-50 p-8 rounded-[2rem] border-2 border-slate-100 grid grid-cols-2 gap-y-6">
+                <div><p className="text-[10px] font-black text-slate-400 uppercase mb-1">اسم الموظف</p><p className="text-xl font-black text-indigo-950">{emp?.name || data.employeeName}</p></div>
+                <div><p className="text-[10px] font-black text-slate-400 uppercase mb-1">المنصب</p><p className="text-lg font-bold text-slate-700">{emp?.position} - {emp?.department}</p></div>
+                <div className="col-span-2 border-t pt-4 text-left font-mono text-xs text-slate-400">REF: {data.id?.toUpperCase() || 'NEW-DOC'}</div>
+             </div>
+
+             <div className="p-8 bg-white border-2 border-dashed border-slate-200 rounded-[2rem]">
+                {type === 'permission' && (
+                   <div className="space-y-6 text-center">
+                      <h4 className="text-2xl font-black text-indigo-700 mb-8 border-b pb-4">إذن خروج ساعي رسمي</h4>
+                      <div className="grid grid-cols-2 gap-8">
+                         <div className="bg-slate-50 p-4 rounded-xl">
+                            <span className="block text-xs font-black text-slate-400 mb-1">وقت الخروج</span>
+                            <span className="text-3xl font-black text-rose-600">{data.exitTime}</span>
+                         </div>
+                         <div className="bg-slate-50 p-4 rounded-xl">
+                            <span className="block text-xs font-black text-slate-400 mb-1">وقت العودة</span>
+                            <span className="text-3xl font-black text-emerald-600">{data.returnTime}</span>
+                         </div>
+                         <div className="col-span-2 bg-indigo-600 text-white p-6 rounded-2xl shadow-lg">
+                            <span className="block text-xs font-black opacity-60 mb-1">إجمالي الساعات المعتمدة</span>
+                            <span className="text-4xl font-black">{data.hours} ساعة</span>
+                         </div>
+                      </div>
+                      <div className="text-right mt-10 p-6 border rounded-2xl bg-slate-50/50">
+                         <p className="text-xs font-black text-slate-400 mb-2 underline">سبب الإذن:</p>
+                         <p className="text-lg font-bold italic">"{data.reason || 'مهمة عمل رسمية / ظرف طارئ'}"</p>
+                      </div>
+                   </div>
+                )}
+                {type === 'leave' && (
+                  <div className="space-y-6">
+                     <h4 className="text-2xl font-black text-indigo-700 mb-8 text-center border-b pb-4">إشعار إجازة معتمد</h4>
+                     <div className="grid grid-cols-2 gap-6 text-lg font-bold">
+                        <div className="bg-slate-50 p-4 rounded-xl"><span>نوع الإجازة:</span> <span className="font-black text-indigo-600">{data.type}</span></div>
+                        <div className="bg-slate-50 p-4 rounded-xl"><span>الحالة المالية:</span> <span className={`font-black ${data.isPaid ? 'text-emerald-600' : 'text-rose-600'}`}>{data.isPaid ? 'مأجورة' : 'غير مأجورة'}</span></div>
+                        <div className="col-span-2 bg-indigo-50 p-6 rounded-2xl text-center">
+                           <p className="text-sm font-black text-slate-400 mb-2">النطاق الزمني</p>
+                           <p className="text-xl font-black">من {data.startDate} حتى {data.endDate}</p>
+                        </div>
+                     </div>
+                  </div>
+                )}
+                {type === 'loan' && (
+                  <div className="space-y-6">
+                     <h4 className="text-2xl font-black text-emerald-700 mb-8 text-center border-b pb-4">سند سلفة مالية</h4>
+                     <div className="text-center p-10 bg-emerald-50 rounded-[3rem] border-2 border-emerald-100">
+                        <p className="text-xs font-black text-emerald-600 uppercase mb-2">المبلغ المعتمد</p>
+                        <p className="text-5xl font-black text-emerald-900">{data.amount?.toLocaleString()} {db.settings.currency}</p>
+                     </div>
+                     {!data.isImmediate && (
+                        <div className="p-6 border-2 border-dashed rounded-2xl text-center font-bold">
+                           يتم تحصيل المبلغ على <span className="text-emerald-600 font-black">{data.installmentsCount} أقساط</span>، بقيمة <span className="text-emerald-600 font-black">{data.monthlyInstallment?.toLocaleString()}</span> للقسط الواحد.
+                        </div>
+                     )}
+                  </div>
+                )}
+                {type === 'financial' && (
+                  <div className="space-y-6">
+                     <h4 className="text-2xl font-black text-indigo-700 mb-8 text-center border-b pb-4">سند صرف / خصم مالي</h4>
+                     <div className={`p-10 rounded-[3rem] text-center border-4 ${data.type === 'deduction' ? 'bg-rose-50 border-rose-100 text-rose-900' : 'bg-emerald-50 border-emerald-100 text-emerald-900'}`}>
+                        <p className="text-xs font-black uppercase mb-2">قيمة السند</p>
+                        <p className="text-5xl font-black">{data.amount?.toLocaleString()} {db.settings.currency}</p>
+                     </div>
+                     <div className="p-8 bg-slate-50 rounded-2xl font-bold">
+                        <p className="text-xs font-black text-slate-400 mb-2 underline">البيان:</p>
+                        <p className="text-xl">"{data.reason}"</p>
+                     </div>
+                  </div>
+                )}
+                {type === 'warning' && (
+                   <div className="space-y-8">
+                      <div className="flex items-center gap-6 text-rose-600">
+                         <ShieldAlert size={60}/>
+                         <div>
+                            <h4 className="text-3xl font-black">قرار إنذار رسمي</h4>
+                            <p className="text-sm font-bold opacity-80">تحذير مسجل في الملف السلوكي للموظف</p>
+                         </div>
+                      </div>
+                      <div className="p-10 bg-rose-50 rounded-[3rem] border-4 border-rose-100 text-rose-900 font-bold leading-relaxed text-xl">
+                         <p className="text-xs font-black uppercase mb-4 text-rose-600 underline">تفاصيل الواقعة / المخالفة:</p>
+                         "{data.reason}"
+                      </div>
+                   </div>
+                )}
+                {type === 'document' && (
+                  <div className="p-10 text-center font-black text-slate-400 italic">
+                     {data.notes || 'وثيقة رسمية صادرة ومعتمدة من النظام السحابي لمؤسسة SAM HRMS'}
+                  </div>
+                )}
+             </div>
+          </div>
+          <Signatures />
+      </div>
+    );
+  };
+
+  const VouchersPrintGrid = ({ payrolls }: { payrolls: PayrollRecord[] }) => (
+    <div className={`vouchers-grid-print grid ${printOrientation === 'landscape' ? 'grid-cols-2' : 'grid-cols-1'} gap-4 p-4`} dir="rtl">
+      {payrolls.map(p => {
+        const emp = db.employees.find(e => e.id === p.employeeId);
+        
+        return (
+          <div key={p.id} className="print-card border-2 border-slate-200 p-6 bg-white relative mb-4 rounded-3xl">
+            <div className="flex justify-between items-start border-b-2 border-slate-100 pb-4 mb-4">
+               <div className="flex items-center gap-3">
+                  {db.settings.logo && <img src={db.settings.logo} className="h-8 w-auto object-contain" alt="Logo" />}
+                  <div className="text-right">
+                     <p className="text-[10px] font-black text-indigo-600 uppercase">قسيمة راتب معتمدة</p>
+                     <h3 className="text-lg font-black text-slate-900">{emp?.name}</h3>
+                     <p className="text-[9px] font-bold text-slate-500 mt-1">{emp?.position} - {emp?.department} ({ (emp?.cycleType || db.settings.salaryCycle) === 'weekly' ? 'أسبوعي' : 'شهري' })</p>
+                  </div>
+               </div>
+               <div className="text-left text-[9px] font-bold text-slate-400">
+                  <p>الفترة: {p.month} / {p.year}</p>
+                  <p>تاريخ الطباعة: {new Date().toLocaleDateString('ar-EG')}</p>
+               </div>
+            </div>
+            
+            <div className="space-y-1.5 text-[11px] font-bold">
+               <div className="bg-slate-50 p-2 rounded-xl mb-3 space-y-1 border border-slate-100">
+                  <div className="flex justify-between items-center text-slate-700">
+                    <span className="font-black">الراتب التعاقدي:</span>
+                    <span className="font-black text-indigo-700">{p.baseSalary.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-slate-700">
+                    <span className="font-black">ساعات العمل الفعلية:</span>
+                    <span className="font-black text-indigo-700">{p.workingHours.toFixed(1)} ساعة</span>
+                  </div>
+               </div>
+
+               <div className="text-[#00a693] font-black border-b pb-1 mb-1">الإضافات (+)</div>
+               <div className="flex justify-between items-center text-[#00a693]">
+                 <span className="font-black">بدل مواصلات:</span>
+                 <span className="font-black">{p.transport.toLocaleString()}+</span>
+               </div>
+               <div className="flex justify-between items-center text-[#00a693]">
+                 <span className="font-black">العمل الإضافي ({formatMinutes(p.overtimeMinutes)}):</span>
+                 <span className="font-black">{p.overtimePay.toLocaleString()}+</span>
+               </div>
+               <div className="flex justify-between items-center text-[#00a693]">
+                 <span className="font-black">المكافآت:</span>
+                 <span className="font-black">{p.bonuses.toLocaleString()}+</span>
+               </div>
+               <div className="flex justify-between items-center text-[#00a693]">
+                 <span className="font-black">الإنتاج ({p.productionPieces} ط × {p.productionPieces > 0 ? Math.round(p.production/p.productionPieces).toLocaleString() : 0}):</span>
+                 <span className="font-black">{p.production.toLocaleString()}+</span>
+               </div>
+               
+               <div className="text-[#d91e5b] font-black border-t pt-2 mt-2">الاستقطاعات (-)</div>
+               <div className="flex justify-between items-center text-[#d91e5b]">
+                 <span className="font-black">تأخير ({formatMinutes(p.lateMinutes)}):</span>
+                 <span className="font-black">{p.lateDeduction.toLocaleString()}-</span>
+               </div>
+               <div className="flex justify-between items-center text-[#d91e5b]">
+                 <span className="font-black">انصراف مبكر ({formatMinutes(p.earlyDepartureMinutes)}):</span>
+                 <span className="font-black">{p.earlyDepartureDeduction.toLocaleString()}-</span>
+               </div>
+               <div className="flex justify-between items-center text-[#d91e5b]">
+                 <span className="font-black">خصم أذونات ({p.permissionHours} س):</span>
+                 <span className="font-black">{(p.permissionDeduction || 0).toLocaleString()}-</span>
+               </div>
+               <div className="flex justify-between items-center text-[#d91e5b]">
+                 <span className="font-black">أيام غياب ({p.absenceDays} ي):</span>
+                 <span className="font-black">{p.absenceDeduction.toLocaleString()}-</span>
+               </div>
+               <div className="flex justify-between items-center text-[#d91e5b]">
+                 <span className="font-black">أقساط سلف:</span>
+                 <span className="font-black">{p.loanInstallment.toLocaleString()}-</span>
+               </div>
+               <div className="flex justify-between items-center text-[#d91e5b]">
+                 <span className="font-black">خصومات أخرى:</span>
+                 <span className="font-black">{p.manualDeductions.toLocaleString()}-</span>
+               </div>
+               
+               <div className="flex justify-between text-lg font-black text-indigo-900 pt-3 mt-3 border-t-2 border-indigo-900">
+                 <span>صافي الراتب:</span>
+                 <div className="text-left">
+                    <span>{p.netSalary.toLocaleString()}</span>
+                    <span className="text-[10px] mr-1 opacity-60">{db.settings.currency}</span>
+                 </div>
+               </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const PrintPortalContent = () => {
+    const portalNode = document.getElementById('sam-print-portal');
+    if (!individualPrintItem || !portalNode) return null;
+    return createPortal(
+      <div className="print-isolated-wrapper text-right w-full bg-white" dir="rtl">
+        <style dangerouslySetInnerHTML={{ __html: `
+          @page { size: ${printOrientation}; margin: 5mm; }
+          .vouchers-grid-print { 
+            grid-template-columns: ${printOrientation === 'landscape' ? 'repeat(2, minmax(0, 1fr))' : 'repeat(1, minmax(0, 1fr))'}; 
+          }
+        ` }} />
+        {individualPrintItem.type === 'vouchers' 
+          ? <VouchersPrintGrid payrolls={individualPrintItem.data} />
+          : <DocumentPrintCard title={individualPrintItem.title} type={individualPrintItem.type} data={individualPrintItem.data} />}
+      </div>,
+      portalNode
+    );
+  };
+
+  const executePrintAction = () => {
+    setIsPrinting(true);
+    setTimeout(() => {
+      window.print();
+      setIsPrinting(false);
+    }, 600);
   };
 
   if (!currentUser) {
@@ -606,118 +858,6 @@ const App: React.FC = () => {
       };
     });
     exportToExcel(exportData, "Payroll_Report");
-  };
-
-  const PrintPortalContent = () => {
-    const portalNode = document.getElementById('sam-print-portal');
-    if (!individualPrintItem || !portalNode) return null;
-    return createPortal(
-      <div className="print-isolated-wrapper text-right w-full" dir="rtl">
-        <style dangerouslySetInnerHTML={{ __html: `
-          @page { size: ${printOrientation}; margin: 5mm; }
-          .vouchers-grid-print { 
-            grid-template-columns: ${printOrientation === 'landscape' ? 'repeat(2, minmax(0, 1fr))' : 'repeat(1, minmax(0, 1fr))'}; 
-          }
-        ` }} />
-        {individualPrintItem.type === 'vouchers' 
-          ? <VouchersPrintGrid payrolls={individualPrintItem.data} />
-          : <DocumentPrintCard title={individualPrintItem.title} type={individualPrintItem.type} data={individualPrintItem.data} />}
-      </div>,
-      portalNode
-    );
-  };
-
-  const VouchersPrintGrid = ({ payrolls }: { payrolls: PayrollRecord[] }) => (
-    <div className={`vouchers-grid-print grid ${printOrientation === 'landscape' ? 'grid-cols-2' : 'grid-cols-1'} gap-4 p-4`} dir="rtl">
-      {payrolls.map(p => {
-        const emp = db.employees.find(e => e.id === p.employeeId);
-        
-        return (
-          <div key={p.id} className="print-card border-2 border-slate-200 p-6 bg-white relative mb-4 rounded-3xl">
-            <div className="flex justify-between items-start border-b-2 border-slate-100 pb-4 mb-4">
-               <div className="text-right">
-                  <p className="text-[10px] font-black text-indigo-600 uppercase">قسيمة راتب معتمدة</p>
-                  <h3 className="text-lg font-black text-slate-900">{emp?.name}</h3>
-                  <p className="text-[9px] font-bold text-slate-500 mt-1">{emp?.position} - {emp?.department} ({ (emp?.cycleType || db.settings.salaryCycle) === 'weekly' ? 'أسبوعي' : 'شهري' })</p>
-               </div>
-               <div className="text-left text-[9px] font-bold text-slate-400">
-                  <p>الفترة: {p.month} / {p.year}</p>
-                  <p>تاريخ الطباعة: {new Date().toLocaleDateString()}</p>
-               </div>
-            </div>
-            
-            <div className="space-y-1.5 text-[11px] font-bold">
-               <div className="bg-slate-50 p-2 rounded-xl mb-3 space-y-1 border border-slate-100">
-                  <div className="flex justify-between items-center text-slate-700">
-                    <span className="font-black">الراتب التعاقدي:</span>
-                    <span className="font-black text-indigo-700">{p.baseSalary.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-slate-700">
-                    <span className="font-black">ساعات العمل الفعلية:</span>
-                    <span className="font-black text-indigo-700">{p.workingHours.toFixed(1)} ساعة</span>
-                  </div>
-               </div>
-
-               <div className="text-[#00a693] font-black border-b pb-1 mb-1">الإضافات (+)</div>
-               <div className="flex justify-between items-center text-[#00a693]">
-                 <span className="font-black">بدل مواصلات:</span>
-                 <span className="font-black">{p.transport.toLocaleString()}+</span>
-               </div>
-               <div className="flex justify-between items-center text-[#00a693]">
-                 <span className="font-black">العمل الإضافي ({formatMinutes(p.overtimeMinutes)}):</span>
-                 <span className="font-black">{p.overtimePay.toLocaleString()}+</span>
-               </div>
-               <div className="flex justify-between items-center text-[#00a693]">
-                 <span className="font-black">المكافآت:</span>
-                 <span className="font-black">{p.bonuses.toLocaleString()}+</span>
-               </div>
-               <div className="flex justify-between items-center text-[#00a693]">
-                 <span className="font-black">الإنتاج ({p.productionPieces} ط × {p.productionPieces > 0 ? Math.round(p.production/p.productionPieces).toLocaleString() : 0}):</span>
-                 <span className="font-black">{p.production.toLocaleString()}+</span>
-               </div>
-               
-               <div className="text-[#d91e5b] font-black border-t pt-2 mt-2">الاستقطاعات (-)</div>
-               <div className="flex justify-between items-center text-[#d91e5b]">
-                 <span className="font-black">تأخير ({formatMinutes(p.lateMinutes)}):</span>
-                 <span className="font-black">{p.lateDeduction.toLocaleString()}-</span>
-               </div>
-               <div className="flex justify-between items-center text-[#d91e5b]">
-                 <span className="font-black">خصم أذونات ({p.permissionHours} س):</span>
-                 <span className="font-black">{(p.permissionDeduction || 0).toLocaleString()}-</span>
-               </div>
-               <div className="flex justify-between items-center text-[#d91e5b]">
-                 <span className="font-black">أيام غياب ({p.absenceDays} ي):</span>
-                 <span className="font-black">{p.absenceDeduction.toLocaleString()}-</span>
-               </div>
-               <div className="flex justify-between items-center text-[#d91e5b]">
-                 <span className="font-black">أقساط سلف:</span>
-                 <span className="font-black">{p.loanInstallment.toLocaleString()}-</span>
-               </div>
-               
-               <div className="flex justify-between text-lg font-black text-indigo-900 pt-3 mt-3 border-t-2 border-indigo-900">
-                 <span>صافي الراتب:</span>
-                 <div className="text-left">
-                    <span>{p.netSalary.toLocaleString()}</span>
-                    <span className="text-[10px] mr-1 opacity-60">{db.settings.currency}</span>
-                 </div>
-               </div>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-
-  const DocumentPrintCard = ({ title, type, data }: { title: string, type: PrintType, data: any }) => {
-    return <div className="p-10 font-black text-center">معاينة الطباعة لهذا النموذج قيد التحديث...</div>;
-  };
-
-  const executePrintAction = () => {
-    setIsPrinting(true);
-    setTimeout(() => {
-      window.print();
-      setIsPrinting(false);
-    }, 600);
   };
 
   return (
