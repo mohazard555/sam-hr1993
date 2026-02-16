@@ -4,6 +4,7 @@ import { Employee, PayrollRecord, AttendanceRecord, FinancialEntry } from '../ty
 import { DB } from '../db/store';
 import { Printer, TrendingUp, Users, Wallet, Filter, Calendar as CalendarIcon, FileDown, Search, ArrowRightLeft, ChartBar, ArrowUpRight, ArrowDownRight, Minus, Scale, Calculator } from 'lucide-react';
 import { exportToExcel } from '../utils/export';
+import { generateMonthlyPayroll } from '../utils/calculations';
 
 interface Props {
   db: DB;
@@ -20,9 +21,9 @@ const ReportsView: React.FC<Props> = ({ db, payrolls, lang, onPrint }) => {
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
 
   // Comparison states
-  const [compMonth1, setCompMonth1] = useState(new Date().getMonth()); // الشهر السابق افتراضياً
-  const [compYear1, setCompYear1] = useState(new Date().getFullYear());
-  const [compMonth2, setCompMonth2] = useState(new Date().getMonth() + 1); // الشهر الحالي افتراضياً
+  const [compMonth1, setCompMonth1] = useState(new Date().getMonth() === 0 ? 12 : new Date().getMonth()); 
+  const [compYear1, setCompYear1] = useState(new Date().getMonth() === 0 ? new Date().getFullYear() - 1 : new Date().getFullYear());
+  const [compMonth2, setCompMonth2] = useState(new Date().getMonth() + 1);
   const [compYear2, setCompYear2] = useState(new Date().getFullYear());
 
   const proReportData = useMemo(() => {
@@ -57,32 +58,37 @@ const ReportsView: React.FC<Props> = ({ db, payrolls, lang, onPrint }) => {
 
   const comparativeData = useMemo(() => {
     const getPeriodStats = (m: number, y: number) => {
-      // البحث في الأرشيف التاريخي
-      const histRecords = (db.payrollHistory || []).filter(p => p.month === m && p.year === y);
+      // 1. أولاً: البحث في الأرشيف التاريخي (الرواتب المحفوظة نهائياً)
+      const histRecords = (db.payrollHistory || []).filter(p => Number(p.month) === m && Number(p.year) === y);
       
-      // البحث في المسير الحالي المفتوح (Live)
-      const currentMonth = new Date().getMonth() + 1;
-      const currentYear = new Date().getFullYear();
-      
-      // إذا كان الشهر المختار هو الشهر الحالي، نأخذ البيانات من المسير المباشر
-      let targetRecords = histRecords;
-      if (m === currentMonth && y === currentYear && payrolls.length > 0) {
-          // ندمج السجلات بحيث نأخذ الحالي كأولوية
-          targetRecords = payrolls;
-      }
+      let targetRecords: PayrollRecord[] = [];
 
-      const totalNet = targetRecords.reduce((s, r) => s + r.netSalary, 0);
-      const totalBase = targetRecords.reduce((s, r) => s + r.baseSalary, 0);
+      if (histRecords.length > 0) {
+        targetRecords = histRecords;
+      } else {
+        // 2. ثانياً: إذا لم يوجد أرشيف، نقوم بحساب الرواتب لهذا الشهر والسنة بناءً على البيانات الحالية
+        // نستخدم دالة الحساب الأصلية لضمان دقة الأرقام
+        targetRecords = generateMonthlyPayroll(
+          m, 
+          y, 
+          db.employees, 
+          db.attendance, 
+          db.loans, 
+          db.financials, 
+          db.production, 
+          db.settings, 
+          db.leaves
+        );
+      }
 
       return {
         empCount: targetRecords.length,
-        totalBase: totalBase,
-        totalNet: totalNet,
-        totalOT: targetRecords.reduce((s, r) => s + r.overtimePay, 0),
-        totalBonuses: targetRecords.reduce((s, r) => s + r.bonuses, 0),
-        totalProduction: targetRecords.reduce((s, r) => s + r.production, 0),
-        totalDeductions: targetRecords.reduce((s, r) => s + r.deductions, 0),
-        totalLoans: targetRecords.reduce((s, r) => s + r.loanInstallment, 0),
+        totalBase: targetRecords.reduce((s, r) => s + (Number(r.baseSalary) || 0), 0),
+        totalNet: targetRecords.reduce((s, r) => s + (Number(r.netSalary) || 0), 0),
+        totalOT: targetRecords.reduce((s, r) => s + (Number(r.overtimePay) || 0), 0),
+        totalBonuses: targetRecords.reduce((s, r) => s + (Number(r.bonuses) || 0), 0),
+        totalDeductions: targetRecords.reduce((s, r) => s + (Number(r.deductions) || 0), 0),
+        totalLoans: targetRecords.reduce((s, r) => s + (Number(r.loanInstallment) || 0), 0),
       };
     };
 
@@ -90,7 +96,7 @@ const ReportsView: React.FC<Props> = ({ db, payrolls, lang, onPrint }) => {
     const p2 = getPeriodStats(compMonth2, compYear2);
 
     return { p1, p2 };
-  }, [db.payrollHistory, payrolls, compMonth1, compYear1, compMonth2, compYear2]);
+  }, [db, compMonth1, compYear1, compMonth2, compYear2]);
 
   const renderVariance = (val1: number, val2: number, inverse = false) => {
     if (val1 === val2) return <span className="text-slate-400 flex items-center gap-1 font-bold text-[10px]"><Minus size={10}/> 0%</span>;
@@ -112,7 +118,6 @@ const ReportsView: React.FC<Props> = ({ db, payrolls, lang, onPrint }) => {
 
   return (
     <div className="space-y-8 pb-10">
-      {/* Tab Switcher */}
       <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-[2rem] w-fit mx-auto no-print shadow-inner">
          <button onClick={() => setReportType('standard')} className={`px-10 py-3 rounded-[1.8rem] font-black text-sm flex items-center gap-2 transition-all ${reportType === 'standard' ? 'bg-white dark:bg-slate-900 shadow-md text-indigo-700' : 'text-slate-500'}`}><ChartBar size={18}/> التقارير النوعية</button>
          <button onClick={() => setReportType('comparative')} className={`px-10 py-3 rounded-[1.8rem] font-black text-sm flex items-center gap-2 transition-all ${reportType === 'comparative' ? 'bg-white dark:bg-slate-900 shadow-md text-indigo-700' : 'text-slate-500'}`}><ArrowRightLeft size={18}/> مقارنة الفترات</button>
@@ -180,9 +185,6 @@ const ReportsView: React.FC<Props> = ({ db, payrolls, lang, onPrint }) => {
                          <td className="p-5 text-center font-black text-[16px] bg-indigo-50/50 dark:bg-indigo-900/10 text-indigo-900 dark:text-indigo-300 border-r border-indigo-100">{d.netPaid.toLocaleString()}</td>
                       </tr>
                     ))}
-                    {proReportData.length === 0 && (
-                      <tr><td colSpan={8} className="p-20 text-center text-slate-400 italic text-lg font-black uppercase tracking-widest">لا توجد سجلات مالية للفترة المحددة</td></tr>
-                    )}
                  </tbody>
                </table>
              </div>
@@ -224,7 +226,7 @@ const ReportsView: React.FC<Props> = ({ db, payrolls, lang, onPrint }) => {
                     </div>
                     <div>
                        <h4 className="text-3xl font-black text-slate-900 dark:text-white leading-none">فترة {compMonth1} / {compYear1}</h4>
-                       <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-wide">البيانات المالية المحققة</p>
+                       <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-wide">البيانات المالية المسجلة</p>
                     </div>
                  </div>
                  
@@ -232,7 +234,7 @@ const ReportsView: React.FC<Props> = ({ db, payrolls, lang, onPrint }) => {
                     <div className="flex justify-between items-center p-6 bg-slate-50 dark:bg-slate-800/50 rounded-[2.5rem] border-2 border-slate-100 dark:border-slate-700 group-hover:bg-indigo-50/30 transition-colors">
                        <div className="flex items-center gap-3">
                           <Users className="text-indigo-600" size={24}/>
-                          <span className="font-black text-slate-600 dark:text-slate-400 text-lg uppercase">إجمالي الكادر</span>
+                          <span className="font-black text-slate-600 dark:text-slate-400 text-lg uppercase">عدد الموظفين</span>
                        </div>
                        <span className="font-black text-3xl text-slate-900 dark:text-white tracking-tighter">{comparativeData.p1.empCount} <span className="text-xs opacity-50">عضو</span></span>
                     </div>
@@ -240,14 +242,14 @@ const ReportsView: React.FC<Props> = ({ db, payrolls, lang, onPrint }) => {
                     <div className="grid grid-cols-2 gap-6">
                        <div className="p-8 bg-indigo-600 text-white rounded-[3rem] shadow-xl shadow-indigo-600/20 flex flex-col items-center text-center relative overflow-hidden">
                           <Wallet className="absolute -bottom-4 -right-4 opacity-10" size={100}/>
-                          <p className="text-[10px] font-black uppercase opacity-60 mb-2 tracking-widest">ميزانية الرواتب (الصافي)</p>
+                          <p className="text-[10px] font-black uppercase opacity-60 mb-2 tracking-widest">إجمالي الميزانية (الصافي)</p>
                           <p className="text-2xl font-black leading-none">{comparativeData.p1.totalNet.toLocaleString()}</p>
                           <p className="text-[10px] font-bold mt-2 opacity-50">{db.settings.currency}</p>
                        </div>
                        
                        <div className="p-8 bg-slate-900 text-white rounded-[3rem] shadow-xl flex flex-col items-center text-center relative overflow-hidden">
                           <Calculator className="absolute -bottom-4 -right-4 opacity-10" size={100}/>
-                          <p className="text-[10px] font-black uppercase opacity-60 mb-2 tracking-widest">إجمالي الأساسي</p>
+                          <p className="text-[10px] font-black uppercase opacity-60 mb-2 tracking-widest">إجمالي الرواتب الأساسية</p>
                           <p className="text-2xl font-black leading-none">{comparativeData.p1.totalBase.toLocaleString()}</p>
                        </div>
 
@@ -257,7 +259,7 @@ const ReportsView: React.FC<Props> = ({ db, payrolls, lang, onPrint }) => {
                        </div>
 
                        <div className="p-6 bg-rose-50/50 dark:bg-rose-900/10 rounded-3xl border border-rose-100 dark:border-rose-900/40 text-center">
-                          <p className="text-[9px] font-black text-rose-600 uppercase mb-1">الخصومات والسلف</p>
+                          <p className="text-[9px] font-black text-rose-600 uppercase mb-1">إجمالي الخصومات</p>
                           <p className="text-lg font-black text-rose-700">{(comparativeData.p1.totalDeductions + comparativeData.p1.totalLoans).toLocaleString()}</p>
                        </div>
                     </div>
@@ -283,7 +285,7 @@ const ReportsView: React.FC<Props> = ({ db, payrolls, lang, onPrint }) => {
                     <div className="flex justify-between items-center p-6 bg-slate-50 dark:bg-slate-800/50 rounded-[2.5rem] border-2 border-slate-100 dark:border-slate-700 group-hover:bg-rose-50/30 transition-colors">
                        <div className="flex items-center gap-3">
                           <Users className="text-rose-600" size={24}/>
-                          <span className="font-black text-slate-600 dark:text-slate-400 text-lg uppercase">إجمالي الكادر</span>
+                          <span className="font-black text-slate-600 dark:text-slate-400 text-lg uppercase">عدد الموظفين</span>
                        </div>
                        <div className="flex items-center gap-3">
                           {renderVariance(comparativeData.p1.empCount, comparativeData.p2.empCount)}
@@ -295,7 +297,7 @@ const ReportsView: React.FC<Props> = ({ db, payrolls, lang, onPrint }) => {
                        <div className="p-8 bg-rose-600 text-white rounded-[3rem] shadow-xl shadow-rose-600/20 flex flex-col items-center text-center relative overflow-hidden">
                           <Wallet className="absolute -bottom-4 -right-4 opacity-10" size={100}/>
                           <div className="absolute top-3 right-5">{renderVariance(comparativeData.p1.totalNet, comparativeData.p2.totalNet, true)}</div>
-                          <p className="text-[10px] font-black uppercase opacity-60 mb-2 tracking-widest">ميزانية الرواتب (الصافي)</p>
+                          <p className="text-[10px] font-black uppercase opacity-60 mb-2 tracking-widest">إجمالي الميزانية (الصافي)</p>
                           <p className="text-2xl font-black leading-none">{comparativeData.p2.totalNet.toLocaleString()}</p>
                           <p className="text-[10px] font-bold mt-2 opacity-50">{db.settings.currency}</p>
                        </div>
@@ -315,12 +317,11 @@ const ReportsView: React.FC<Props> = ({ db, payrolls, lang, onPrint }) => {
 
                        <div className="p-6 bg-rose-50/50 dark:bg-rose-900/10 rounded-3xl border border-rose-100 dark:border-rose-900/40 text-center relative">
                           <div className="absolute top-1 right-2">{renderVariance((comparativeData.p1.totalDeductions + comparativeData.p1.totalLoans), (comparativeData.p2.totalDeductions + comparativeData.p2.totalLoans), true)}</div>
-                          <p className="text-[9px] font-black text-rose-600 uppercase mb-1">الخصومات والسلف</p>
+                          <p className="text-[9px] font-black text-rose-600 uppercase mb-1">إجمالي الخصومات</p>
                           <p className="text-lg font-black text-rose-700">{(comparativeData.p2.totalDeductions + comparativeData.p2.totalLoans).toLocaleString()}</p>
                        </div>
                     </div>
 
-                    {/* التحليل النهائي للفرق */}
                     <div className="mt-8 p-8 bg-slate-950 text-white rounded-[3rem] flex items-center justify-between border-2 border-slate-800 shadow-2xl relative group">
                        <div className="flex items-center gap-5">
                           <div className={`p-4 rounded-2xl ${comparativeData.p2.totalNet > comparativeData.p1.totalNet ? 'bg-rose-600/20 text-rose-500' : 'bg-emerald-600/20 text-emerald-500'} transition-all group-hover:scale-110 shadow-lg`}>
@@ -340,14 +341,12 @@ const ReportsView: React.FC<Props> = ({ db, payrolls, lang, onPrint }) => {
                                 <span className="text-[10px] font-black text-rose-500 bg-rose-500/10 px-6 py-2 rounded-full border border-rose-500/30 flex items-center gap-2 uppercase tracking-widest shadow-lg shadow-rose-900/20">
                                    زيادة تكاليف <ArrowUpRight size={16}/>
                                 </span>
-                                <p className="text-[8px] font-bold text-slate-500 mt-2 italic">* الفترة الحالية أعلى تكلفة</p>
                              </div>
                           ) : (
                              <div className="flex flex-col items-end">
                                 <span className="text-[10px] font-black text-emerald-500 bg-emerald-500/10 px-6 py-2 rounded-full border border-emerald-500/30 flex items-center gap-2 uppercase tracking-widest shadow-lg shadow-emerald-900/20">
                                    وفر مالي <ArrowDownRight size={16}/>
                                 </span>
-                                <p className="text-[8px] font-bold text-slate-500 mt-2 italic">* انخفاض في الإنفاق المالي</p>
                              </div>
                           )}
                        </div>
