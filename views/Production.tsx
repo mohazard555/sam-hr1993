@@ -89,6 +89,23 @@ const Production: React.FC<Props> = ({ employees, items, settings, onSave, onDel
 
   return (
     <div className="space-y-6">
+      {/* ترويسة الطباعة الرسمية */}
+      <div className="hidden print:block text-right mb-8 pb-6 border-b-4 border-slate-900">
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-black text-slate-900">{settings.name}</h1>
+            <h2 className="text-xl font-bold text-indigo-700 mt-2">
+              تقرير إنتاجية الموظفين {archiveMode ? '(سجل الأرشيف)' : '(سجلات نشطة)'}
+            </h2>
+          </div>
+          {settings.logo && <img src={settings.logo} className="h-16 w-auto object-contain" alt="Logo" />}
+        </div>
+        <div className="flex justify-between items-center mt-4 text-xs font-bold text-slate-400">
+          <p>تاريخ استخراج التقرير: {new Date().toLocaleDateString('ar-EG')}</p>
+          <p>إجمالي الكميات: {totals.pieces.toLocaleString()} قطعة</p>
+        </div>
+      </div>
+
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 no-print text-right">
         <div className="flex items-center gap-4">
            <div className={`p-4 rounded-2xl ${archiveMode ? 'bg-amber-100 text-amber-600' : 'bg-indigo-100 text-indigo-600'}`}>
@@ -128,10 +145,10 @@ const Production: React.FC<Props> = ({ employees, items, settings, onSave, onDel
          </button>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border dark:border-slate-800 overflow-hidden relative">
-        <div className="overflow-x-auto">
+      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border dark:border-slate-800 overflow-hidden relative print:border-none print:shadow-none">
+        <div className="overflow-x-auto print:overflow-visible">
           <table className="w-full text-right text-sm">
-            <thead className="bg-slate-50 dark:bg-slate-800 border-b">
+            <thead className="bg-slate-50 dark:bg-slate-800 border-b print:bg-slate-100 print:text-black">
               <tr className="text-slate-900 dark:text-slate-100 font-black text-xs uppercase">
                 <th className="px-6 py-5">الموظف / التاريخ</th>
                 <th className="px-6 py-5 text-center">كمية الإنتاج (قطع)</th>
@@ -143,14 +160,14 @@ const Production: React.FC<Props> = ({ employees, items, settings, onSave, onDel
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {filteredItems.map(item => (
-                <tr key={item.id} className="hover:bg-indigo-50/20 transition font-bold">
+                <tr key={item.id} className="hover:bg-indigo-50/20 transition font-bold print:border-b print:border-slate-200">
                   <td className="px-6 py-5">
                      <p className="font-black text-slate-900 dark:text-white">{employees.find(e => e.id === item.employeeId)?.name}</p>
                      <p className="text-[10px] text-slate-400 font-bold">{item.date}</p>
                   </td>
                   <td className="px-6 py-5 text-center font-black">{item.piecesCount} قطعة</td>
                   <td className="px-6 py-5 text-center">{item.valuePerPiece?.toLocaleString()}</td>
-                  <td className="px-6 py-5 text-center font-black text-emerald-600 bg-emerald-50/10">{(item.totalValue || 0).toLocaleString()}</td>
+                  <td className="px-6 py-5 text-center font-black text-emerald-600 bg-emerald-50/10 print:bg-transparent print:text-black">{(item.totalValue || 0).toLocaleString()}</td>
                   <td className="px-6 py-5 text-xs text-slate-500 italic max-w-xs truncate">{item.notes || '-'}</td>
                   <td className="px-6 py-5 text-center no-print">
                      <div className="flex justify-center gap-2">
@@ -163,12 +180,12 @@ const Production: React.FC<Props> = ({ employees, items, settings, onSave, onDel
                 </tr>
               ))}
             </tbody>
-            <tfoot className="bg-indigo-950 text-white font-black text-xs uppercase border-t-4 border-indigo-900">
+            <tfoot className="bg-indigo-950 text-white font-black text-xs uppercase border-t-4 border-indigo-900 print:bg-slate-200 print:text-black print:border-slate-900">
                <tr>
-                 <td className="px-6 py-6 text-right">إجمالي القائمة</td>
+                 <td className="px-6 py-6 text-right">إجمالي القائمة المطبوعة</td>
                  <td className="px-6 py-6 text-center">{totals.pieces.toLocaleString()} قطعة</td>
                  <td className="px-6 py-6 text-center">-</td>
-                 <td className="px-6 py-6 text-center text-lg text-emerald-300">{totals.value.toLocaleString()} {settings.currency}</td>
+                 <td className="px-6 py-6 text-center text-lg text-emerald-300 print:text-black">{totals.value.toLocaleString()} {settings.currency}</td>
                  <td className="px-6 py-6"></td>
                  <td className="no-print"></td>
                </tr>
