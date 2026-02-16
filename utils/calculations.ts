@@ -25,9 +25,8 @@ export const generatePayrollForRange = (
   production: ProductionEntry[],
   settings: CompanySettings,
   leaves: LeaveRequest[] = [],
-  permissions: PermissionRecord[] = [] // إضافة الأذونات
+  permissions: PermissionRecord[] = []
 ): PayrollRecord[] => {
-  const isWeekly = settings.salaryCycle === 'weekly';
   const startPeriod = new Date(startDate);
   const endPeriod = new Date(endDate);
   
@@ -35,7 +34,10 @@ export const generatePayrollForRange = (
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
   return employees.map(emp => {
-    const cycleDays = emp.workDaysPerCycle || (isWeekly ? (settings.weeklyCycleDays || 6) : (settings.monthlyCycleDays || 26));
+    const empCycleType = emp.cycleType || settings.salaryCycle;
+    const empIsWeekly = empCycleType === 'weekly';
+    
+    const cycleDays = emp.workDaysPerCycle || (empIsWeekly ? (settings.weeklyCycleDays || 7) : (settings.monthlyCycleDays || 30));
     const workingHoursPerDay = emp.workingHoursPerDay || 8;
     
     const dailyRate = emp.baseSalary / cycleDays;
@@ -65,14 +67,17 @@ export const generatePayrollForRange = (
 
     const bonuses = empFinancials.filter(f => f.type === 'bonus').reduce((acc, f) => acc + f.amount, 0);
     const productionIncentives = empFinancials.filter(f => f.type === 'production_incentive').reduce((acc, f) => acc + f.amount, 0);
+    
+    // حساب تفاصيل الإنتاج
     const totalProductionValue = empProduction.reduce((acc, p) => acc + p.totalValue, 0);
+    const totalProductionPieces = empProduction.reduce((acc, p) => acc + p.piecesCount, 0);
+
     const manualDeductions = empFinancials.filter(f => f.type === 'deduction' || f.type === 'payment').reduce((acc, f) => acc + f.amount, 0);
 
-    // حساب الأذونات
     const totalPermissionHours = empPermissions.reduce((acc, p) => acc + Number(p.hours), 0);
     const permissionDeductionValue = Math.round(totalPermissionHours * hourlyRate * (emp.customDeductionRate || 1));
 
-    const minDaysToDeduct = isWeekly ? 5 : 20; 
+    const minDaysToDeduct = empIsWeekly ? 4 : 20; 
     let totalLoanInstallments = 0;
     
     const activeLoans = loans.filter(l => {
@@ -129,6 +134,7 @@ export const generatePayrollForRange = (
       bonuses: bonuses + productionIncentives,
       transport: Math.round(transportEarned),
       production: totalProductionValue,
+      productionPieces: totalProductionPieces, // إدراج عدد القطع
       overtimePay: Math.round(overtimePay),
       overtimeMinutes: totalOTMins,
       loanInstallment: totalLoanInstallments,

@@ -13,10 +13,10 @@ import PrintForms from './views/PrintForms';
 import ManagerDashboard from './views/ManagerDashboard';
 import { GenericModule } from './views/GenericModule';
 import { loadDB, saveDB, DB } from './db/store';
-import { Employee, PayrollRecord, FinancialEntry, Loan, LeaveRequest, ProductionEntry, AttendanceRecord, Warning, PrintHistoryRecord, PermissionRecord } from './types';
+import { Employee, PayrollRecord, FinancialEntry, Loan, LeaveRequest, ProductionEntry, AttendanceRecord, Warning, PrintHistoryRecord, PermissionRecord, SalaryCycle } from './types';
 import { generatePayrollForRange, calculateTimeDiffMinutes } from './utils/calculations';
 import { exportToExcel } from './utils/export';
-import { Printer, X, ReceiptText, CalendarDays, Loader2, FileText, CheckCircle, Info, ShieldAlert, Package, Layers, Clock, TrendingUp, Lock, HelpCircle, ToggleLeft, ToggleRight, AlertCircle, Calendar, FileDown, LayoutPanelLeft, LayoutPanelTop, Zap, Timer } from 'lucide-react';
+import { Printer, X, ReceiptText, CalendarDays, Loader2, FileText, CheckCircle, Info, ShieldAlert, Package, Layers, Clock, TrendingUp, Lock, HelpCircle, ToggleLeft, ToggleRight, AlertCircle, Calendar, FileDown, LayoutPanelLeft, LayoutPanelTop, Zap, Timer, Filter } from 'lucide-react';
 
 type PrintType = 'production' | 'loan' | 'leave' | 'financial' | 'document' | 'vouchers' | 'report_attendance' | 'report_financial' | 'warning' | 'employee_list' | 'department_list';
 
@@ -32,6 +32,7 @@ const App: React.FC = () => {
   
   const [payrollDateFrom, setPayrollDateFrom] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]);
   const [payrollDateTo, setPayrollDateTo] = useState(new Date().toISOString().split('T')[0]);
+  const [payrollCycleFilter, setPayrollCycleFilter] = useState<'all' | SalaryCycle>('all');
 
   const [archiveModes, setArchiveModes] = useState<Record<string, boolean>>({
     leaves: false, financials: false, loans: false, production: false, permissions: false
@@ -60,18 +61,28 @@ const App: React.FC = () => {
     }
   };
 
-  const currentPayrolls = useMemo(() => generatePayrollForRange(
-    payrollDateFrom, 
-    payrollDateTo, 
-    db.employees || [], 
-    db.attendance || [], 
-    db.loans || [], 
-    db.financials || [], 
-    db.production || [], 
-    db.settings,
-    db.leaves || [],
-    db.permissions || []
-  ), [payrollDateFrom, payrollDateTo, db]);
+  const currentPayrolls = useMemo(() => {
+    const rawPayrolls = generatePayrollForRange(
+      payrollDateFrom, 
+      payrollDateTo, 
+      db.employees || [], 
+      db.attendance || [], 
+      db.loans || [], 
+      db.financials || [], 
+      db.production || [], 
+      db.settings,
+      db.leaves || [],
+      db.permissions || []
+    );
+
+    if (payrollCycleFilter === 'all') return rawPayrolls;
+    
+    return rawPayrolls.filter(p => {
+       const emp = db.employees.find(e => e.id === p.employeeId);
+       const empCycle = emp?.cycleType || db.settings.salaryCycle;
+       return empCycle === payrollCycleFilter;
+    });
+  }, [payrollDateFrom, payrollDateTo, db, payrollCycleFilter]);
 
   const payrollTotals = useMemo(() => {
     return currentPayrolls.reduce((acc, p) => ({
@@ -347,14 +358,14 @@ const App: React.FC = () => {
       
       case 'payroll': return (
         <div className="space-y-8 animate-in fade-in duration-700">
-          <PrintableHeader title={`مسير رواتب الموظفين للفترة من ${payrollDateFrom} إلى ${payrollDateTo}`} subtitle={`نظام الدوام المعتمد: ${db.settings.salaryCycle === 'weekly' ? 'أسبوعي' : 'شهري'}`} />
+          <PrintableHeader title={`مسير رواتب الموظفين للفترة من ${payrollDateFrom} إلى ${payrollDateTo}`} subtitle={`فلترة العرض: ${payrollCycleFilter === 'all' ? 'الكل' : payrollCycleFilter === 'monthly' ? 'شهري فقط' : 'أسبوعي فقط'}`} />
           
           <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 flex flex-col md:flex-row justify-between items-center no-print text-right gap-4">
              <div className="flex items-center gap-4">
                 <div className="p-4 bg-indigo-600 text-white rounded-2xl">
                    <TrendingUp size={32}/>
                 </div>
-                <div className="flex flex-col md:flex-row items-center gap-4">
+                <div className="flex flex-col md:flex-row items-center gap-6">
                    <div>
                       <h2 className="text-2xl font-black text-indigo-700 dark:text-white">تصفية مسير الرواتب</h2>
                       <div className="flex items-center gap-2 mt-2">
@@ -366,6 +377,15 @@ const App: React.FC = () => {
                            <label className="text-[10px] font-black mr-2 dark:text-slate-400">إلى تاريخ</label>
                            <input type="date" className="p-2 border rounded-xl font-bold text-xs outline-none focus:border-indigo-600 dark:bg-slate-800 dark:text-white" value={payrollDateTo} onChange={e => setPayrollDateTo(e.target.value)} />
                         </div>
+                      </div>
+                   </div>
+                   
+                   <div className="bg-slate-50 dark:bg-slate-800 p-2 rounded-2xl border border-slate-100 dark:border-slate-700">
+                      <label className="text-[10px] font-black text-slate-400 block mb-1 mr-2 uppercase flex items-center gap-1"><Filter size={10}/> تصنيف الدوام</label>
+                      <div className="flex gap-1">
+                         <button onClick={() => setPayrollCycleFilter('all')} className={`px-4 py-1.5 rounded-xl text-[10px] font-black transition-all ${payrollCycleFilter === 'all' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-200'}`}>الكل</button>
+                         <button onClick={() => setPayrollCycleFilter('monthly')} className={`px-4 py-1.5 rounded-xl text-[10px] font-black transition-all ${payrollCycleFilter === 'monthly' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-200'}`}>شهري</button>
+                         <button onClick={() => setPayrollCycleFilter('weekly')} className={`px-4 py-1.5 rounded-xl text-[10px] font-black transition-all ${payrollCycleFilter === 'weekly' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-200'}`}>أسبوعي</button>
                       </div>
                    </div>
                 </div>
@@ -401,7 +421,12 @@ const App: React.FC = () => {
                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                    {currentPayrolls.map(p => (
                      <tr key={p.id} className="hover:bg-indigo-50/40 transition-all border-b print:border-slate-300">
-                       <td className="px-4 py-5 text-right font-black text-slate-900 dark:text-white whitespace-nowrap sticky right-0 bg-white dark:bg-slate-900 z-10 border-l border-slate-50 text-lg print:text-[11px]">{db.employees.find(e => e.id === p.employeeId)?.name}</td>
+                       <td className="px-4 py-5 text-right font-black text-slate-900 dark:text-white whitespace-nowrap sticky right-0 bg-white dark:bg-slate-900 z-10 border-l border-slate-50 text-lg print:text-[11px]">
+                          <div>{db.employees.find(e => e.id === p.employeeId)?.name}</div>
+                          <div className="text-[8px] font-black text-indigo-500 uppercase tracking-widest no-print">
+                             {db.employees.find(e => e.id === p.employeeId)?.cycleType === 'weekly' ? 'أسبوعي' : 'شهري'}
+                          </div>
+                       </td>
                        <td className="px-1 py-5 text-slate-500 dark:text-slate-400">{p.baseSalary.toLocaleString()}</td>
                        <td className="px-1 py-5 text-indigo-700 dark:text-indigo-400">{p.transport.toLocaleString()}</td>
                        <td className="px-1 py-5 text-slate-700 dark:text-slate-300">{p.workingDays} ي</td>
@@ -409,7 +434,14 @@ const App: React.FC = () => {
                          {p.absenceDays > 0 ? `${p.absenceDays} ي` : '0'}
                        </td>
                        <td className="px-1 py-5 text-emerald-600">+{p.bonuses.toLocaleString()}</td>
-                       <td className="px-1 py-5 text-emerald-600">+{p.production.toLocaleString()}</td>
+                       <td className="px-1 py-5 text-emerald-600">
+                          <div className="flex flex-col items-center">
+                            <span className="text-[9px] font-black opacity-60">
+                                {p.productionPieces || 0} ط × {p.productionPieces > 0 ? Math.round(p.production / p.productionPieces).toLocaleString() : 0}
+                            </span>
+                            <span>+{p.production.toLocaleString()}</span>
+                          </div>
+                       </td>
                        <td className="px-1 py-5 text-emerald-600">
                          <div className="flex flex-col items-center">
                            <span className="text-[9px] font-black opacity-60">{formatMinutes(p.overtimeMinutes)}</span>
@@ -554,14 +586,16 @@ const App: React.FC = () => {
     const exportData = currentPayrolls.map(p => {
       const emp = db.employees.find(e => e.id === p.employeeId);
       return {
-        'الاسم الموظف': emp?.name,
+        'اسم الموظف': emp?.name,
         'القسم': emp?.department,
+        'نوع الدوام': (emp?.cycleType || db.settings.salaryCycle) === 'weekly' ? 'أسبوعي' : 'شهري',
         'الأساسي': p.baseSalary,
         'بدل المواصلات': p.transport,
         'أيام الحضور': p.workingDays,
         'أيام الغياب': p.absenceDays,
         'مكافآت': p.bonuses,
         'إنتاج': p.production,
+        'عدد قطع الإنتاج': p.productionPieces,
         'إضافي': p.overtimePay,
         'تأخير': p.lateDeduction,
         'انصراف مبكر': p.earlyDepartureDeduction,
@@ -604,7 +638,7 @@ const App: React.FC = () => {
                <div className="text-right">
                   <p className="text-[10px] font-black text-indigo-600 uppercase">قسيمة راتب معتمدة</p>
                   <h3 className="text-lg font-black text-slate-900">{emp?.name}</h3>
-                  <p className="text-[9px] font-bold text-slate-500 mt-1">{emp?.position} - {emp?.department}</p>
+                  <p className="text-[9px] font-bold text-slate-500 mt-1">{emp?.position} - {emp?.department} ({ (emp?.cycleType || db.settings.salaryCycle) === 'weekly' ? 'أسبوعي' : 'شهري' })</p>
                </div>
                <div className="text-left text-[9px] font-bold text-slate-400">
                   <p>الفترة: {p.month} / {p.year}</p>
@@ -638,7 +672,7 @@ const App: React.FC = () => {
                  <span className="font-black">{p.bonuses.toLocaleString()}+</span>
                </div>
                <div className="flex justify-between items-center text-[#00a693]">
-                 <span className="font-black">الإنتاج:</span>
+                 <span className="font-black">الإنتاج ({p.productionPieces} ط × {p.productionPieces > 0 ? Math.round(p.production/p.productionPieces).toLocaleString() : 0}):</span>
                  <span className="font-black">{p.production.toLocaleString()}+</span>
                </div>
                

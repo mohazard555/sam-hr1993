@@ -63,6 +63,7 @@ export interface Employee {
   customDeductionRate?: number;
   customCheckIn?: string;
   customCheckOut?: string;
+  cycleType?: SalaryCycle; // الحقل الجديد لتحديد نوع الدوام
 }
 
 export interface AttendanceRecord {
@@ -153,6 +154,7 @@ export interface PayrollRecord {
   bonuses: number;
   transport: number;
   production: number;
+  productionPieces: number; // حقل جديد
   overtimePay: number;
   overtimeMinutes: number;
   loanInstallment: number;

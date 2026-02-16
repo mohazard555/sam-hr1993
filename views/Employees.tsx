@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Employee, CompanySettings } from '../types';
 import { UserPlus, Search, Edit2, Trash2, Settings2, Clock, Calculator, CalendarCheck, Printer, X, Phone, User as UserIcon, MapPin, Calendar, ToggleLeft, ToggleRight, Bus, FileDown } from 'lucide-react';
@@ -29,6 +30,7 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
     customOvertimeRate: 1.5,
     customDeductionRate: 1,
     joinDate: new Date().toISOString().split('T')[0],
+    cycleType: settings.salaryCycle // القيمة الافتراضية من إعدادات النظام
   });
 
   const cycleDays = formData.workDaysPerCycle || defaultWorkDays;
@@ -59,10 +61,26 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
       customDeductionRate: formData.customDeductionRate ? Number(formData.customDeductionRate) : 1,
       customCheckIn: formData.customCheckIn || undefined,
       customCheckOut: formData.customCheckOut || undefined,
+      cycleType: formData.cycleType || settings.salaryCycle,
     };
     onAdd(newEmp);
     setShowModal(false);
-    setFormData({ baseSalary: 325000, transportAllowance: 25000, isTransportExempt: false, vacationBalance: 21, workDaysPerCycle: defaultWorkDays, workingHoursPerDay: 8, customOvertimeRate: 1.5, customDeductionRate: 1, joinDate: new Date().toISOString().split('T')[0] });
+    resetForm();
+  };
+
+  const resetForm = () => {
+    setFormData({ 
+      baseSalary: 325000, 
+      transportAllowance: 25000, 
+      isTransportExempt: false, 
+      vacationBalance: 21, 
+      workDaysPerCycle: defaultWorkDays, 
+      workingHoursPerDay: 8, 
+      customOvertimeRate: 1.5, 
+      customDeductionRate: 1, 
+      joinDate: new Date().toISOString().split('T')[0],
+      cycleType: settings.salaryCycle
+    });
   };
 
   const handleEdit = (emp: Employee) => {
@@ -81,6 +99,7 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
       'الاسم': e.name,
       'المنصب': e.position,
       'القسم': e.department,
+      'نوع الدوام': e.cycleType === 'weekly' ? 'أسبوعي' : 'شهري',
       'الراتب الأساسي': e.baseSalary,
       'بدل المواصلات': e.transportAllowance,
       'رقم الهاتف': e.phone,
@@ -118,7 +137,7 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
               <Printer size={20}/> طباعة
             </button>
           )}
-          <button onClick={() => { setFormData({ baseSalary: 325000, transportAllowance: 25000, isTransportExempt: false, vacationBalance: 21, workDaysPerCycle: defaultWorkDays, workingHoursPerDay: 8, customOvertimeRate: 1.5, customDeductionRate: 1, joinDate: new Date().toISOString().split('T')[0] }); setShowModal(true); }} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-indigo-600 text-white px-8 py-3 rounded-2xl hover:bg-indigo-700 transition shadow-xl font-black">
+          <button onClick={() => { resetForm(); setShowModal(true); }} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-indigo-600 text-white px-8 py-3 rounded-2xl hover:bg-indigo-700 transition shadow-xl font-black">
             <UserPlus size={20} /> إضافة موظف
           </button>
         </div>
@@ -131,8 +150,8 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
               <tr>
                 <th className="px-6 py-5 text-slate-900 dark:text-slate-200 font-black text-xs">الموظف</th>
                 <th className="px-6 py-5 text-slate-900 dark:text-slate-200 font-black text-xs">المنصب / القسم</th>
-                <th className="px-6 py-5 text-slate-900 dark:text-slate-200 font-black text-xs text-center">أيام العمل</th>
-                <th className="px-6 py-5 text-slate-900 dark:text-slate-200 font-black text-xs text-center">الراتب ({isWeekly ? 'أسبوعي' : 'شهري'})</th>
+                <th className="px-6 py-5 text-slate-900 dark:text-slate-200 font-black text-xs text-center">نوع الدوام</th>
+                <th className="px-6 py-5 text-slate-900 dark:text-slate-200 font-black text-xs text-center">الراتب</th>
                 <th className="px-6 py-5 text-slate-900 dark:text-slate-200 font-black text-xs text-center">إجراءات</th>
               </tr>
             </thead>
@@ -145,7 +164,6 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
                       <div>
                         <div className="flex items-center gap-1">
                            <p className="font-black text-slate-900 dark:text-white">{emp.name}</p>
-                           {/* Fix: Wrapped Bus icon in a span to use the title attribute as Lucide icons don't support it directly */}
                            {emp.isTransportExempt && (
                              <span title="مستثنى من خصم المواصلات">
                                <Bus size={12} className="text-emerald-500" />
@@ -161,7 +179,9 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
                     <span className="text-[10px] bg-indigo-50 dark:bg-indigo-900/20 px-2 py-1 rounded text-indigo-700 dark:text-indigo-400 font-bold">{emp.department}</span>
                   </td>
                   <td className="px-6 py-5 text-center">
-                    <span className="bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full font-black text-indigo-600">{emp.workDaysPerCycle || defaultWorkDays} يوم</span>
+                    <span className={`px-3 py-1 rounded-full font-black text-[10px] uppercase ${emp.cycleType === 'weekly' ? 'bg-amber-100 text-amber-700' : 'bg-indigo-100 text-indigo-700'}`}>
+                      {emp.cycleType === 'weekly' ? 'أسبوعي' : 'شهري'}
+                    </span>
                   </td>
                   <td className="px-6 py-5 text-center">
                     <p className="font-black text-slate-900 dark:text-white">{emp.baseSalary.toLocaleString()}</p>
@@ -193,7 +213,7 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
             </div>
             <form onSubmit={handleSubmit} className="p-8 space-y-10">
               {/* القسم الأول: البيانات الأساسية */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="md:col-span-1">
                   <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block mr-2">الاسم الكامل</label>
                   <input required className="w-full p-4 border-2 dark:bg-slate-800 rounded-xl font-bold focus:border-indigo-600 outline-none transition" value={formData.name || ''} onChange={e => setFormData({...formData, name: e.target.value})} />
@@ -207,6 +227,13 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
                   <select required className="w-full p-4 border-2 dark:bg-slate-800 rounded-xl font-bold focus:border-indigo-600 outline-none transition" value={formData.department || ''} onChange={e => setFormData({...formData, department: e.target.value})}>
                     <option value="">اختر قسم...</option>
                     {departments.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-indigo-600 uppercase mb-2 block mr-2">نوع دوام الموظف</label>
+                  <select required className="w-full p-4 border-2 border-indigo-100 dark:bg-slate-800 rounded-xl font-black focus:border-indigo-600 outline-none transition" value={formData.cycleType || 'monthly'} onChange={e => setFormData({...formData, cycleType: e.target.value as any})}>
+                    <option value="monthly">دوام شهري</option>
+                    <option value="weekly">دوام أسبوعي</option>
                   </select>
                 </div>
               </div>
@@ -239,7 +266,7 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
                 </div>
                 <div className="p-4 bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl border-2 border-slate-200 dark:border-slate-700">
                   <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block">أيام العمل في الدورة</label>
-                  <input type="number" className="w-full p-3 border-2 dark:bg-slate-800 rounded-xl font-black text-xl text-slate-700" placeholder={`مثلاً: ${isWeekly ? '6' : '26'}`} value={formData.workDaysPerCycle || ''} onChange={e => setFormData({...formData, workDaysPerCycle: Number(e.target.value)})} />
+                  <input type="number" className="w-full p-3 border-2 dark:bg-slate-800 rounded-xl font-black text-xl text-slate-700" placeholder={`مثلاً: ${formData.cycleType === 'weekly' ? '7' : '30'}`} value={formData.workDaysPerCycle || ''} onChange={e => setFormData({...formData, workDaysPerCycle: Number(e.target.value)})} />
                 </div>
                 <div className="p-4 bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl border-2 border-slate-200 dark:border-slate-700">
                   <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block">ساعات العمل يومياً</label>
@@ -265,7 +292,7 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
               {/* شريط معلومات الحساب التلقائية */}
               <div className="bg-indigo-50 dark:bg-indigo-900/20 p-8 rounded-[2rem] flex flex-wrap gap-10 items-center border-2 border-dashed border-indigo-200 dark:border-indigo-800 relative">
                  <div className="absolute top-4 left-6 flex items-center gap-1 bg-indigo-600 text-white px-3 py-1 rounded-full text-[10px] font-black">
-                    <CalendarCheck size={12}/> النظام المعتمد: {isWeekly ? 'أسبوعي' : 'شهري'}
+                    <CalendarCheck size={12}/> نوع الدوام: {formData.cycleType === 'weekly' ? 'أسبوعي' : 'شهري'}
                  </div>
                  <div className="flex items-center gap-3">
                     <Calculator className="text-indigo-600" size={28} />
