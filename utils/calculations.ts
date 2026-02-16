@@ -60,14 +60,10 @@ export const generatePayrollForRange = (
     const workingDays = empAttendance.filter(a => a.status === 'present').length;
     
     // أيام الغياب = إجمالي أيام الفترة - (أيام الحضور + أيام الإجازة المأجورة)
-    // هذا يضمن عدم خصم أيام الإجازة المأجورة
     const absenceDays = Math.max(0, diffDays - (workingDays + paidLeaveDays)); 
     const absenceDeduction = Math.round(absenceDays * dailyRate);
 
     const dailyTransportRate = emp.transportAllowance / cycleDays;
-    // بدل المواصلات يُصرف عن أيام العمل الفعلية + الإجازات المأجورة (حسب رغبتك)
-    // هنا سنعتبر أن الإجازة المأجورة لا تمنع صرف بدل المواصلات إذا كان الموظف مستثنى، 
-    // ولكن في الحالة الطبيعية تخصم عن أيام الغياب الفعلية فقط.
     const transportEarned = emp.isTransportExempt 
       ? emp.transportAllowance 
       : Math.max(0, emp.transportAllowance - (absenceDays * dailyTransportRate));
@@ -83,12 +79,18 @@ export const generatePayrollForRange = (
     
     const activeLoans = loans.filter(l => {
       if (l.employeeId !== emp.id || l.remainingAmount <= 0 || l.isArchived) return false;
+      
+      const targetDate = l.collectionDate || l.date;
+      
+      // إصلاح السلف الفورية: تظهر فقط إذا كان تاريخ تحصيلها يقع داخل الفترة المختارة حالياً
       if (l.isImmediate) {
-         if (l.collectionDate && l.collectionDate > endDate) return false;
-         return true;
+         return (targetDate >= startDate && targetDate <= endDate);
       }
+      
+      // السلف المجدولة: تظهر إذا كان تاريخ التحصيل قد حان أو مر، وبشرط أن تكون الفترة كافية (أكثر من 20 يوم للمنصب الشهري)
       if (diffDays < minDaysToDeduct) return false;
-      if (l.collectionDate && l.collectionDate > endDate) return false;
+      if (targetDate > endDate) return false;
+      
       return true;
     });
 
