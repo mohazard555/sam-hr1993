@@ -1,8 +1,8 @@
 
 import React, { useState, useMemo } from 'react';
-import { Employee, PayrollRecord, LeaveRequest, AttendanceRecord, FinancialEntry } from '../types';
+import { Employee, PayrollRecord, AttendanceRecord, FinancialEntry } from '../types';
 import { DB } from '../db/store';
-import { Printer, TrendingUp, Users, Wallet, Filter, Calendar as CalendarIcon, User as UserIcon, FileDown, Search, ArrowRightLeft, ChartBar, ArrowUpRight, ArrowDownRight, Minus, Scale } from 'lucide-react';
+import { Printer, TrendingUp, Users, Wallet, Filter, Calendar as CalendarIcon, FileDown, Search, ArrowRightLeft, ChartBar, ArrowUpRight, ArrowDownRight, Minus, Scale, Calculator } from 'lucide-react';
 import { exportToExcel } from '../utils/export';
 
 interface Props {
@@ -20,9 +20,9 @@ const ReportsView: React.FC<Props> = ({ db, payrolls, lang, onPrint }) => {
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
 
   // Comparison states
-  const [compMonth1, setCompMonth1] = useState(new Date().getMonth() + 1);
+  const [compMonth1, setCompMonth1] = useState(new Date().getMonth()); // الشهر السابق افتراضياً
   const [compYear1, setCompYear1] = useState(new Date().getFullYear());
-  const [compMonth2, setCompMonth2] = useState(new Date().getMonth());
+  const [compMonth2, setCompMonth2] = useState(new Date().getMonth() + 1); // الشهر الحالي افتراضياً
   const [compYear2, setCompYear2] = useState(new Date().getFullYear());
 
   const proReportData = useMemo(() => {
@@ -47,9 +47,9 @@ const ReportsView: React.FC<Props> = ({ db, payrolls, lang, onPrint }) => {
         presentDays: att.filter(a => a.status === 'present').length,
         totalLate: att.reduce((acc, a) => acc + a.lateMinutes, 0),
         totalOT: att.reduce((acc, a) => acc + a.overtimeMinutes, 0),
-        bonuses: currentPay?.bonuses || 0,
-        deductions: currentPay?.deductions || 0,
-        loans: currentPay?.loanInstallment || 0,
+        bonuses: (currentPay?.bonuses || 0),
+        deductions: (currentPay?.deductions || 0),
+        loans: (currentPay?.loanInstallment || 0),
         netPaid: payHist.reduce((acc, p) => acc + p.netSalary, 0) + (currentPay?.netSalary || 0)
       };
     }).filter(Boolean);
@@ -57,17 +57,27 @@ const ReportsView: React.FC<Props> = ({ db, payrolls, lang, onPrint }) => {
 
   const comparativeData = useMemo(() => {
     const getPeriodStats = (m: number, y: number) => {
-      // ندمج الأرشيف مع البيانات الحالية إذا كانت هي المختارة في المقارنة
+      // البحث في الأرشيف التاريخي
       const histRecords = (db.payrollHistory || []).filter(p => p.month === m && p.year === y);
       
-      // إذا كان الشهر المختار هو الشهر الحالي في المسير المفتوح، نستخدم بيانات الرواتب الحالية
-      const isCurrentMonth = payrolls.length > 0 && payrolls[0].month === m && payrolls[0].year === y;
-      const targetRecords = isCurrentMonth ? payrolls : histRecords;
+      // البحث في المسير الحالي المفتوح (Live)
+      const currentMonth = new Date().getMonth() + 1;
+      const currentYear = new Date().getFullYear();
+      
+      // إذا كان الشهر المختار هو الشهر الحالي، نأخذ البيانات من المسير المباشر
+      let targetRecords = histRecords;
+      if (m === currentMonth && y === currentYear && payrolls.length > 0) {
+          // ندمج السجلات بحيث نأخذ الحالي كأولوية
+          targetRecords = payrolls;
+      }
+
+      const totalNet = targetRecords.reduce((s, r) => s + r.netSalary, 0);
+      const totalBase = targetRecords.reduce((s, r) => s + r.baseSalary, 0);
 
       return {
         empCount: targetRecords.length,
-        totalBase: targetRecords.reduce((s, r) => s + r.baseSalary, 0),
-        totalNet: targetRecords.reduce((s, r) => s + r.netSalary, 0),
+        totalBase: totalBase,
+        totalNet: totalNet,
         totalOT: targetRecords.reduce((s, r) => s + r.overtimePay, 0),
         totalBonuses: targetRecords.reduce((s, r) => s + r.bonuses, 0),
         totalProduction: targetRecords.reduce((s, r) => s + r.production, 0),
@@ -83,223 +93,262 @@ const ReportsView: React.FC<Props> = ({ db, payrolls, lang, onPrint }) => {
   }, [db.payrollHistory, payrolls, compMonth1, compYear1, compMonth2, compYear2]);
 
   const renderVariance = (val1: number, val2: number, inverse = false) => {
-    if (val1 === val2) return <span className="text-slate-400 flex items-center gap-1"><Minus size={12}/> 0%</span>;
+    if (val1 === val2) return <span className="text-slate-400 flex items-center gap-1 font-bold text-[10px]"><Minus size={10}/> 0%</span>;
     const diff = val2 - val1;
     const percent = val1 === 0 ? 100 : Math.round((diff / val1) * 100);
     const isIncrease = diff > 0;
     
-    // inverse تعني أن الزيادة في هذا الحقل سيئة (مثل الخصومات)
     const color = isIncrease 
       ? (inverse ? 'text-rose-600' : 'text-emerald-600') 
       : (inverse ? 'text-emerald-600' : 'text-rose-600');
 
     return (
-      <span className={`text-[10px] font-black flex items-center gap-1 ${color}`}>
-        {isIncrease ? <ArrowUpRight size={12}/> : <ArrowDownRight size={12}/>}
+      <span className={`text-[11px] font-black flex items-center gap-0.5 ${color}`}>
+        {isIncrease ? <ArrowUpRight size={14}/> : <ArrowDownRight size={14}/>}
         {Math.abs(percent)}%
       </span>
     );
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-10">
       {/* Tab Switcher */}
-      <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-3xl w-fit mx-auto no-print">
-         <button onClick={() => setReportType('standard')} className={`px-8 py-3 rounded-2xl font-black text-sm flex items-center gap-2 transition-all ${reportType === 'standard' ? 'bg-white shadow text-indigo-700' : 'text-slate-500'}`}><ChartBar size={18}/> التقارير العامة</button>
-         <button onClick={() => setReportType('comparative')} className={`px-8 py-3 rounded-2xl font-black text-sm flex items-center gap-2 transition-all ${reportType === 'comparative' ? 'bg-white shadow text-indigo-700' : 'text-slate-500'}`}><ArrowRightLeft size={18}/> مقارنة الفترات</button>
+      <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-[2rem] w-fit mx-auto no-print shadow-inner">
+         <button onClick={() => setReportType('standard')} className={`px-10 py-3 rounded-[1.8rem] font-black text-sm flex items-center gap-2 transition-all ${reportType === 'standard' ? 'bg-white dark:bg-slate-900 shadow-md text-indigo-700' : 'text-slate-500'}`}><ChartBar size={18}/> التقارير النوعية</button>
+         <button onClick={() => setReportType('comparative')} className={`px-10 py-3 rounded-[1.8rem] font-black text-sm flex items-center gap-2 transition-all ${reportType === 'comparative' ? 'bg-white dark:bg-slate-900 shadow-md text-indigo-700' : 'text-slate-500'}`}><ArrowRightLeft size={18}/> مقارنة الفترات</button>
       </div>
 
       {reportType === 'standard' ? (
-        <>
-          <div className="flex flex-col md:flex-row justify-between items-center no-print bg-white dark:bg-slate-900 p-8 rounded-[3rem] border dark:border-slate-800 shadow-xl gap-6">
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="flex flex-col md:flex-row justify-between items-center no-print bg-white dark:bg-slate-900 p-8 rounded-[3rem] border dark:border-slate-800 shadow-xl gap-6 mb-8">
             <div className="flex flex-col md:flex-row items-center gap-6">
                <div className="flex items-center gap-4">
-                  {db.settings.logo && <img src={db.settings.logo} className="h-10 w-auto object-contain" />}
-                  <div><h2 className="text-2xl font-black text-indigo-700">التحليلات النوعية</h2><p className="text-xs font-bold text-slate-500">نظرة شاملة على الأداء المالي</p></div>
+                  <div className="p-4 bg-indigo-600 text-white rounded-2xl shadow-lg">
+                    <TrendingUp size={28}/>
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black text-indigo-700">تحليلات الرواتب</h2>
+                    <p className="text-xs font-bold text-slate-500">مراجعة شاملة للبيانات المالية حسب الفترة</p>
+                  </div>
                </div>
-               <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 p-2 rounded-2xl border">
+               <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 p-2 rounded-2xl border border-slate-200 dark:border-slate-700">
                   <div className="flex items-center gap-1 px-3">
                      <span className="text-[10px] font-black text-slate-400">من:</span>
-                     <input type="date" className="bg-transparent text-xs font-bold outline-none" value={startDate} onChange={e => setStartDate(e.target.value)} />
+                     <input type="date" className="bg-transparent text-xs font-bold outline-none border-none focus:ring-0" value={startDate} onChange={e => setStartDate(e.target.value)} />
                   </div>
-                  <div className="w-px h-6 bg-slate-200"></div>
+                  <div className="w-px h-6 bg-slate-200 dark:bg-slate-700"></div>
                   <div className="flex items-center gap-1 px-3">
                      <span className="text-[10px] font-black text-slate-400">إلى:</span>
-                     <input type="date" className="bg-transparent text-xs font-bold outline-none" value={endDate} onChange={e => setEndDate(e.target.value)} />
+                     <input type="date" className="bg-transparent text-xs font-bold outline-none border-none focus:ring-0" value={endDate} onChange={e => setEndDate(e.target.value)} />
                   </div>
                </div>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => exportToExcel(proReportData, "SAM_Quality_Report")} className="bg-emerald-600 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg hover:bg-emerald-700 transition"><FileDown size={18} /> Excel</button>
-              <button onClick={onPrint} className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg"><Printer size={18} /> طباعة</button>
+              <button onClick={() => exportToExcel(proReportData, "SAM_Payroll_Analysis")} className="bg-emerald-600 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg hover:bg-emerald-700 transition"><FileDown size={20} /> Excel</button>
+              <button onClick={onPrint} className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg hover:bg-black transition"><Printer size={20} /> طباعة</button>
             </div>
           </div>
 
           <section className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl border dark:border-slate-800 overflow-hidden">
              <div className="overflow-x-auto">
-               <table className="w-full text-right text-[10px] font-bold">
-                 <thead className="bg-indigo-950 text-white font-black uppercase">
+               <table className="w-full text-right text-[11px] font-bold">
+                 <thead className="bg-indigo-950 text-white font-black uppercase text-[13px]">
                     <tr>
-                      <th className="p-4 text-right">الموظف / القسم</th>
-                      <th className="text-center p-4">الأساسي</th>
-                      <th className="text-center p-4">المواصلات</th>
-                      <th className="text-center p-4">أيام الحضور</th>
-                      <th className="text-center p-4">تأخير (س)</th>
-                      <th className="text-center p-4">إضافي (س)</th>
-                      <th className="text-center p-4">الاستقطاعات</th>
-                      <th className="text-center p-4">أقساط السلف</th>
-                      <th className="text-center p-4">صافي المدفوع</th>
+                      <th className="p-5 text-right">الموظف / القسم</th>
+                      <th className="text-center p-5">الأساسي</th>
+                      <th className="text-center p-5">المواصلات</th>
+                      <th className="text-center p-5">أيام الحضور</th>
+                      <th className="text-center p-5">إضافي (س)</th>
+                      <th className="text-center p-5">الاستقطاعات</th>
+                      <th className="text-center p-5">السلف</th>
+                      <th className="text-center p-5 bg-indigo-900">صافي المجموع</th>
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {proReportData.map((d: any) => (
-                      <tr key={d.empName} className="hover:bg-slate-50 transition-all">
-                         <td className="p-4"><p className="font-black text-slate-900 dark:text-white">{d.empName}</p><p className="text-[9px] text-slate-400">{d.dept}</p></td>
-                         <td className="p-4 text-center">{d.base.toLocaleString()}</td>
-                         <td className="p-4 text-center">{d.trans.toLocaleString()}</td>
-                         <td className="p-4 text-center font-black">{d.presentDays} ي</td>
-                         <td className="p-4 text-center text-rose-600">{(d.totalLate / 60).toFixed(1)}</td>
-                         <td className="p-4 text-center text-emerald-600">{(d.totalOT / 60).toFixed(1)}</td>
-                         <td className="p-4 text-center text-rose-500">{(d.deductions).toLocaleString()}</td>
-                         <td className="p-4 text-center text-rose-600 font-black">{(d.loans).toLocaleString()}</td>
-                         <td className="p-4 text-center font-black bg-indigo-50/50 dark:bg-indigo-900/10 text-indigo-700">{d.netPaid.toLocaleString()}</td>
+                      <tr key={d.empName} className="hover:bg-indigo-50/30 transition-all border-b">
+                         <td className="p-5">
+                            <p className="font-black text-[14px] text-slate-900 dark:text-white leading-none">{d.empName}</p>
+                            <p className="text-[10px] text-slate-400 mt-1 font-bold">{d.dept}</p>
+                         </td>
+                         <td className="p-5 text-center text-slate-600">{d.base.toLocaleString()}</td>
+                         <td className="p-5 text-center text-indigo-700">{d.trans.toLocaleString()}</td>
+                         <td className="p-5 text-center font-black text-slate-800 dark:text-slate-200">{d.presentDays} ي</td>
+                         <td className="p-5 text-center text-emerald-600">{(d.totalOT / 60).toFixed(1)}</td>
+                         <td className="p-5 text-center text-rose-500">{(d.deductions).toLocaleString()}</td>
+                         <td className="p-5 text-center text-rose-600 font-black">{(d.loans).toLocaleString()}</td>
+                         <td className="p-5 text-center font-black text-[16px] bg-indigo-50/50 dark:bg-indigo-900/10 text-indigo-900 dark:text-indigo-300 border-r border-indigo-100">{d.netPaid.toLocaleString()}</td>
                       </tr>
                     ))}
                     {proReportData.length === 0 && (
-                      <tr><td colSpan={9} className="p-20 text-center text-slate-400 italic">لا توجد بيانات للفترة المحددة</td></tr>
+                      <tr><td colSpan={8} className="p-20 text-center text-slate-400 italic text-lg font-black uppercase tracking-widest">لا توجد سجلات مالية للفترة المحددة</td></tr>
                     )}
                  </tbody>
                </table>
              </div>
           </section>
-        </>
+        </div>
       ) : (
-        <div className="space-y-8 animate-in fade-in slide-in-from-top-4 no-print pb-10">
-           <div className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] shadow-xl border grid grid-cols-2 md:grid-cols-4 gap-6 text-right">
-              <div className="col-span-2">
-                 <label className="text-xs font-black text-indigo-700 mb-2 block uppercase flex items-center gap-2">
-                   <div className="w-2 h-2 bg-indigo-600 rounded-full"></div> الفترة الأولى (الأساس)
+        <div className="space-y-10 animate-in fade-in slide-in-from-top-4 duration-700 no-print pb-20">
+           {/* منتقي الفترات */}
+           <div className="bg-white dark:bg-slate-900 p-10 rounded-[3.5rem] shadow-xl border dark:border-slate-800 grid grid-cols-1 md:grid-cols-2 gap-10 text-right">
+              <div>
+                 <label className="text-xs font-black text-indigo-700 mb-4 block uppercase flex items-center gap-2 tracking-widest">
+                   <div className="w-2.5 h-2.5 bg-indigo-600 rounded-full animate-pulse"></div> اختيار الفترة الأساسية
                  </label>
-                 <div className="flex gap-2">
-                    <select className="flex-1 p-4 bg-slate-50 dark:bg-slate-800 border rounded-2xl font-black outline-none" value={compMonth1} onChange={e => setCompMonth1(Number(e.target.value))}>{[...Array(12)].map((_,i)=><option key={i+1} value={i+1}>شهر {i+1}</option>)}</select>
-                    <input type="number" className="w-32 p-4 bg-slate-50 dark:bg-slate-800 border rounded-2xl font-black outline-none" value={compYear1} onChange={e => setCompYear1(Number(e.target.value))} />
+                 <div className="flex gap-3">
+                    <select className="flex-1 p-5 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl font-black outline-none focus:border-indigo-600 transition shadow-inner text-lg" value={compMonth1} onChange={e => setCompMonth1(Number(e.target.value))}>{[...Array(12)].map((_,i)=><option key={i+1} value={i+1}>شهر {i+1}</option>)}</select>
+                    <input type="number" className="w-32 p-5 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl font-black outline-none focus:border-indigo-600 transition shadow-inner text-lg text-center" value={compYear1} onChange={e => setCompYear1(Number(e.target.value))} />
                  </div>
               </div>
-              <div className="col-span-2">
-                 <label className="text-xs font-black text-rose-700 mb-2 block uppercase flex items-center gap-2">
-                    <div className="w-2 h-2 bg-rose-600 rounded-full"></div> الفترة الثانية (للمقارنة)
+              <div>
+                 <label className="text-xs font-black text-rose-700 mb-4 block uppercase flex items-center gap-2 tracking-widest">
+                    <div className="w-2.5 h-2.5 bg-rose-600 rounded-full animate-pulse"></div> اختيار فترة المقارنة
                  </label>
-                 <div className="flex gap-2">
-                    <select className="flex-1 p-4 bg-slate-50 dark:bg-slate-800 border rounded-2xl font-black outline-none" value={compMonth2} onChange={e => setCompMonth2(Number(e.target.value))}>{[...Array(12)].map((_,i)=><option key={i+1} value={i+1}>شهر {i+1}</option>)}</select>
-                    <input type="number" className="w-32 p-4 bg-slate-50 dark:bg-slate-800 border rounded-2xl font-black outline-none" value={compYear2} onChange={e => setCompYear2(Number(e.target.value))} />
+                 <div className="flex gap-3">
+                    <select className="flex-1 p-5 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl font-black outline-none focus:border-rose-600 transition shadow-inner text-lg" value={compMonth2} onChange={e => setCompMonth2(Number(e.target.value))}>{[...Array(12)].map((_,i)=><option key={i+1} value={i+1}>شهر {i+1}</option>)}</select>
+                    <input type="number" className="w-32 p-5 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl font-black outline-none focus:border-rose-600 transition shadow-inner text-lg text-center" value={compYear2} onChange={e => setCompYear2(Number(e.target.value))} />
                  </div>
               </div>
            </div>
 
            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
               {/* بطاقة الفترة 1 */}
-              <div className="bg-white dark:bg-slate-900 p-10 rounded-[3.5rem] shadow-2xl border border-indigo-100 dark:border-indigo-900 relative">
-                 <div className="absolute -top-4 -right-4 bg-indigo-600 text-white px-6 py-2 rounded-full font-black text-xs shadow-lg">الفترة الأساسية</div>
-                 <h4 className="text-2xl font-black mb-8 flex items-center gap-3 text-indigo-700">
-                    <CalendarIcon size={28}/> {compMonth1} / {compYear1}
-                 </h4>
+              <div className="bg-white dark:bg-slate-900 p-12 rounded-[4rem] shadow-2xl border-4 border-slate-50 dark:border-indigo-900/30 relative overflow-hidden group">
+                 <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-600/5 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform"></div>
+                 <div className="absolute top-8 right-10 bg-indigo-600 text-white px-8 py-2 rounded-full font-black text-[10px] shadow-lg tracking-widest uppercase">السجل المرجعي</div>
                  
-                 <div className="space-y-4">
-                    <div className="flex justify-between items-center p-5 bg-slate-50 dark:bg-slate-800 rounded-3xl">
-                       <span className="font-black text-slate-500">عدد الموظفين المشاركين:</span>
-                       <span className="font-black text-xl text-slate-900 dark:text-white">{comparativeData.p1.empCount}</span>
+                 <div className="flex items-center gap-5 mb-12">
+                    <div className="p-5 bg-indigo-50 dark:bg-indigo-900/40 rounded-3xl text-indigo-700 shadow-inner">
+                       <CalendarIcon size={32}/>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                       <div className="p-4 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-2xl border border-indigo-100">
-                          <p className="text-[10px] font-black text-indigo-400 mb-1 uppercase">إجمالي الاستحقاق</p>
-                          <p className="text-lg font-black text-indigo-700">{comparativeData.p1.totalNet.toLocaleString()}</p>
+                    <div>
+                       <h4 className="text-3xl font-black text-slate-900 dark:text-white leading-none">فترة {compMonth1} / {compYear1}</h4>
+                       <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-wide">البيانات المالية المحققة</p>
+                    </div>
+                 </div>
+                 
+                 <div className="space-y-6">
+                    <div className="flex justify-between items-center p-6 bg-slate-50 dark:bg-slate-800/50 rounded-[2.5rem] border-2 border-slate-100 dark:border-slate-700 group-hover:bg-indigo-50/30 transition-colors">
+                       <div className="flex items-center gap-3">
+                          <Users className="text-indigo-600" size={24}/>
+                          <span className="font-black text-slate-600 dark:text-slate-400 text-lg uppercase">إجمالي الكادر</span>
                        </div>
-                       <div className="p-4 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-2xl border border-emerald-100">
-                          <p className="text-[10px] font-black text-emerald-400 mb-1 uppercase">إجمالي الإضافي</p>
+                       <span className="font-black text-3xl text-slate-900 dark:text-white tracking-tighter">{comparativeData.p1.empCount} <span className="text-xs opacity-50">عضو</span></span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-6">
+                       <div className="p-8 bg-indigo-600 text-white rounded-[3rem] shadow-xl shadow-indigo-600/20 flex flex-col items-center text-center relative overflow-hidden">
+                          <Wallet className="absolute -bottom-4 -right-4 opacity-10" size={100}/>
+                          <p className="text-[10px] font-black uppercase opacity-60 mb-2 tracking-widest">ميزانية الرواتب (الصافي)</p>
+                          <p className="text-2xl font-black leading-none">{comparativeData.p1.totalNet.toLocaleString()}</p>
+                          <p className="text-[10px] font-bold mt-2 opacity-50">{db.settings.currency}</p>
+                       </div>
+                       
+                       <div className="p-8 bg-slate-900 text-white rounded-[3rem] shadow-xl flex flex-col items-center text-center relative overflow-hidden">
+                          <Calculator className="absolute -bottom-4 -right-4 opacity-10" size={100}/>
+                          <p className="text-[10px] font-black uppercase opacity-60 mb-2 tracking-widest">إجمالي الأساسي</p>
+                          <p className="text-2xl font-black leading-none">{comparativeData.p1.totalBase.toLocaleString()}</p>
+                       </div>
+
+                       <div className="p-6 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-3xl border border-emerald-100 dark:border-emerald-900/40 text-center">
+                          <p className="text-[9px] font-black text-emerald-600 uppercase mb-1">العمل الإضافي</p>
                           <p className="text-lg font-black text-emerald-700">{comparativeData.p1.totalOT.toLocaleString()}</p>
                        </div>
-                       <div className="p-4 bg-rose-50/50 dark:bg-rose-900/10 rounded-2xl border border-rose-100">
-                          <p className="text-[10px] font-black text-rose-400 mb-1 uppercase">إجمالي الخصومات</p>
-                          <p className="text-lg font-black text-rose-700">{comparativeData.p1.totalDeductions.toLocaleString()}</p>
-                       </div>
-                       <div className="p-4 bg-slate-50/50 dark:bg-slate-800 rounded-2xl border border-slate-100">
-                          <p className="text-[10px] font-black text-slate-400 mb-1 uppercase">أقساط السلف</p>
-                          <p className="text-lg font-black text-slate-700">{comparativeData.p1.totalLoans.toLocaleString()}</p>
+
+                       <div className="p-6 bg-rose-50/50 dark:bg-rose-900/10 rounded-3xl border border-rose-100 dark:border-rose-900/40 text-center">
+                          <p className="text-[9px] font-black text-rose-600 uppercase mb-1">الخصومات والسلف</p>
+                          <p className="text-lg font-black text-rose-700">{(comparativeData.p1.totalDeductions + comparativeData.p1.totalLoans).toLocaleString()}</p>
                        </div>
                     </div>
                  </div>
               </div>
 
               {/* بطاقة الفترة 2 مع الفوارق */}
-              <div className="bg-white dark:bg-slate-900 p-10 rounded-[3.5rem] shadow-2xl border border-rose-100 dark:border-rose-900 relative">
-                 <div className="absolute -top-4 -right-4 bg-rose-600 text-white px-6 py-2 rounded-full font-black text-xs shadow-lg">مقارنة التغير</div>
-                 <h4 className="text-2xl font-black mb-8 flex items-center gap-3 text-rose-700">
-                    <CalendarIcon size={28}/> {compMonth2} / {compYear2}
-                 </h4>
+              <div className="bg-white dark:bg-slate-900 p-12 rounded-[4rem] shadow-2xl border-4 border-rose-50 dark:border-rose-900/30 relative overflow-hidden group">
+                 <div className="absolute top-0 left-0 w-32 h-32 bg-rose-600/5 rounded-full -ml-16 -mt-16 group-hover:scale-150 transition-transform"></div>
+                 <div className="absolute top-8 right-10 bg-rose-600 text-white px-8 py-2 rounded-full font-black text-[10px] shadow-lg tracking-widest uppercase">تحليل التغير</div>
+                 
+                 <div className="flex items-center gap-5 mb-12">
+                    <div className="p-5 bg-rose-50 dark:bg-rose-900/40 rounded-3xl text-rose-700 shadow-inner">
+                       <CalendarIcon size={32}/>
+                    </div>
+                    <div>
+                       <h4 className="text-3xl font-black text-slate-900 dark:text-white leading-none">فترة {compMonth2} / {compYear2}</h4>
+                       <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-wide">النتائج المالية المقارنة</p>
+                    </div>
+                 </div>
 
-                 <div className="space-y-4">
-                    <div className="flex justify-between items-center p-5 bg-slate-50 dark:bg-slate-800 rounded-3xl">
-                       <span className="font-black text-slate-500">عدد الموظفين: {comparativeData.p2.empCount}</span>
-                       {renderVariance(comparativeData.p1.empCount, comparativeData.p2.empCount)}
+                 <div className="space-y-6">
+                    <div className="flex justify-between items-center p-6 bg-slate-50 dark:bg-slate-800/50 rounded-[2.5rem] border-2 border-slate-100 dark:border-slate-700 group-hover:bg-rose-50/30 transition-colors">
+                       <div className="flex items-center gap-3">
+                          <Users className="text-rose-600" size={24}/>
+                          <span className="font-black text-slate-600 dark:text-slate-400 text-lg uppercase">إجمالي الكادر</span>
+                       </div>
+                       <div className="flex items-center gap-3">
+                          {renderVariance(comparativeData.p1.empCount, comparativeData.p2.empCount)}
+                          <span className="font-black text-3xl text-slate-900 dark:text-white tracking-tighter">{comparativeData.p2.empCount} <span className="text-xs opacity-50">عضو</span></span>
+                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                       <div className="p-4 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-2xl border border-indigo-100 flex flex-col">
-                          <div className="flex justify-between items-start">
-                             <p className="text-[10px] font-black text-indigo-400 mb-1 uppercase">صافي الرواتب</p>
-                             {renderVariance(comparativeData.p1.totalNet, comparativeData.p2.totalNet)}
-                          </div>
-                          <p className="text-lg font-black text-indigo-700">{comparativeData.p2.totalNet.toLocaleString()}</p>
+                    <div className="grid grid-cols-2 gap-6">
+                       <div className="p-8 bg-rose-600 text-white rounded-[3rem] shadow-xl shadow-rose-600/20 flex flex-col items-center text-center relative overflow-hidden">
+                          <Wallet className="absolute -bottom-4 -right-4 opacity-10" size={100}/>
+                          <div className="absolute top-3 right-5">{renderVariance(comparativeData.p1.totalNet, comparativeData.p2.totalNet, true)}</div>
+                          <p className="text-[10px] font-black uppercase opacity-60 mb-2 tracking-widest">ميزانية الرواتب (الصافي)</p>
+                          <p className="text-2xl font-black leading-none">{comparativeData.p2.totalNet.toLocaleString()}</p>
+                          <p className="text-[10px] font-bold mt-2 opacity-50">{db.settings.currency}</p>
+                       </div>
+                       
+                       <div className="p-8 bg-slate-900 text-white rounded-[3rem] shadow-xl flex flex-col items-center text-center relative overflow-hidden">
+                          <Calculator className="absolute -bottom-4 -right-4 opacity-10" size={100}/>
+                          <div className="absolute top-3 right-5">{renderVariance(comparativeData.p1.totalBase, comparativeData.p2.totalBase)}</div>
+                          <p className="text-[10px] font-black uppercase opacity-60 mb-2 tracking-widest">إجمالي الأساسي</p>
+                          <p className="text-2xl font-black leading-none">{comparativeData.p2.totalBase.toLocaleString()}</p>
                        </div>
 
-                       <div className="p-4 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-2xl border border-emerald-100 flex flex-col">
-                          <div className="flex justify-between items-start">
-                             <p className="text-[10px] font-black text-emerald-400 mb-1 uppercase">الإضافي المنصرف</p>
-                             {renderVariance(comparativeData.p1.totalOT, comparativeData.p2.totalOT)}
-                          </div>
+                       <div className="p-6 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-3xl border border-emerald-100 dark:border-emerald-900/40 text-center relative">
+                          <div className="absolute top-1 right-2">{renderVariance(comparativeData.p1.totalOT, comparativeData.p2.totalOT)}</div>
+                          <p className="text-[9px] font-black text-emerald-600 uppercase mb-1">العمل الإضافي</p>
                           <p className="text-lg font-black text-emerald-700">{comparativeData.p2.totalOT.toLocaleString()}</p>
                        </div>
 
-                       <div className="p-4 bg-rose-50/50 dark:bg-rose-900/10 rounded-2xl border border-rose-100 flex flex-col">
-                          <div className="flex justify-between items-start">
-                             <p className="text-[10px] font-black text-rose-400 mb-1 uppercase">إجمالي الخصومات</p>
-                             {renderVariance(comparativeData.p1.totalDeductions, comparativeData.p2.totalDeductions, true)}
-                          </div>
-                          <p className="text-lg font-black text-rose-700">{comparativeData.p2.totalDeductions.toLocaleString()}</p>
-                       </div>
-
-                       <div className="p-4 bg-slate-50/50 dark:bg-slate-800 rounded-2xl border border-slate-100 flex flex-col">
-                          <div className="flex justify-between items-start">
-                             <p className="text-[10px] font-black text-slate-400 mb-1 uppercase">أقساط السلف</p>
-                             {renderVariance(comparativeData.p1.totalLoans, comparativeData.p2.totalLoans, true)}
-                          </div>
-                          <p className="text-lg font-black text-slate-700">{comparativeData.p2.totalLoans.toLocaleString()}</p>
+                       <div className="p-6 bg-rose-50/50 dark:bg-rose-900/10 rounded-3xl border border-rose-100 dark:border-rose-900/40 text-center relative">
+                          <div className="absolute top-1 right-2">{renderVariance((comparativeData.p1.totalDeductions + comparativeData.p1.totalLoans), (comparativeData.p2.totalDeductions + comparativeData.p2.totalLoans), true)}</div>
+                          <p className="text-[9px] font-black text-rose-600 uppercase mb-1">الخصومات والسلف</p>
+                          <p className="text-lg font-black text-rose-700">{(comparativeData.p2.totalDeductions + comparativeData.p2.totalLoans).toLocaleString()}</p>
                        </div>
                     </div>
 
-                    {/* تحليل نهائي */}
-                    <div className="mt-6 p-6 bg-slate-900 text-white rounded-3xl flex items-center justify-between">
-                       <div className="flex items-center gap-4">
-                          <div className="p-3 bg-indigo-600 rounded-2xl">
-                             <Scale size={24}/>
+                    {/* التحليل النهائي للفرق */}
+                    <div className="mt-8 p-8 bg-slate-950 text-white rounded-[3rem] flex items-center justify-between border-2 border-slate-800 shadow-2xl relative group">
+                       <div className="flex items-center gap-5">
+                          <div className={`p-4 rounded-2xl ${comparativeData.p2.totalNet > comparativeData.p1.totalNet ? 'bg-rose-600/20 text-rose-500' : 'bg-emerald-600/20 text-emerald-500'} transition-all group-hover:scale-110 shadow-lg`}>
+                             <Scale size={32}/>
                           </div>
                           <div>
-                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">فارق التكلفة التشغيلية</p>
-                             <p className="text-xl font-black">
+                             <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">فارق الميزانية الكلي</p>
+                             <p className="text-3xl font-black tracking-tighter">
                                 {Math.abs(comparativeData.p2.totalNet - comparativeData.p1.totalNet).toLocaleString()}
-                                <span className="text-xs mr-2 opacity-50">{db.settings.currency}</span>
+                                <span className="text-[10px] mr-2 opacity-40 font-bold">{db.settings.currency}</span>
                              </p>
                           </div>
                        </div>
                        <div className="text-left">
                           {comparativeData.p2.totalNet > comparativeData.p1.totalNet ? (
-                             <span className="text-xs font-black text-rose-400 bg-rose-400/10 px-4 py-2 rounded-full border border-rose-400/20 flex items-center gap-2">
-                                <ArrowUpRight size={16}/> زيادة تكاليف
-                             </span>
+                             <div className="flex flex-col items-end">
+                                <span className="text-[10px] font-black text-rose-500 bg-rose-500/10 px-6 py-2 rounded-full border border-rose-500/30 flex items-center gap-2 uppercase tracking-widest shadow-lg shadow-rose-900/20">
+                                   زيادة تكاليف <ArrowUpRight size={16}/>
+                                </span>
+                                <p className="text-[8px] font-bold text-slate-500 mt-2 italic">* الفترة الحالية أعلى تكلفة</p>
+                             </div>
                           ) : (
-                             <span className="text-xs font-black text-emerald-400 bg-emerald-400/10 px-4 py-2 rounded-full border border-emerald-400/20 flex items-center gap-2">
-                                <ArrowDownRight size={16}/> انخفاض تكاليف
-                             </span>
+                             <div className="flex flex-col items-end">
+                                <span className="text-[10px] font-black text-emerald-500 bg-emerald-500/10 px-6 py-2 rounded-full border border-emerald-500/30 flex items-center gap-2 uppercase tracking-widest shadow-lg shadow-emerald-900/20">
+                                   وفر مالي <ArrowDownRight size={16}/>
+                                </span>
+                                <p className="text-[8px] font-bold text-slate-500 mt-2 italic">* انخفاض في الإنفاق المالي</p>
+                             </div>
                           )}
                        </div>
                     </div>
