@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Search, Shield, History, Users, Database, Lock, Eye, Key, AlertTriangle } from 'lucide-react';
 import { apiClient } from '../utils/api';
@@ -13,7 +12,8 @@ const ManagerDashboard: React.FC = () => {
   // تسجيل الدخول للوحة الإدارة العليا
   const handleMasterLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (masterKey.length > 5) {
+    // التحقق من المفتاح السري الماستر المحدد حصراً
+    if (masterKey === 'SAM-PRO-MASTER-1993') {
       setIsAuthorized(true);
     } else {
       alert('مفتاح المدير العام غير صحيح');

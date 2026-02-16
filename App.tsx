@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import Layout from './components/Layout';
@@ -528,13 +529,13 @@ const App: React.FC = () => {
           <table className="w-full border-collapse text-[7px] text-right font-bold">
              <thead className="bg-indigo-950 text-white font-black">
                 <tr>
-                  <th className="p-1 border">#</th><th className="p-1 border">الاسم</th><th className="p-1 border">المنصب</th><th className="p-1 border">القسم</th><th className="p-1 border">الأساسي</th><th className="p-1 border">المواصلات</th><th className="p-1 border">الدوام</th><th className="p-1 border">الهوية</th><th className="p-1 border">تاريخ التعيين</th>
+                  <th className="p-1 border">#</th><th className="p-1 border">الاسم</th><th className="p-1 border">المنصب</th><th className="p-1 border">القسم</th><th className="p-1 border">العنوان</th><th className="p-1 border">الأساسي</th><th className="p-1 border">المواصلات</th><th className="p-1 border">الدوام</th><th className="p-1 border">الهوية</th><th className="p-1 border">تاريخ التعيين</th>
                 </tr>
              </thead>
              <tbody className="divide-y">
                 {employeesList.map((emp, idx) => (
                   <tr key={emp.id} className="hover:bg-slate-50 border-x">
-                    <td className="p-1 border">{idx + 1}</td><td className="p-1 border font-black whitespace-nowrap">{emp.name}</td><td className="p-1 border">{emp.position}</td><td className="p-1 border">{emp.department}</td><td className="p-1 border">{emp.baseSalary.toLocaleString()}</td><td className="p-1 border">{emp.transportAllowance.toLocaleString()}</td><td className="p-1 border">{emp.cycleType === 'weekly' ? 'أسبوعي' : 'شهري'}</td><td className="p-1 border">{emp.nationalId}</td><td className="p-1 border">{emp.joinDate}</td>
+                    <td className="p-1 border">{idx + 1}</td><td className="p-1 border font-black whitespace-nowrap">{emp.name}</td><td className="p-1 border">{emp.position}</td><td className="p-1 border">{emp.department}</td><td className="p-1 border text-[6px]">{emp.address || '-'}</td><td className="p-1 border">{emp.baseSalary.toLocaleString()}</td><td className="p-1 border">{emp.transportAllowance.toLocaleString()}</td><td className="p-1 border">{emp.cycleType === 'weekly' ? 'أسبوعي' : 'شهري'}</td><td className="p-1 border">{emp.nationalId}</td><td className="p-1 border">{emp.joinDate}</td>
                   </tr>
                 ))}
              </tbody>
@@ -821,81 +822,3 @@ const App: React.FC = () => {
 
                  {showHint && (
                    <div className="p-6 bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-200 dark:border-indigo-800 rounded-[1.5rem] animate-in slide-in-from-top-4">
-                     <p className="text-center text-xs font-black text-indigo-700 dark:text-indigo-400">
-                       <span className="block opacity-60 mb-1">تلميح كلمة المرور:</span>
-                       {db.settings.passwordHint || 'لا يوجد تلميح متاح حالياً. يرجى مراجعة المسؤول.'}
-                     </p>
-                   </div>
-                 )}
-               </div>
-            </form>
-         </div>
-      </div>
-    );
-  }
-
-  const handleExportPayrollExcel = () => {
-    const exportData = currentPayrolls.map(p => {
-      const emp = db.employees.find(e => e.id === p.employeeId);
-      return {
-        'اسم الموظف': emp?.name,
-        'القسم': emp?.department,
-        'نوع الدوام': (emp?.cycleType || db.settings.salaryCycle) === 'weekly' ? 'أسبوعي' : 'شهري',
-        'الأساسي': p.baseSalary,
-        'بدل المواصلات': p.transport,
-        'أيام الحضور': p.workingDays,
-        'أيام الغياب': p.absenceDays,
-        'مكافآت': p.bonuses,
-        'إنتاج': p.production,
-        'عدد قطع الإنتاج': p.productionPieces,
-        'إضافي': p.overtimePay,
-        'تأخير': p.lateDeduction,
-        'انصراف مبكر': p.earlyDepartureDeduction,
-        'خصم أذونات': p.permissionDeduction,
-        'سلف': p.loanInstallment,
-        'خصومات أخرى': p.manualDeductions,
-        'صافي الراتب': p.netSalary
-      };
-    });
-    exportToExcel(exportData, "Payroll_Report");
-  };
-
-  return (
-    <div className={db.settings.theme === 'dark' ? 'dark' : ''}>
-      <Layout activeTab={activeTab} setActiveTab={setActiveTab} lang={db.settings.language} theme={db.settings.theme} toggleTheme={() => setDb(p => ({...p, settings: {...p.settings, theme: p.settings.theme === 'light' ? 'dark' : 'light'}}))} currentUser={currentUser} onLogout={() => setCurrentUser(null)}>
-        {renderActiveTab()}
-        {individualPrintItem && (
-          <div className="fixed inset-0 bg-slate-950/95 z-[500] flex items-start justify-center p-6 no-print overflow-y-auto">
-            <div className="bg-white dark:bg-slate-900 p-10 w-full max-w-5xl shadow-2xl rounded-[3.5rem] border-4 border-white/20 transition-all my-10">
-               <div className="flex justify-between items-center mb-10 border-b-2 pb-6 text-right">
-                  <div className="flex items-center gap-6">
-                    <h3 className="font-black text-indigo-800 dark:text-indigo-400 text-2xl">معاينة المستند الرسمي</h3>
-                    <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl gap-2 no-print">
-                      <button onClick={() => setPrintOrientation('landscape')} className={`px-4 py-2 rounded-xl text-sm font-black ${printOrientation === 'landscape' ? 'bg-white dark:bg-slate-900 shadow-md text-indigo-700 dark:text-indigo-400' : 'text-slate-400'}`}><LayoutPanelLeft size={18}/> عرضي</button>
-                      <button onClick={() => setPrintOrientation('portrait')} className={`px-4 py-2 rounded-xl text-sm font-black ${printOrientation === 'portrait' ? 'bg-white dark:bg-slate-900 shadow-md text-indigo-700 dark:text-indigo-400' : 'text-slate-400'}`}><LayoutPanelTop size={18}/> طولي</button>
-                    </div>
-                  </div>
-                  <button onClick={() => setIndividualPrintItem(null)} className="text-rose-500 p-2 hover:bg-rose-50 rounded-full transition transform hover:rotate-90" disabled={isPrinting}><X size={44}/></button>
-               </div>
-               <div className="bg-white dark:bg-slate-900 rounded-[2rem] text-right overflow-hidden border border-slate-100 dark:border-slate-800 p-2">
-                  {individualPrintItem.type === 'vouchers' 
-                    ? <VouchersPrintGrid payrolls={individualPrintItem.data} />
-                    : <DocumentPrintCard title={individualPrintItem.title} type={individualPrintItem.type} data={individualPrintItem.data} />}
-               </div>
-               <div className="flex gap-6 mt-12 no-print">
-                  <button onClick={executePrintAction} disabled={isPrinting} className="flex-[2] bg-indigo-600 text-white py-6 rounded-[2.5rem] font-black text-2xl shadow-xl flex items-center justify-center gap-4 hover:bg-indigo-700 transition-all">
-                    {isPrinting ? <Loader2 className="animate-spin" size={32}/> : <Printer size={32}/>}
-                    {isPrinting ? 'جاري التحضير...' : 'تـنـفـيذ الـطـباعـة'}
-                  </button>
-                  <button onClick={() => setIndividualPrintItem(null)} className="flex-1 bg-slate-100 dark:bg-slate-800 py-6 rounded-[2.5rem] font-black text-xl text-slate-500 hover:bg-slate-200 transition">إغلاق</button>
-               </div>
-            </div>
-          </div>
-        )}
-        <PrintPortalContent />
-      </Layout>
-    </div>
-  );
-};
-
-export default App;
