@@ -10,7 +10,8 @@ import {
   Warning,
   PayrollRecord,
   ProductionEntry,
-  PrintHistoryRecord
+  PrintHistoryRecord,
+  PermissionRecord
 } from '../types';
 
 const STORAGE_KEY = 'SAM_HR_DB_V6_ARCHIVE';
@@ -20,6 +21,7 @@ export interface DB {
   users: User[];
   employees: Employee[];
   attendance: AttendanceRecord[];
+  permissions: PermissionRecord[];
   loans: Loan[];
   leaves: LeaveRequest[];
   financials: FinancialEntry[];
@@ -46,8 +48,8 @@ const DEFAULT_SETTINGS: CompanySettings = {
   deductionPerLateMinute: 1.0,
   overtimeHourRate: 1.5,
   salaryCycle: 'monthly',
-  monthlyCycleDays: 30, // افتراضي 30 يوم للشهر
-  weeklyCycleDays: 7,   // افتراضي 7 أيام للأسبوع
+  monthlyCycleDays: 30,
+  weeklyCycleDays: 7,
   passwordHint: 'رقم هاتفك أو اسمك المفضل',
   archiveRetentionDays: 90,
   archiveLogs: [],
@@ -71,6 +73,7 @@ export const loadDB = (): DB => {
       users: [INITIAL_USER],
       employees: [],
       attendance: [],
+      permissions: [],
       loans: [],
       leaves: [],
       financials: [],
@@ -93,6 +96,7 @@ export const loadDB = (): DB => {
       users: parsed.users || [INITIAL_USER],
       employees: parsed.employees || [],
       attendance: parsed.attendance || [],
+      permissions: parsed.permissions || [],
       loans: parsed.loans || [],
       leaves: parsed.leaves || [],
       financials: parsed.financials || [],
@@ -110,6 +114,7 @@ export const loadDB = (): DB => {
       users: [INITIAL_USER],
       employees: [],
       attendance: [],
+      permissions: [],
       loans: [],
       leaves: [],
       financials: [],

@@ -3,7 +3,7 @@ import React from 'react';
 import { 
   Users, Clock, CreditCard, Calendar, 
   BarChart3, Settings as SettingsIcon, LayoutDashboard,
-  Wallet, Zap, LogOut, Sun, Moon, FileText, Building, Printer, ClipboardList
+  Wallet, Zap, LogOut, Sun, Moon, FileText, Building, Printer, ClipboardList, ShieldAlert, Timer
 } from 'lucide-react';
 import { useTranslation } from '../utils/translations';
 import { Language, User, Theme } from '../types';
@@ -28,6 +28,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang
     { id: 'employees', label: t('employees'), icon: Users, roles: ['admin', 'manager', 'viewer'] },
     { id: 'departments', label: isRtl ? 'الأقسام' : 'Departments', icon: Building, roles: ['admin', 'manager'] },
     { id: 'attendance', label: t('attendance'), icon: Clock, roles: ['admin', 'manager', 'viewer'] },
+    { id: 'permissions', label: isRtl ? 'الأذونات' : 'Permissions', icon: Timer, roles: ['admin', 'manager'] },
     { id: 'leaves', label: t('leaves'), icon: Calendar, roles: ['admin', 'manager'] },
     { id: 'financials', label: t('financials'), icon: Wallet, roles: ['admin', 'manager'] },
     { id: 'loans', label: t('loans'), icon: CreditCard, roles: ['admin', 'manager'] },
@@ -35,6 +36,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang
     { id: 'payroll', label: t('payroll'), icon: BarChart3, roles: ['admin', 'manager'] },
     { id: 'documents', label: isRtl ? 'النماذج المطبوعة' : 'Print Forms', icon: ClipboardList, roles: ['admin', 'manager'] },
     { id: 'reports', label: isRtl ? 'التقارير النوعية' : 'Reports', icon: FileText, roles: ['admin', 'manager'] },
+    { id: 'manager', label: isRtl ? 'الإدارة السحابية' : 'Cloud Admin', icon: ShieldAlert, roles: ['admin'] },
     { id: 'settings', label: t('settings'), icon: SettingsIcon, roles: ['admin'] },
   ];
 

@@ -1,5 +1,5 @@
 
-import { AttendanceRecord, CompanySettings, Employee, Loan, FinancialEntry, PayrollRecord, ProductionEntry, LeaveRequest } from '../types';
+import { AttendanceRecord, CompanySettings, Employee, Loan, FinancialEntry, PayrollRecord, ProductionEntry, LeaveRequest, PermissionRecord } from '../types';
 
 export const calculateTimeDiffMinutes = (time1: string, time2: string): number => {
   if (!time1 || !time2) return 0;
@@ -8,9 +8,6 @@ export const calculateTimeDiffMinutes = (time1: string, time2: string): number =
   return (h1 * 60 + m1) - (h2 * 60 + m2);
 };
 
-/**
- * دالة لحساب عدد الأيام المشتركة بين فترتين زمنيتين
- */
 const getOverlapDays = (start1: Date, end1: Date, start2: Date, end2: Date): number => {
   const start = start1 > start2 ? start1 : start2;
   const end = end1 < end2 ? end1 : end2;
@@ -27,7 +24,8 @@ export const generatePayrollForRange = (
   financials: FinancialEntry[],
   production: ProductionEntry[],
   settings: CompanySettings,
-  leaves: LeaveRequest[] = [] // إضافة الإجازات كباراميتر اختياري
+  leaves: LeaveRequest[] = [],
+  permissions: PermissionRecord[] = [] // إضافة الأذونات
 ): PayrollRecord[] => {
   const isWeekly = settings.salaryCycle === 'weekly';
   const startPeriod = new Date(startDate);
@@ -43,12 +41,11 @@ export const generatePayrollForRange = (
     const dailyRate = emp.baseSalary / cycleDays;
     const hourlyRate = dailyRate / workingHoursPerDay;
 
-    // جلب البيانات الخاصة بالموظف
     const empAttendance = attendance.filter(a => a.employeeId === emp.id && a.date >= startDate && a.date <= endDate && !a.isArchived);
     const empFinancials = financials.filter(f => f.employeeId === emp.id && f.date >= startDate && f.date <= endDate && !f.isArchived);
     const empProduction = production.filter(p => p.employeeId === emp.id && p.date >= startDate && p.date <= endDate && !p.isArchived);
+    const empPermissions = (permissions || []).filter(p => p.employeeId === emp.id && p.date >= startDate && p.date <= endDate && !p.isArchived);
     
-    // حساب أيام الإجازات المأجورة المعتمدة التي تقع ضمن هذه الفترة
     const paidLeaveDays = leaves
       .filter(l => l.employeeId === emp.id && l.status === 'approved' && l.isPaid && !l.isArchived)
       .reduce((acc, leave) => {
@@ -58,8 +55,6 @@ export const generatePayrollForRange = (
       }, 0);
 
     const workingDays = empAttendance.filter(a => a.status === 'present').length;
-    
-    // أيام الغياب = إجمالي أيام الفترة - (أيام الحضور + أيام الإجازة المأجورة)
     const absenceDays = Math.max(0, diffDays - (workingDays + paidLeaveDays)); 
     const absenceDeduction = Math.round(absenceDays * dailyRate);
 
@@ -73,24 +68,21 @@ export const generatePayrollForRange = (
     const totalProductionValue = empProduction.reduce((acc, p) => acc + p.totalValue, 0);
     const manualDeductions = empFinancials.filter(f => f.type === 'deduction' || f.type === 'payment').reduce((acc, f) => acc + f.amount, 0);
 
-    // التحقق من السلف
+    // حساب الأذونات
+    const totalPermissionHours = empPermissions.reduce((acc, p) => acc + Number(p.hours), 0);
+    const permissionDeductionValue = Math.round(totalPermissionHours * hourlyRate * (emp.customDeductionRate || 1));
+
     const minDaysToDeduct = isWeekly ? 5 : 20; 
     let totalLoanInstallments = 0;
     
     const activeLoans = loans.filter(l => {
       if (l.employeeId !== emp.id || l.remainingAmount <= 0 || l.isArchived) return false;
-      
       const targetDate = l.collectionDate || l.date;
-      
-      // إصلاح السلف الفورية: تظهر فقط إذا كان تاريخ تحصيلها يقع داخل الفترة المختارة حالياً
       if (l.isImmediate) {
          return (targetDate >= startDate && targetDate <= endDate);
       }
-      
-      // السلف المجدولة: تظهر إذا كان تاريخ التحصيل قد حان أو مر، وبشرط أن تكون الفترة كافية (أكثر من 20 يوم للمنصب الشهري)
       if (diffDays < minDaysToDeduct) return false;
       if (targetDate > endDate) return false;
-      
       return true;
     });
 
@@ -124,7 +116,7 @@ export const generatePayrollForRange = (
     const overtimePay = (totalOTMins / 60) * hourlyRate * otRate;
 
     const totalEarnings = emp.baseSalary + Math.round(transportEarned) + bonuses + productionIncentives + totalProductionValue + overtimePay;
-    const totalDeductions = absenceDeduction + manualDeductions + Math.round(lateDeductionValue) + Math.round(earlyDeductionValue) + totalLoanInstallments;
+    const totalDeductions = absenceDeduction + manualDeductions + Math.round(lateDeductionValue) + Math.round(earlyDeductionValue) + totalLoanInstallments + permissionDeductionValue;
     
     const netSalary = totalEarnings - totalDeductions;
 
@@ -145,6 +137,8 @@ export const generatePayrollForRange = (
       earlyDepartureDeduction: Math.round(earlyDeductionValue),
       absenceDays,
       absenceDeduction,
+      permissionHours: totalPermissionHours,
+      permissionDeduction: permissionDeductionValue,
       manualDeductions: Math.round(manualDeductions),
       deductions: Math.round(totalDeductions),
       lateMinutes: totalLateMinutes,
@@ -165,10 +159,11 @@ export const generateMonthlyPayroll = (
   financials: FinancialEntry[],
   production: ProductionEntry[],
   settings: CompanySettings,
-  leaves: LeaveRequest[] = []
+  leaves: LeaveRequest[] = [],
+  permissions: PermissionRecord[] = []
 ): PayrollRecord[] => {
   const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
   const lastDay = new Date(year, month, 0).getDate();
   const endDate = `${year}-${String(month).padStart(2, '0')}-${lastDay}`;
-  return generatePayrollForRange(startDate, endDate, employees, attendance, loans, financials, production, settings, leaves);
+  return generatePayrollForRange(startDate, endDate, employees, attendance, loans, financials, production, settings, leaves, permissions);
 };

@@ -51,7 +51,7 @@ export interface Employee {
   department: string;
   baseSalary: number;
   transportAllowance: number;
-  isTransportExempt?: boolean; // استثناء من خصم المواصلات عند الغياب
+  isTransportExempt?: boolean;
   joinDate: string;
   phone: string;
   nationalId: string;
@@ -77,6 +77,17 @@ export interface AttendanceRecord {
   isArchived?: boolean;
 }
 
+export interface PermissionRecord {
+  id: string;
+  employeeId: string;
+  date: string;
+  exitTime?: string;
+  returnTime?: string;
+  hours: number;
+  reason?: string;
+  isArchived?: boolean;
+}
+
 export interface Loan {
   id: string;
   employeeId: string;
@@ -87,7 +98,7 @@ export interface Loan {
   collectionDate?: string; 
   remainingAmount: number;
   reason?: string;
-  isImmediate?: boolean; // هل هي سلفة فورية تقتطع لمرة واحدة؟
+  isImmediate?: boolean;
   isArchived?: boolean;
 }
 
@@ -150,6 +161,8 @@ export interface PayrollRecord {
   earlyDepartureDeduction: number;
   absenceDays: number;
   absenceDeduction: number;
+  permissionHours: number;
+  permissionDeduction: number;
   manualDeductions: number; 
   deductions: number; 
   lateMinutes: number;

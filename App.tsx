@@ -10,12 +10,13 @@ import SettingsView from './views/Settings';
 import ReportsView from './views/Reports';
 import Production from './views/Production';
 import PrintForms from './views/PrintForms';
+import ManagerDashboard from './views/ManagerDashboard';
 import { GenericModule } from './views/GenericModule';
 import { loadDB, saveDB, DB } from './db/store';
-import { Employee, PayrollRecord, FinancialEntry, Loan, LeaveRequest, ProductionEntry, AttendanceRecord, Warning, PrintHistoryRecord } from './types';
-import { generatePayrollForRange } from './utils/calculations';
+import { Employee, PayrollRecord, FinancialEntry, Loan, LeaveRequest, ProductionEntry, AttendanceRecord, Warning, PrintHistoryRecord, PermissionRecord } from './types';
+import { generatePayrollForRange, calculateTimeDiffMinutes } from './utils/calculations';
 import { exportToExcel } from './utils/export';
-import { Printer, X, ReceiptText, CalendarDays, Loader2, FileText, CheckCircle, Info, ShieldAlert, Package, Layers, Clock, TrendingUp, Lock, HelpCircle, ToggleLeft, ToggleRight, AlertCircle, Calendar, FileDown, LayoutPanelLeft, LayoutPanelTop, Zap } from 'lucide-react';
+import { Printer, X, ReceiptText, CalendarDays, Loader2, FileText, CheckCircle, Info, ShieldAlert, Package, Layers, Clock, TrendingUp, Lock, HelpCircle, ToggleLeft, ToggleRight, AlertCircle, Calendar, FileDown, LayoutPanelLeft, LayoutPanelTop, Zap, Timer } from 'lucide-react';
 
 type PrintType = 'production' | 'loan' | 'leave' | 'financial' | 'document' | 'vouchers' | 'report_attendance' | 'report_financial' | 'warning' | 'employee_list' | 'department_list';
 
@@ -33,7 +34,7 @@ const App: React.FC = () => {
   const [payrollDateTo, setPayrollDateTo] = useState(new Date().toISOString().split('T')[0]);
 
   const [archiveModes, setArchiveModes] = useState<Record<string, boolean>>({
-    leaves: false, financials: false, loans: false, production: false
+    leaves: false, financials: false, loans: false, production: false, permissions: false
   });
 
   useEffect(() => {
@@ -59,27 +60,6 @@ const App: React.FC = () => {
     }
   };
 
-  const handleClearData = () => {
-    if (confirm('هل أنت متأكد تماماً؟ سيتم حذف كافة البيانات نهائياً!')) {
-      const resetDB: DB = {
-        ...db,
-        employees: [],
-        attendance: [],
-        loans: [],
-        leaves: [],
-        financials: [],
-        production: [],
-        warnings: [],
-        payrolls: [],
-        payrollHistory: [],
-        departments: ['الإدارة العامة', 'المحاسبة', 'الموارد البشرية', 'الإنتاج', 'المبيعات'],
-        printHistory: []
-      };
-      setDb(resetDB);
-      saveDB(resetDB);
-    }
-  };
-
   const currentPayrolls = useMemo(() => generatePayrollForRange(
     payrollDateFrom, 
     payrollDateTo, 
@@ -89,7 +69,8 @@ const App: React.FC = () => {
     db.financials || [], 
     db.production || [], 
     db.settings,
-    db.leaves || [] // تمرير قائمة الإجازات هنا
+    db.leaves || [],
+    db.permissions || []
   ), [payrollDateFrom, payrollDateTo, db]);
 
   const payrollTotals = useMemo(() => {
@@ -101,10 +82,11 @@ const App: React.FC = () => {
       overtime: acc.overtime + p.overtimePay,
       late: acc.late + p.lateDeduction,
       early: acc.early + p.earlyDepartureDeduction,
+      permissions: acc.permissions + (p.permissionDeduction || 0),
       loans: acc.loans + p.loanInstallment,
       manual: acc.manual + p.manualDeductions,
       net: acc.net + p.netSalary
-    }), { base: 0, transport: 0, bonuses: 0, production: 0, overtime: 0, late: 0, early: 0, loans: 0, manual: 0, net: 0 });
+    }), { base: 0, transport: 0, bonuses: 0, production: 0, overtime: 0, late: 0, early: 0, permissions: 0, loans: 0, manual: 0, net: 0 });
   }, [currentPayrolls]);
 
   const updateList = <K extends keyof DB>(key: K, item: any) => {
@@ -159,316 +141,14 @@ const App: React.FC = () => {
     </div>
   );
 
-  const EmployeeListPrintTable = ({ employees }: { employees: Employee[] }) => (
-    <div className="w-full text-right p-4 bg-white">
-      <PrintableHeader title="قائمة بيانات الموظفين" subtitle={`إجمالي العدد: ${employees.length} موظف`} />
-      <table className="w-full border-collapse border border-slate-300">
-        <thead className="bg-slate-100 font-black">
-          <tr>
-            <th className="p-2 border border-slate-300">الاسم</th>
-            <th className="p-2 border border-slate-300">القسم</th>
-            <th className="p-2 border border-slate-300">المنصب</th>
-            <th className="p-2 border border-slate-300">الراتب</th>
-            <th className="p-2 border border-slate-300">الهاتف</th>
-            <th className="p-2 border border-slate-300">الهوية الوطنية</th>
-            <th className="p-2 border border-slate-300 text-center">تاريخ التعيين</th>
-          </tr>
-        </thead>
-        <tbody>
-          {employees.map(emp => (
-            <tr key={emp.id} className="text-sm border-b border-slate-200">
-              <td className="p-2 border border-slate-300 font-bold">{emp.name}</td>
-              <td className="p-2 border border-slate-300">{emp.department}</td>
-              <td className="p-2 border border-slate-300">{emp.position}</td>
-              <td className="p-2 border border-slate-300 text-center">{emp.baseSalary.toLocaleString()}</td>
-              <td className="p-2 border border-slate-300 text-center">{emp.phone}</td>
-              <td className="p-2 border border-slate-300 text-center">{emp.nationalId}</td>
-              <td className="p-2 border border-slate-300 text-center">{emp.joinDate}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-
-  const DocumentPrintCard = ({ title, type, data }: { title: string, type: PrintType, data: any }) => {
-    if (type === 'employee_list' || type === 'department_list') {
-      return <EmployeeListPrintTable employees={data} />;
-    }
-
-    const emp = db.employees.find(e => e.id === data.employeeId) || { name: data.employeeName || '.......', department: 'غير محدد', position: 'غير محدد' };
-    const cycleText = db.settings.salaryCycle === 'weekly' ? 'أسبوعياً' : 'شهرياً';
-    const cycleLabel = db.settings.salaryCycle === 'weekly' ? 'أسبوعي' : 'شهري';
-    
-    let description = data.notes || "بيان رسمي معتمد بناء على السجلات الجارية الموثقة في النظام.";
-    
-    if (type === 'warning') {
-      description = `إقرار إداري: تم رصد مخالفة إدارية للموظف المذكور تتعلق بـ (${data.reason || 'سياسة العمل'})، وبناءً عليه تم إصدار هذا التنبيه الرسمي (${data.type === 'verbal' ? 'شفهي' : data.type === 'written' ? 'خطي' : 'نهائي'}) لضمان الالتزام بالمعايير المهنية.`;
-    } else if (type === 'financial' && data.type === 'bonus') {
-      description = `إشعار استحقاق: تقديراً للأداء والتميز، تم منح الموظف مكافأة مالية بقيمة (${data.amount.toLocaleString()}) كحافز تشجيعي، تضاف إلى الرصيد المالي في الدورة الحالية.`;
-    } else if (type === 'leave') {
-      description = `تصريح إجازة: تمت الموافقة على طلب الإجازة المقدم من الموظف لتبدأ من تاريخ (${data.startDate}) وتستمر حتى (${data.endDate})، مع التأكيد على الالتزام بموعد العودة المحدد.`;
-    } else if (type === 'production') {
-      description = `بيان إنتاجية: توثيق دقيق للكميات المنجزة من قبل الموظف في تاريخ (${data.date})، حيث بلغت الكمية (${data.piecesCount}) قطعة، مما يعكس مستوى الكفاءة والإنتاجية المحقق.`;
-    } else if (type === 'loan') {
-      if (data.isImmediate) {
-         description = `سند سلفة فورية: تم تسليم الموظف مبلغ سلفة نقدية طارئة بقيمة إجمالية قدرها (${data.amount?.toLocaleString()})، وقد تقرر تحصيل كامل هذا المبلغ من أقرب استحقاق راتب للموظف لمرة واحدة، ولا يعتبر ديناً مجدولاً.`;
-      } else {
-         description = `سند سلفة: تم تسليم الموظف مبلغ سلفة نقدية بقيمة إجمالية قدرها (${data.amount?.toLocaleString()})، يتم سدادها على (${data.installmentsCount}) قسطاً ${cycleText}، وبقيمة قسط تبلغ (${data.monthlyInstallment?.toLocaleString()}). تبدأ عملية التحصيل اعتباراً من تاريخ (${data.collectionDate}).`;
-      }
-    }
-
-    return (
-      <div className="bg-white print-card w-full max-w-4xl mx-auto shadow-none relative overflow-hidden">
-        <div className="absolute inset-0 opacity-[0.03] flex items-center justify-center pointer-events-none rotate-12">
-            <h1 className="text-[8rem] font-black whitespace-nowrap">{db.settings.name}</h1>
-        </div>
-        <div className="print:hidden">
-            <PrintableHeader title={title} />
-        </div>
-        <div className="hidden print:block">
-            <div className="flex justify-between items-center border-b-2 border-indigo-100 pb-4 mb-6">
-                <div className="text-right">
-                    <h2 className="text-2xl font-black">{db.settings.name}</h2>
-                    <p className="text-sm font-bold text-indigo-600">{title}</p>
-                </div>
-                {db.settings.logo && <img src={db.settings.logo} className="h-12 w-auto" />}
-            </div>
-        </div>
-        <div className="space-y-8 relative z-10">
-           <div className="flex justify-between items-center bg-slate-50 p-8 rounded-[2rem] border border-slate-100 text-right">
-             <div className="text-right flex-1">
-                <span className="text-[10px] font-black text-indigo-400 block uppercase mb-1">اسم الموظف:</span>
-                <span className="text-2xl font-black text-slate-900 leading-tight">{emp.name}</span>
-                <p className="text-xs font-bold text-slate-500">{emp.position}</p>
-             </div>
-             <div className="text-left flex-1">
-                <span className="text-[10px] font-black text-slate-400 block uppercase mb-1">القسم / الوحدة:</span>
-                <span className="text-lg font-bold text-indigo-700">{emp.department}</span>
-             </div>
-           </div>
-
-           <div className="p-8 border-4 border-dashed border-slate-200 rounded-[2rem] text-right">
-              {type === 'production' ? (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                      <span className="text-[10px] font-black text-slate-400 block mb-1">الكمية المنجزة:</span>
-                      <span className="text-xl font-black text-slate-900">{data.piecesCount} قطعة</span>
-                    </div>
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                      <span className="text-[10px] font-black text-slate-400 block mb-1">سعر القطعة الواحدة:</span>
-                      <span className="text-xl font-black text-slate-900">{data.valuePerPiece?.toLocaleString()} {db.settings.currency}</span>
-                    </div>
-                  </div>
-                  <div className="p-6 bg-indigo-50 rounded-3xl border-2 border-indigo-100 flex justify-between items-center">
-                    <span className="text-lg font-black text-indigo-900">إجمالي قيمة الاستحقاق:</span>
-                    <span className="text-3xl font-black text-indigo-700">{data.totalValue?.toLocaleString()} {db.settings.currency}</span>
-                  </div>
-                </div>
-              ) : type === 'loan' ? (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-center">
-                      <span className="text-[10px] font-black text-slate-400 block mb-1">إجمالي المبلغ:</span>
-                      <span className="text-xl font-black text-slate-900">{data.amount?.toLocaleString()}</span>
-                    </div>
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-center">
-                      <span className="text-[10px] font-black text-slate-400 block mb-1">عدد الأقساط:</span>
-                      <span className="text-xl font-black text-slate-900">{data.installmentsCount}</span>
-                    </div>
-                    <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100 text-center">
-                      <span className="text-[10px] font-black text-indigo-400 block mb-1">القسط {cycleLabel}:</span>
-                      <span className="text-xl font-black text-indigo-700">{data.monthlyInstallment?.toLocaleString()}</span>
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center px-4">
-                    <p className="text-xs font-black text-slate-500">تاريخ بداية التحصيل: <span className="text-slate-900">{data.collectionDate}</span></p>
-                    <p className="text-xs font-black text-rose-600">الرصيد المتبقي حالياً: <span className="font-black underline">{data.remainingAmount?.toLocaleString()} {db.settings.currency}</span></p>
-                  </div>
-                  {data.isImmediate && (
-                    <div className="flex justify-center">
-                       <span className="bg-rose-600 text-white px-6 py-2 rounded-full font-black text-xs uppercase tracking-widest shadow-lg">سلفة فورية - مستردة بالكامل</span>
-                    </div>
-                  )}
-                </div>
-              ) : null}
-
-              <div className="mt-6 pt-4 border-t border-slate-100">
-                <p className="text-lg font-bold leading-relaxed text-slate-800">{description}</p>
-              </div>
-           </div>
-           
-           <div className="grid grid-cols-2 gap-10 mt-10">
-              <div className="text-center">
-                <p className="text-[10px] font-black text-slate-400 mb-8 uppercase">خـتـم المؤسسة</p>
-                <div className="w-24 h-24 border-2 border-slate-100 rounded-full mx-auto opacity-20 flex items-center justify-center font-black">STAMP</div>
-              </div>
-              <div className="text-center">
-                <p className="text-[10px] font-black text-slate-400 mb-8 uppercase">توقيع المسؤول</p>
-                <div className="h-px bg-slate-200 w-32 mx-auto"></div>
-              </div>
-           </div>
-        </div>
-      </div>
-    );
-  };
-
   const formatMinutes = (totalMinutes: number) => {
     const hours = Math.floor(totalMinutes / 60);
     const mins = Math.round(totalMinutes % 60);
     return `${hours}س ${mins}د`;
   };
 
-  const VouchersPrintGrid = ({ payrolls }: { payrolls: PayrollRecord[] }) => (
-    <div className={`vouchers-grid-print grid ${printOrientation === 'landscape' ? 'grid-cols-2' : 'grid-cols-1'} gap-4 p-4`} dir="rtl">
-      {payrolls.map(p => {
-        const emp = db.employees.find(e => e.id === p.employeeId);
-        const grossEarnings = p.baseSalary + p.transport + p.bonuses + p.production + p.overtimePay;
-        
-        return (
-          <div key={p.id} className="print-card border-2 border-slate-200 p-6 bg-white relative mb-4 rounded-3xl">
-            <div className="flex justify-between items-start border-b-2 border-slate-100 pb-4 mb-4">
-               <div className="text-right">
-                  <p className="text-[10px] font-black text-indigo-600 uppercase">قسيمة راتب معتمدة</p>
-                  <h3 className="text-lg font-black text-slate-900">{emp?.name}</h3>
-                  <p className="text-[9px] font-bold text-slate-500 mt-1">{emp?.position} - {emp?.department}</p>
-               </div>
-               <div className="text-left text-[9px] font-bold text-slate-400">
-                  <p>الفترة: {p.month} / {p.year}</p>
-                  <p>تاريخ الطباعة: {new Date().toLocaleDateString()}</p>
-               </div>
-            </div>
-            
-            <div className="space-y-1.5 text-[11px] font-bold">
-               <div className="bg-slate-50 p-2 rounded-xl mb-3 space-y-1 border border-slate-100">
-                  <div className="flex justify-between items-center text-slate-700">
-                    <span className="font-black">الراتب التعاقدي:</span>
-                    <span className="font-black text-indigo-700">{p.baseSalary.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-slate-700">
-                    <span className="font-black">ساعات العمل الفعلية:</span>
-                    <span className="font-black text-indigo-700">{p.workingHours.toFixed(1)} ساعة</span>
-                  </div>
-               </div>
-
-               <div className="text-[#00a693] font-black border-b pb-1 mb-1">الإضافات (+)</div>
-               <div className="flex justify-between items-center text-[#00a693]">
-                 <span className="font-black">بدل مواصلات:</span>
-                 <span className="font-black">{p.transport.toLocaleString()}+</span>
-               </div>
-               <div className="flex justify-between items-center text-[#00a693]">
-                 <span className="font-black">العمل الإضافي ({formatMinutes(p.overtimeMinutes)}):</span>
-                 <span className="font-black">{p.overtimePay.toLocaleString()}+</span>
-               </div>
-               <div className="flex justify-between items-center text-[#00a693]">
-                 <span className="font-black">المكافآت:</span>
-                 <span className="font-black">{p.bonuses.toLocaleString()}+</span>
-               </div>
-               <div className="flex justify-between items-center text-[#00a693]">
-                 <span className="font-black">الإنتاج:</span>
-                 <span className="font-black">{p.production.toLocaleString()}+</span>
-               </div>
-               <div className="flex justify-between items-center text-[#00a693] border-t border-dotted mt-1 pt-1 opacity-80">
-                 <span className="font-black italic">الراتب المستحق (الإجمالي):</span>
-                 <span className="font-black">{grossEarnings.toLocaleString()}</span>
-               </div>
-               
-               <div className="text-[#d91e5b] font-black border-t pt-2 mt-2">الاستقطاعات (-)</div>
-               <div className="flex justify-between items-center text-[#d91e5b]">
-                 <span className="font-black">تأخير ({formatMinutes(p.lateMinutes)}):</span>
-                 <span className="font-black">{p.lateDeduction.toLocaleString()}-</span>
-               </div>
-               <div className="flex justify-between items-center text-[#d91e5b]">
-                 <span className="font-black">انصراف مبكر ({formatMinutes(p.earlyDepartureMinutes)}):</span>
-                 <span className="font-black">{p.earlyDepartureDeduction.toLocaleString()}-</span>
-               </div>
-               <div className="flex justify-between items-center text-[#d91e5b]">
-                 <span className="font-black">أيام غياب ({p.absenceDays} ي):</span>
-                 <span className="font-black">{p.absenceDeduction.toLocaleString()}-</span>
-               </div>
-               <div className="flex justify-between items-center text-[#d91e5b]">
-                 <span className="font-black">أقساط سلف:</span>
-                 <span className="font-black">{p.loanInstallment.toLocaleString()}-</span>
-               </div>
-               <div className="flex justify-between items-center text-[#d91e5b]">
-                 <span className="font-black">خصومات أخرى:</span>
-                 <span className="font-black">{p.manualDeductions.toLocaleString()}-</span>
-               </div>
-               
-               <div className="flex justify-between text-lg font-black text-indigo-900 pt-3 mt-3 border-t-2 border-indigo-900">
-                 <span>صافي الراتب:</span>
-                 <div className="text-left">
-                    <span>{p.netSalary.toLocaleString()}</span>
-                    <span className="text-[10px] mr-1 opacity-60">{db.settings.currency}</span>
-                 </div>
-               </div>
-            </div>
-            
-            <div className="mt-4 flex justify-between items-center text-[8px] font-black opacity-40">
-               <p>توقيع المحاسب</p>
-               <p>توقيع الموظف</p>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-
-  const executePrintAction = () => {
-    setIsPrinting(true);
-    
-    if (individualPrintItem) {
-      const empId = individualPrintItem.data?.employeeId || '';
-      const emp = db.employees.find(e => e.id === empId);
-      
-      const newHistoryRecord: PrintHistoryRecord = {
-        id: Math.random().toString(36).substr(2, 9),
-        title: individualPrintItem.title,
-        type: individualPrintItem.type,
-        employeeId: empId,
-        employeeName: emp?.name || 'غير محدد',
-        date: new Date().toISOString(),
-        notes: individualPrintItem.data?.notes || ''
-      };
-
-      setDb(prev => ({
-        ...prev,
-        printHistory: [newHistoryRecord, ...(prev.printHistory || [])]
-      }));
-    }
-
-    setTimeout(() => {
-      window.print();
-      setIsPrinting(false);
-    }, 600);
-  };
-
-  const handleExportPayrollExcel = () => {
-    const exportData = currentPayrolls.map(p => {
-      const emp = db.employees.find(e => e.id === p.employeeId);
-      return {
-        'اسم الموظف': emp?.name,
-        'القسم': emp?.department,
-        'الأساسي': p.baseSalary,
-        'بدل المواصلات': p.transport,
-        'أيام الحضور': p.workingDays,
-        'أيام الغياب': p.absenceDays,
-        'مكافآت': p.bonuses,
-        'إنتاج': p.production,
-        'إضافي': p.overtimePay,
-        'تأخير': p.lateDeduction,
-        'انصراف مبكر': p.earlyDepartureDeduction,
-        'سلف': p.loanInstallment,
-        'خصومات أخرى': p.manualDeductions,
-        'صافي الراتب': p.netSalary
-      };
-    });
-    exportToExcel(exportData, "Payroll_Report");
-  };
-
   const renderActiveTab = () => {
-    const cycleLabel = db.settings.salaryCycle === 'weekly' ? 'أسبوعي' : 'شهري';
+    const isRtl = db.settings.language === 'ar';
     switch (activeTab) {
       case 'dashboard': return <Dashboard 
         employeesCount={db.employees.length} 
@@ -479,6 +159,62 @@ const App: React.FC = () => {
       case 'employees': return <Employees employees={db.employees} departments={db.departments} settings={db.settings} onAdd={e => updateList('employees', e)} onDelete={id => deleteFromList('employees', id)} onPrintList={(list) => setIndividualPrintItem({ title: 'قائمة الموظفين الكاملة', type: 'employee_list', data: list })} />;
       case 'departments': return <Departments departments={db.departments || []} employees={db.employees || []} onUpdate={depts => setDb(prev => ({...prev, departments: [...depts]}))} onUpdateEmployee={emp => updateList('employees', emp)} onPrintDept={(name, emps) => setIndividualPrintItem({ title: `قائمة موظفي قسم ${name}`, type: 'department_list', data: emps })} />;
       case 'attendance': return <Attendance employees={db.employees} records={db.attendance} settings={db.settings} onSaveRecord={r => updateList('attendance', r)} onDeleteRecord={id => deleteFromList('attendance', id)} lang={db.settings.language} onPrint={() => window.print()} />;
+      
+      case 'permissions': return (
+        <GenericModule<PermissionRecord>
+          title={isRtl ? "سجل الأذونات الساعية" : "Time Permissions Log"}
+          lang={db.settings.language} employees={db.employees} items={db.permissions}
+          companyName={db.settings.name} logo={db.settings.logo}
+          archiveMode={archiveModes.permissions} onToggleArchive={() => setArchiveModes(p => ({...p, permissions: !p.permissions}))}
+          onSave={i => updateList('permissions', i)} onDelete={id => deleteFromList('permissions', id)} onArchive={i => archiveItem('permissions', i)}
+          initialData={{ date: new Date().toISOString().split('T')[0], hours: 0, exitTime: '10:00', returnTime: '11:00', reason: '' }}
+          tableHeaders={isRtl ? ['الموظف', 'التاريخ', 'من (خروج)', 'إلى (عودة)', 'المدة', 'السبب'] : ['Employee', 'Date', 'Exit', 'Return', 'Duration', 'Reason']}
+          renderForm={(data, set) => {
+             const updateHours = (exit: string, back: string) => {
+                const mins = calculateTimeDiffMinutes(back, exit);
+                const hrs = mins > 0 ? Number((mins / 60).toFixed(2)) : 0;
+                set({...data, exitTime: exit, returnTime: back, hours: hrs});
+             };
+             return (
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-xs font-black mb-1">{isRtl ? 'تاريخ الإذن' : 'Permission Date'}</label>
+                  <input type="date" className="w-full p-3 border rounded-xl dark:bg-slate-800 dark:text-white" value={data.date} onChange={e => set({...data, date: e.target.value})} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-black mb-1 text-rose-600">{isRtl ? 'وقت الخروج' : 'Exit Time'}</label>
+                    <input type="time" className="w-full p-3 border rounded-xl font-black dark:bg-slate-800 dark:text-white" value={data.exitTime} onChange={e => updateHours(e.target.value, data.returnTime || '00:00')} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-black mb-1 text-emerald-600">{isRtl ? 'وقت العودة' : 'Return Time'}</label>
+                    <input type="time" className="w-full p-3 border rounded-xl font-black dark:bg-slate-800 dark:text-white" value={data.returnTime} onChange={e => updateHours(data.exitTime || '00:00', e.target.value)} />
+                  </div>
+                </div>
+                <div className="bg-indigo-50 dark:bg-indigo-900/30 p-4 rounded-2xl border-2 border-dashed border-indigo-200 text-center">
+                   <p className="text-[10px] font-black text-indigo-400 uppercase mb-1">المدة المحسوبة تلقائياً</p>
+                   <p className="text-2xl font-black text-indigo-700">{data.hours} ساعة</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-black mb-1">{isRtl ? 'السبب (اختياري)' : 'Reason (Optional)'}</label>
+                  <textarea className="w-full p-3 border rounded-xl dark:bg-slate-800 dark:text-white" value={data.reason} onChange={e => set({...data, reason: e.target.value})} placeholder={isRtl ? "اكتب سبب الإذن..." : "Reason..."} />
+                </div>
+              </div>
+             );
+          }}
+          renderRow={(i, name) => (
+            <>
+              <td className="px-6 py-4 font-black">{name}</td>
+              <td className="px-6 py-4">{i.date}</td>
+              <td className="px-6 py-4 text-rose-500 font-bold">{i.exitTime}</td>
+              <td className="px-6 py-4 text-emerald-600 font-bold">{i.returnTime}</td>
+              <td className="px-6 py-4 font-black text-indigo-600">{i.hours} ساعة</td>
+              <td className="px-6 py-4 text-slate-500 italic text-[10px]">{i.reason || '-'}</td>
+            </>
+          )}
+        />
+      );
+
       case 'leaves': return (
         <GenericModule<LeaveRequest> 
           title="سجل طلبات الإجازات" lang={db.settings.language} employees={db.employees} items={db.leaves} 
@@ -486,21 +222,13 @@ const App: React.FC = () => {
           archiveMode={archiveModes.leaves} onToggleArchive={() => setArchiveModes(p => ({...p, leaves: !p.leaves}))} 
           onSave={i => updateList('leaves', i)} onDelete={id => deleteFromList('leaves', id)} onArchive={i => archiveItem('leaves', i)}
           onPrintIndividual={i => setIndividualPrintItem({title: "إشعار إجازة رسمي", type: 'leave', data: i})} 
-          exportMapper={(i, name) => ({
-            'اسم الموظف': name,
-            'نوع الإجازة': i.type === 'annual' ? 'سنوية' : i.type === 'sick' ? 'مرضية' : i.type === 'unpaid' ? 'بدون راتب' : i.type,
-            'مأجورة؟': i.isPaid ? 'نعم' : 'لا',
-            'تاريخ البدء': i.startDate,
-            'تاريخ الانتهاء': i.endDate,
-            'السبب': i.reason || '-'
-          })}
           initialData={{ type: 'annual', status: 'approved', isPaid: true, startDate: new Date().toISOString().split('T')[0], endDate: new Date().toISOString().split('T')[0] }} 
           tableHeaders={['الموظف', 'النوع', 'مأجورة', 'من', 'إلى']} 
           renderForm={(data, set) => (
             <div className="grid grid-cols-2 gap-6 text-right">
                 <div className="col-span-2">
                    <label className="text-[11pt] font-black mb-1 block">نوع الإجازة</label>
-                   <select className="w-full p-4 border-2 rounded-xl font-bold text-lg bg-slate-50 shadow-inner" value={data.type} onChange={e => set({...data, type: e.target.value as any})}>
+                   <select className="w-full p-4 border-2 rounded-xl font-bold text-lg bg-slate-50 dark:bg-slate-800 dark:text-white shadow-inner" value={data.type} onChange={e => set({...data, type: e.target.value as any})}>
                       <option value="annual">سنوية</option>
                       <option value="sick">مرضية</option>
                       <option value="emergency">طارئة</option>
@@ -509,10 +237,10 @@ const App: React.FC = () => {
                       <option value="death">وفاة قريب</option>
                    </select>
                 </div>
-                <div className="flex items-center justify-between bg-slate-100 p-5 rounded-2xl border-2 col-span-2">
+                <div className="flex items-center justify-between bg-slate-100 dark:bg-slate-800 p-5 rounded-2xl border-2 col-span-2">
                    <div className="flex items-center gap-3">
                       <div className={`w-3 h-3 rounded-full ${data.isPaid ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`}></div>
-                      <span className="text-[12pt] font-black text-slate-800">هل الإجازة مأجورة الراتب؟</span>
+                      <span className="text-[12pt] font-black text-slate-800 dark:text-slate-200">هل الإجازة مأجورة الراتب؟</span>
                    </div>
                    <button type="button" onClick={() => set({...data, isPaid: !data.isPaid})} className="transition-transform active:scale-90">
                       {data.isPaid ? <ToggleRight size={48} className="text-emerald-600" /> : <ToggleLeft size={48} className="text-slate-400" />}
@@ -520,11 +248,11 @@ const App: React.FC = () => {
                 </div>
                 <div>
                    <label className="text-[11pt] font-black mb-1 block">تاريخ البدء</label>
-                   <input type="date" className="w-full p-4 border rounded-xl font-bold text-lg" value={data.startDate} onChange={e => set({...data, startDate: e.target.value})} />
+                   <input type="date" className="w-full p-4 border rounded-xl font-bold text-lg dark:bg-slate-800 dark:text-white" value={data.startDate} onChange={e => set({...data, startDate: e.target.value})} />
                 </div>
                 <div>
                    <label className="text-[11pt] font-black mb-1 block">تاريخ الانتهاء</label>
-                   <input type="date" className="w-full p-4 border rounded-xl font-bold text-lg" value={data.endDate} onChange={e => set({...data, endDate: e.target.value})} />
+                   <input type="date" className="w-full p-4 border rounded-xl font-bold text-lg dark:bg-slate-800 dark:text-white" value={data.endDate} onChange={e => set({...data, endDate: e.target.value})} />
                 </div>
             </div>
           )} 
@@ -538,30 +266,20 @@ const App: React.FC = () => {
           archiveMode={archiveModes.loans} onToggleArchive={() => setArchiveModes(p => ({...p, loans: !p.loans}))} 
           onSave={i => updateList('loans', i)} onDelete={id => deleteFromList('loans', id)} onArchive={i => archiveItem('loans', i)}
           onPrintIndividual={i => setIndividualPrintItem({title: "سند سلفة موظف", type: 'loan', data: i})} 
-          exportMapper={(i, name) => ({
-            'اسم الموظف': name,
-            'إجمالي المبلغ': i.amount,
-            [`قسط ${cycleLabel}`]: i.monthlyInstallment,
-            'عدد الأقساط': i.installmentsCount,
-            'المبلغ المتبقي': i.remainingAmount,
-            'تحصيل فوري؟': i.isImmediate ? 'نعم' : 'لا',
-            'تاريخ المنح': i.date,
-            'تاريخ بداية التحصيل': i.collectionDate || '-'
-          })}
           initialData={{ amount: 0, installmentsCount: 1, monthlyInstallment: 0, remainingAmount: 0, date: new Date().toISOString().split('T')[0], collectionDate: new Date().toISOString().split('T')[0], isImmediate: false }} 
           tableHeaders={['الموظف', 'المبلغ', 'الأقساط', 'قيمة القسط', 'بداية التحصيل']} 
           renderForm={(data, set) => (
             <div className="grid grid-cols-2 gap-6 text-right">
               <div className="col-span-2">
                 <label className="text-[11pt] font-black mb-1 block">إجمالي مبلغ السلفة</label>
-                <input type="number" placeholder="المبلغ" className="w-full p-4 border rounded-xl font-black text-xl text-indigo-700" value={data.amount || ''} onChange={e => set({...data, amount: Number(e.target.value), remainingAmount: Number(e.target.value), monthlyInstallment: data.isImmediate ? Number(e.target.value) : data.monthlyInstallment})} />
+                <input type="number" placeholder="المبلغ" className="w-full p-4 border rounded-xl font-black text-xl text-indigo-700 dark:bg-slate-800 dark:text-white" value={data.amount || ''} onChange={e => set({...data, amount: Number(e.target.value), remainingAmount: Number(e.target.value), monthlyInstallment: data.isImmediate ? Number(e.target.value) : data.monthlyInstallment})} />
               </div>
               
-              <div className="col-span-2 flex items-center justify-between bg-rose-50 p-5 rounded-2xl border-2 border-rose-100 shadow-inner">
+              <div className="col-span-2 flex items-center justify-between bg-rose-50 dark:bg-rose-900/10 p-5 rounded-2xl border-2 border-rose-100 dark:border-rose-900/30 shadow-inner">
                 <div className="flex items-center gap-3">
                    <div className={`w-3 h-3 rounded-full ${data.isImmediate ? 'bg-rose-500 animate-pulse' : 'bg-slate-300'}`}></div>
                    <div>
-                      <span className="text-[12pt] font-black text-rose-800 block">تحصيل فوري من الراتب القادم؟</span>
+                      <span className="text-[12pt] font-black text-rose-800 dark:text-rose-400 block">تحصيل فوري من الراتب القادم؟</span>
                       <span className="text-[10px] font-bold text-slate-500 italic block leading-none mt-1">* سيتم خصم كامل السلفة فوراً ولن تبقى ديناً على الموظف.</span>
                    </div>
                 </div>
@@ -573,19 +291,19 @@ const App: React.FC = () => {
               {!data.isImmediate && (
                 <>
                   <div>
-                    <label className="text-[11pt] font-black mb-1 block">قيمة القسط {cycleLabel}</label>
-                    <input type="number" placeholder="قيمة القسط" className="w-full p-4 border rounded-xl font-black text-xl text-indigo-700" value={data.monthlyInstallment || ''} onChange={e => set({...data, monthlyInstallment: Number(e.target.value)})} />
+                    <label className="text-[11pt] font-black mb-1 block">قيمة القسط</label>
+                    <input type="number" placeholder="قيمة القسط" className="w-full p-4 border rounded-xl font-black text-xl text-indigo-700 dark:bg-slate-800 dark:text-white" value={data.monthlyInstallment || ''} onChange={e => set({...data, monthlyInstallment: Number(e.target.value)})} />
                   </div>
                   <div>
                     <label className="text-[11pt] font-black mb-1 block">عدد الأقساط</label>
-                    <input type="number" className="w-full p-4 border rounded-xl font-bold text-lg" value={data.installmentsCount || ''} onChange={e => set({...data, installmentsCount: Number(e.target.value)})} />
+                    <input type="number" className="w-full p-4 border rounded-xl font-bold text-lg dark:bg-slate-800 dark:text-white" value={data.installmentsCount || ''} onChange={e => set({...data, installmentsCount: Number(e.target.value)})} />
                   </div>
                 </>
               )}
               
               <div className="col-span-2">
                 <label className="text-[11pt] font-black mb-1 block">تاريخ منح السلفة</label>
-                <input type="date" className="w-full p-4 border rounded-xl font-bold text-lg" value={data.date || ''} onChange={e => set({...data, date: e.target.value})} />
+                <input type="date" className="w-full p-4 border rounded-xl font-bold text-lg dark:bg-slate-800 dark:text-white" value={data.date || ''} onChange={e => set({...data, date: e.target.value})} />
               </div>
             </div>
           )} 
@@ -599,20 +317,13 @@ const App: React.FC = () => {
           archiveMode={archiveModes.financials} onToggleArchive={() => setArchiveModes(p => ({...p, financials: !p.financials}))} 
           onSave={i => updateList('financials', i)} onDelete={id => deleteFromList('financials', id)} onArchive={i => archiveItem('financials', i)}
           onPrintIndividual={i => setIndividualPrintItem({title: "سند مالي معتمد", type: 'financial', data: i})} 
-          exportMapper={(i, name) => ({
-            'اسم الموظف': name,
-            'نوع السند': i.type === 'bonus' ? 'مكافأة' : i.type === 'deduction' ? 'خصم' : i.type === 'production_incentive' ? 'حافز إنتاج' : 'سلفة فورية',
-            'المبلغ': i.amount,
-            'التاريخ': i.date,
-            'السبب': i.reason
-          })}
           initialData={{ type: 'bonus', amount: 0, date: new Date().toISOString().split('T')[0], reason: '' }} 
           tableHeaders={['الموظف', 'النوع', 'المبلغ', 'التاريخ']} 
           renderForm={(data, set) => (
             <div className="grid grid-cols-1 gap-6">
                 <div>
                    <label className="text-[11pt] font-black mb-1 block">نوع السند المالي</label>
-                   <select className="w-full p-4 border-2 rounded-xl font-black text-lg bg-slate-50 shadow-inner" value={data.type} onChange={e => set({...data, type: e.target.value as any})}>
+                   <select className="w-full p-4 border-2 rounded-xl font-black text-lg bg-slate-50 dark:bg-slate-800 dark:text-white shadow-inner" value={data.type} onChange={e => set({...data, type: e.target.value as any})}>
                       <option value="bonus">مكافأة تميز (+)</option>
                       <option value="production_incentive">حافز إنتاج (+)</option>
                       <option value="deduction">خصم مالي (-)</option>
@@ -621,11 +332,11 @@ const App: React.FC = () => {
                 </div>
                 <div>
                    <label className="text-[11pt] font-black mb-1 block">المبلغ</label>
-                   <input type="number" className="w-full p-5 border-2 border-indigo-100 rounded-2xl font-black text-3xl text-center text-indigo-700 focus:border-indigo-600 transition" value={data.amount} onChange={e => set({...data, amount: Number(e.target.value)})} />
+                   <input type="number" className="w-full p-5 border-2 border-indigo-100 rounded-2xl font-black text-3xl text-center text-indigo-700 dark:text-white focus:border-indigo-600 transition dark:bg-slate-800" value={data.amount} onChange={e => set({...data, amount: Number(e.target.value)})} />
                 </div>
                 <div>
                    <label className="text-[11pt] font-black mb-1 block">السبب / البيان</label>
-                   <textarea className="w-full p-4 border rounded-xl font-bold h-24 text-lg" value={data.reason} onChange={e => set({...data, reason: e.target.value})} placeholder="اكتب سبب السند هنا بالتفصيل..."></textarea>
+                   <textarea className="w-full p-4 border rounded-xl font-bold h-24 text-lg dark:bg-slate-800 dark:text-white" value={data.reason} onChange={e => set({...data, reason: e.target.value})} placeholder="اكتب سبب السند هنا بالتفصيل..."></textarea>
                 </div>
             </div>
           )} 
@@ -633,6 +344,7 @@ const App: React.FC = () => {
         />
       );
       case 'production': return <Production employees={db.employees} items={db.production || []} settings={db.settings} onSave={i => updateList('production', i)} onDelete={id => deleteFromList('production', id)} archiveMode={archiveModes.production} onToggleArchive={() => setArchiveModes(p => ({...p, production: !p.production}))} onPrintIndividual={i => setIndividualPrintItem({title: "إشعار إنتاجية موظف", type: 'production', data: i})} />;
+      
       case 'payroll': return (
         <div className="space-y-8 animate-in fade-in duration-700">
           <PrintableHeader title={`مسير رواتب الموظفين للفترة من ${payrollDateFrom} إلى ${payrollDateTo}`} subtitle={`نظام الدوام المعتمد: ${db.settings.salaryCycle === 'weekly' ? 'أسبوعي' : 'شهري'}`} />
@@ -644,15 +356,15 @@ const App: React.FC = () => {
                 </div>
                 <div className="flex flex-col md:flex-row items-center gap-4">
                    <div>
-                      <h2 className="text-2xl font-black text-indigo-700">تصفية مسير الرواتب</h2>
+                      <h2 className="text-2xl font-black text-indigo-700 dark:text-white">تصفية مسير الرواتب</h2>
                       <div className="flex items-center gap-2 mt-2">
                         <div className="flex flex-col">
-                           <label className="text-[10px] font-black mr-2">من تاريخ</label>
-                           <input type="date" className="p-2 border rounded-xl font-bold text-xs outline-none focus:border-indigo-600" value={payrollDateFrom} onChange={e => setPayrollDateFrom(e.target.value)} />
+                           <label className="text-[10px] font-black mr-2 dark:text-slate-400">من تاريخ</label>
+                           <input type="date" className="p-2 border rounded-xl font-bold text-xs outline-none focus:border-indigo-600 dark:bg-slate-800 dark:text-white" value={payrollDateFrom} onChange={e => setPayrollDateFrom(e.target.value)} />
                         </div>
                         <div className="flex flex-col">
-                           <label className="text-[10px] font-black mr-2">إلى تاريخ</label>
-                           <input type="date" className="p-2 border rounded-xl font-bold text-xs outline-none focus:border-indigo-600" value={payrollDateTo} onChange={e => setPayrollDateTo(e.target.value)} />
+                           <label className="text-[10px] font-black mr-2 dark:text-slate-400">إلى تاريخ</label>
+                           <input type="date" className="p-2 border rounded-xl font-bold text-xs outline-none focus:border-indigo-600 dark:bg-slate-800 dark:text-white" value={payrollDateTo} onChange={e => setPayrollDateTo(e.target.value)} />
                         </div>
                       </div>
                    </div>
@@ -660,7 +372,7 @@ const App: React.FC = () => {
              </div>
              <div className="flex gap-2">
                 <button onClick={handleExportPayrollExcel} className="bg-emerald-600 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-emerald-700 transition shadow-lg"><FileDown size={20}/> Excel</button>
-                <button onClick={() => { setPrintOrientation('landscape'); setIndividualPrintItem({ title: 'قسائم رواتب الموظفين', type: 'vouchers', data: currentPayrolls }); }} className="bg-indigo-100 text-indigo-700 px-8 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-indigo-200 transition"><ReceiptText size={20}/> القسائم</button>
+                <button onClick={() => { setPrintOrientation('landscape'); setIndividualPrintItem({ title: 'قسائم رواتب الموظفين', type: 'vouchers', data: currentPayrolls }); }} className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 px-8 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-indigo-200 transition"><ReceiptText size={20}/> القسائم</button>
                 <button onClick={() => window.print()} className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg"><Printer size={20}/> طباعة</button>
              </div>
           </div>
@@ -680,6 +392,7 @@ const App: React.FC = () => {
                      <th className="px-1 py-5 text-emerald-300">إضافي</th>
                      <th className="px-1 py-5 text-rose-300">تأخير</th>
                      <th className="px-1 py-5 text-rose-300">انصراف</th>
+                     <th className="px-1 py-5 text-rose-300">أذونات</th>
                      <th className="px-1 py-5 text-rose-300">سلف</th>
                      <th className="px-1 py-5 text-rose-300">أخرى</th>
                      <th className="px-4 py-5 text-center bg-indigo-900 min-w-[130px] shadow-2xl print:bg-slate-200 print:text-black">الصافي</th>
@@ -689,9 +402,9 @@ const App: React.FC = () => {
                    {currentPayrolls.map(p => (
                      <tr key={p.id} className="hover:bg-indigo-50/40 transition-all border-b print:border-slate-300">
                        <td className="px-4 py-5 text-right font-black text-slate-900 dark:text-white whitespace-nowrap sticky right-0 bg-white dark:bg-slate-900 z-10 border-l border-slate-50 text-lg print:text-[11px]">{db.employees.find(e => e.id === p.employeeId)?.name}</td>
-                       <td className="px-1 py-5 text-slate-500">{p.baseSalary.toLocaleString()}</td>
-                       <td className="px-1 py-5 text-indigo-700">{p.transport.toLocaleString()}</td>
-                       <td className="px-1 py-5 text-slate-700">{p.workingDays} ي</td>
+                       <td className="px-1 py-5 text-slate-500 dark:text-slate-400">{p.baseSalary.toLocaleString()}</td>
+                       <td className="px-1 py-5 text-indigo-700 dark:text-indigo-400">{p.transport.toLocaleString()}</td>
+                       <td className="px-1 py-5 text-slate-700 dark:text-slate-300">{p.workingDays} ي</td>
                        <td className={`px-1 py-5 ${p.absenceDays > 0 ? 'text-rose-600 font-black' : 'text-emerald-500 font-black'}`}>
                          {p.absenceDays > 0 ? `${p.absenceDays} ي` : '0'}
                        </td>
@@ -715,6 +428,12 @@ const App: React.FC = () => {
                            <span>-{p.earlyDepartureDeduction.toLocaleString()}</span>
                          </div>
                        </td>
+                       <td className={`px-1 py-5 ${(p.permissionHours || 0) > 0 ? 'text-rose-600 font-black' : 'text-slate-400'}`}>
+                         <div className="flex flex-col items-center">
+                           <span className="text-[9px] font-black opacity-60">{p.permissionHours || 0} س</span>
+                           <span>-{(p.permissionDeduction || 0).toLocaleString()}</span>
+                         </div>
+                       </td>
                        <td className="px-1 py-5 text-rose-600">-{p.loanInstallment.toLocaleString()}</td>
                        <td className="px-1 py-5 text-rose-600">-{p.manualDeductions.toLocaleString()}</td>
                        <td className="px-4 py-5 font-black bg-indigo-50/80 dark:bg-indigo-900/10 text-[18px] text-indigo-900 dark:text-indigo-300 border-r border-indigo-100 print:bg-white print:text-black print:text-[12px]">
@@ -734,6 +453,7 @@ const App: React.FC = () => {
                        <td className="px-1 py-6 text-emerald-400">+{payrollTotals.overtime.toLocaleString()}</td>
                        <td className="px-1 py-6 text-rose-300">-{payrollTotals.late.toLocaleString()}</td>
                        <td className="px-1 py-6 text-rose-300">-{payrollTotals.early.toLocaleString()}</td>
+                       <td className="px-1 py-6 text-rose-300">-{payrollTotals.permissions.toLocaleString()}</td>
                        <td className="px-1 py-6 text-rose-300">-{payrollTotals.loans.toLocaleString()}</td>
                        <td className="px-1 py-6 text-rose-300">-{payrollTotals.manual.toLocaleString()}</td>
                        <td className="px-4 py-6 text-[22px] bg-indigo-900 text-white shadow-2xl print:bg-slate-300 print:text-black print:text-[14px]">
@@ -755,7 +475,8 @@ const App: React.FC = () => {
         </div>
       );
       case 'documents': return <PrintForms employees={db.employees || []} attendance={db.attendance || []} financials={db.financials || []} warnings={db.warnings || []} leaves={db.leaves || []} loans={db.loans || []} settings={db.settings} printHistory={db.printHistory || []} onPrint={(doc) => setIndividualPrintItem(doc as any)} />;
-      case 'settings': return <SettingsView settings={db.settings} admin={db.users[0]} db={db} onUpdateSettings={s => setDb(p => ({...p, settings: {...p.settings, ...s}}))} onUpdateAdmin={u => setDb(p => ({...p, users: [{...p.users[0], ...u}, ...p.users.slice(1)]}))} onImport={json => setDb(json)} onRunArchive={() => {}} onClearData={handleClearData} />;
+      case 'manager': return <ManagerDashboard />;
+      case 'settings': return <SettingsView settings={db.settings} admin={db.users[0]} db={db} onUpdateSettings={s => setDb(p => ({...p, settings: {...p.settings, ...s}}))} onUpdateAdmin={u => setDb(p => ({...p, users: [{...p.users[0], ...u}, ...p.users.slice(1)]}))} onImport={json => setDb(json)} onRunArchive={() => {}} onClearData={() => {}} />;
       case 'reports': return <ReportsView db={db} payrolls={currentPayrolls} lang={db.settings.language} onPrint={() => window.print()} />;
       default: return null;
     }
@@ -829,6 +550,30 @@ const App: React.FC = () => {
     );
   }
 
+  const handleExportPayrollExcel = () => {
+    const exportData = currentPayrolls.map(p => {
+      const emp = db.employees.find(e => e.id === p.employeeId);
+      return {
+        'الاسم الموظف': emp?.name,
+        'القسم': emp?.department,
+        'الأساسي': p.baseSalary,
+        'بدل المواصلات': p.transport,
+        'أيام الحضور': p.workingDays,
+        'أيام الغياب': p.absenceDays,
+        'مكافآت': p.bonuses,
+        'إنتاج': p.production,
+        'إضافي': p.overtimePay,
+        'تأخير': p.lateDeduction,
+        'انصراف مبكر': p.earlyDepartureDeduction,
+        'خصم أذونات': p.permissionDeduction,
+        'سلف': p.loanInstallment,
+        'خصومات أخرى': p.manualDeductions,
+        'صافي الراتب': p.netSalary
+      };
+    });
+    exportToExcel(exportData, "Payroll_Report");
+  };
+
   const PrintPortalContent = () => {
     const portalNode = document.getElementById('sam-print-portal');
     if (!individualPrintItem || !portalNode) return null;
@@ -848,44 +593,127 @@ const App: React.FC = () => {
     );
   };
 
+  const VouchersPrintGrid = ({ payrolls }: { payrolls: PayrollRecord[] }) => (
+    <div className={`vouchers-grid-print grid ${printOrientation === 'landscape' ? 'grid-cols-2' : 'grid-cols-1'} gap-4 p-4`} dir="rtl">
+      {payrolls.map(p => {
+        const emp = db.employees.find(e => e.id === p.employeeId);
+        
+        return (
+          <div key={p.id} className="print-card border-2 border-slate-200 p-6 bg-white relative mb-4 rounded-3xl">
+            <div className="flex justify-between items-start border-b-2 border-slate-100 pb-4 mb-4">
+               <div className="text-right">
+                  <p className="text-[10px] font-black text-indigo-600 uppercase">قسيمة راتب معتمدة</p>
+                  <h3 className="text-lg font-black text-slate-900">{emp?.name}</h3>
+                  <p className="text-[9px] font-bold text-slate-500 mt-1">{emp?.position} - {emp?.department}</p>
+               </div>
+               <div className="text-left text-[9px] font-bold text-slate-400">
+                  <p>الفترة: {p.month} / {p.year}</p>
+                  <p>تاريخ الطباعة: {new Date().toLocaleDateString()}</p>
+               </div>
+            </div>
+            
+            <div className="space-y-1.5 text-[11px] font-bold">
+               <div className="bg-slate-50 p-2 rounded-xl mb-3 space-y-1 border border-slate-100">
+                  <div className="flex justify-between items-center text-slate-700">
+                    <span className="font-black">الراتب التعاقدي:</span>
+                    <span className="font-black text-indigo-700">{p.baseSalary.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-slate-700">
+                    <span className="font-black">ساعات العمل الفعلية:</span>
+                    <span className="font-black text-indigo-700">{p.workingHours.toFixed(1)} ساعة</span>
+                  </div>
+               </div>
+
+               <div className="text-[#00a693] font-black border-b pb-1 mb-1">الإضافات (+)</div>
+               <div className="flex justify-between items-center text-[#00a693]">
+                 <span className="font-black">بدل مواصلات:</span>
+                 <span className="font-black">{p.transport.toLocaleString()}+</span>
+               </div>
+               <div className="flex justify-between items-center text-[#00a693]">
+                 <span className="font-black">العمل الإضافي ({formatMinutes(p.overtimeMinutes)}):</span>
+                 <span className="font-black">{p.overtimePay.toLocaleString()}+</span>
+               </div>
+               <div className="flex justify-between items-center text-[#00a693]">
+                 <span className="font-black">المكافآت:</span>
+                 <span className="font-black">{p.bonuses.toLocaleString()}+</span>
+               </div>
+               <div className="flex justify-between items-center text-[#00a693]">
+                 <span className="font-black">الإنتاج:</span>
+                 <span className="font-black">{p.production.toLocaleString()}+</span>
+               </div>
+               
+               <div className="text-[#d91e5b] font-black border-t pt-2 mt-2">الاستقطاعات (-)</div>
+               <div className="flex justify-between items-center text-[#d91e5b]">
+                 <span className="font-black">تأخير ({formatMinutes(p.lateMinutes)}):</span>
+                 <span className="font-black">{p.lateDeduction.toLocaleString()}-</span>
+               </div>
+               <div className="flex justify-between items-center text-[#d91e5b]">
+                 <span className="font-black">خصم أذونات ({p.permissionHours} س):</span>
+                 <span className="font-black">{(p.permissionDeduction || 0).toLocaleString()}-</span>
+               </div>
+               <div className="flex justify-between items-center text-[#d91e5b]">
+                 <span className="font-black">أيام غياب ({p.absenceDays} ي):</span>
+                 <span className="font-black">{p.absenceDeduction.toLocaleString()}-</span>
+               </div>
+               <div className="flex justify-between items-center text-[#d91e5b]">
+                 <span className="font-black">أقساط سلف:</span>
+                 <span className="font-black">{p.loanInstallment.toLocaleString()}-</span>
+               </div>
+               
+               <div className="flex justify-between text-lg font-black text-indigo-900 pt-3 mt-3 border-t-2 border-indigo-900">
+                 <span>صافي الراتب:</span>
+                 <div className="text-left">
+                    <span>{p.netSalary.toLocaleString()}</span>
+                    <span className="text-[10px] mr-1 opacity-60">{db.settings.currency}</span>
+                 </div>
+               </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const DocumentPrintCard = ({ title, type, data }: { title: string, type: PrintType, data: any }) => {
+    return <div className="p-10 font-black text-center">معاينة الطباعة لهذا النموذج قيد التحديث...</div>;
+  };
+
+  const executePrintAction = () => {
+    setIsPrinting(true);
+    setTimeout(() => {
+      window.print();
+      setIsPrinting(false);
+    }, 600);
+  };
+
   return (
     <div className={db.settings.theme === 'dark' ? 'dark' : ''}>
       <Layout activeTab={activeTab} setActiveTab={setActiveTab} lang={db.settings.language} theme={db.settings.theme} toggleTheme={() => setDb(p => ({...p, settings: {...p.settings, theme: p.settings.theme === 'light' ? 'dark' : 'light'}}))} currentUser={currentUser} onLogout={() => setCurrentUser(null)}>
         {renderActiveTab()}
         {individualPrintItem && (
           <div className="fixed inset-0 bg-slate-950/95 z-[500] flex items-start justify-center p-6 no-print overflow-y-auto">
-            <div className="bg-white p-10 w-full max-w-5xl shadow-2xl rounded-[3.5rem] border-4 border-white/20 transition-all my-10">
+            <div className="bg-white dark:bg-slate-900 p-10 w-full max-w-5xl shadow-2xl rounded-[3.5rem] border-4 border-white/20 transition-all my-10">
                <div className="flex justify-between items-center mb-10 border-b-2 pb-6 text-right">
                   <div className="flex items-center gap-6">
-                    <h3 className="font-black text-indigo-800 text-2xl">معاينة المستند الرسمي</h3>
-                    <div className="flex bg-slate-100 p-1.5 rounded-2xl gap-2 no-print">
-                      <button 
-                        onClick={() => setPrintOrientation('landscape')}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black transition-all ${printOrientation === 'landscape' ? 'bg-white shadow-md text-indigo-700' : 'text-slate-400'}`}
-                      >
-                        <LayoutPanelLeft size={18}/> عرضي
-                      </button>
-                      <button 
-                        onClick={() => setPrintOrientation('portrait')}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black transition-all ${printOrientation === 'portrait' ? 'bg-white shadow-md text-indigo-700' : 'text-slate-400'}`}
-                      >
-                        <LayoutPanelTop size={18}/> طولي
-                      </button>
+                    <h3 className="font-black text-indigo-800 dark:text-indigo-400 text-2xl">معاينة المستند الرسمي</h3>
+                    <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl gap-2 no-print">
+                      <button onClick={() => setPrintOrientation('landscape')} className={`px-4 py-2 rounded-xl text-sm font-black ${printOrientation === 'landscape' ? 'bg-white dark:bg-slate-900 shadow-md text-indigo-700 dark:text-indigo-400' : 'text-slate-400'}`}><LayoutPanelLeft size={18}/> عرضي</button>
+                      <button onClick={() => setPrintOrientation('portrait')} className={`px-4 py-2 rounded-xl text-sm font-black ${printOrientation === 'portrait' ? 'bg-white dark:bg-slate-900 shadow-md text-indigo-700 dark:text-indigo-400' : 'text-slate-400'}`}><LayoutPanelTop size={18}/> طولي</button>
                     </div>
                   </div>
                   <button onClick={() => setIndividualPrintItem(null)} className="text-rose-500 p-2 hover:bg-rose-50 rounded-full transition transform hover:rotate-90" disabled={isPrinting}><X size={44}/></button>
                </div>
-               <div className="bg-white rounded-[2rem] text-right overflow-hidden border border-slate-100 p-2">
+               <div className="bg-white dark:bg-slate-900 rounded-[2rem] text-right overflow-hidden border border-slate-100 dark:border-slate-800 p-2">
                   {individualPrintItem.type === 'vouchers' 
                     ? <VouchersPrintGrid payrolls={individualPrintItem.data} />
                     : <DocumentPrintCard title={individualPrintItem.title} type={individualPrintItem.type} data={individualPrintItem.data} />}
                </div>
                <div className="flex gap-6 mt-12 no-print">
-                  <button onClick={executePrintAction} disabled={isPrinting} className="flex-[2] bg-indigo-600 text-white py-6 rounded-[2.5rem] font-black text-2xl shadow-xl flex items-center justify-center gap-4 hover:bg-indigo-700 transition-all disabled:opacity-50">
+                  <button onClick={executePrintAction} disabled={isPrinting} className="flex-[2] bg-indigo-600 text-white py-6 rounded-[2.5rem] font-black text-2xl shadow-xl flex items-center justify-center gap-4 hover:bg-indigo-700 transition-all">
                     {isPrinting ? <Loader2 className="animate-spin" size={32}/> : <Printer size={32}/>}
                     {isPrinting ? 'جاري التحضير...' : 'تـنـفـيذ الـطـباعـة'}
                   </button>
-                  <button onClick={() => setIndividualPrintItem(null)} className="flex-1 bg-slate-100 py-6 rounded-[2.5rem] font-black text-xl text-slate-500 hover:bg-slate-200 transition">إغلاق</button>
+                  <button onClick={() => setIndividualPrintItem(null)} className="flex-1 bg-slate-100 dark:bg-slate-800 py-6 rounded-[2.5rem] font-black text-xl text-slate-500 hover:bg-slate-200 transition">إغلاق</button>
                </div>
             </div>
           </div>
