@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Search, Shield, History, Users, Database, Lock, Eye, Key, AlertTriangle } from 'lucide-react';
 import { apiClient } from '../utils/api';
@@ -5,6 +6,7 @@ import { apiClient } from '../utils/api';
 const ManagerDashboard: React.FC = () => {
   const [masterKey, setMasterKey] = useState('');
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [loginError, setLoginError] = useState(false);
   const [targetKey, setTargetKey] = useState('');
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -12,26 +14,37 @@ const ManagerDashboard: React.FC = () => {
   // تسجيل الدخول للوحة الإدارة العليا
   const handleMasterLogin = (e: React.FormEvent) => {
     e.preventDefault();
+    setLoginError(false);
     // التحقق من المفتاح السري الماستر المحدد حصراً
     if (masterKey === 'SAM-PRO-MASTER-1993') {
       setIsAuthorized(true);
     } else {
-      alert('مفتاح المدير العام غير صحيح');
+      setLoginError(true);
+      setTimeout(() => setLoginError(false), 5000);
     }
   };
 
   const fetchTargetData = async () => {
     if (!targetKey) return;
     setLoading(true);
+    setData(null); // مسح البيانات السابقة
+    
     try {
-      // نرسل الـ Master Key في هيدر خاص للتحقق
-      const res = await apiClient(`/api/manager/view/${targetKey}`, {
-        headers: { 'x-admin-secret': masterKey }
+      /**
+       * تنفيذ الطلب للسيرفر:
+       * نرسل 'x-admin-secret' للتحقق من هوية المدير
+       * السيرفر سيقوم بإرجاع البيانات بناءً على targetKey فقط إذا كان فعالاً
+       */
+      const res = await apiClient(`/api/manager/view/${targetKey.trim().toUpperCase()}`, {
+        headers: { 
+          'x-admin-secret': masterKey 
+          // ملاحظة: لا نرسل x-hwid هنا لأننا في وضع المراقبة (By-pass HWID)
+        }
       });
       setData(res);
     } catch (err: any) {
-      alert('خطأ في جلب البيانات: ' + err.message);
-      if (err.message.includes('Unauthorized')) setIsAuthorized(false);
+      alert('⚠️ فشل جلب البيانات: ' + (err.message || 'المفتاح غير موجود أو غير مفعل'));
+      if (err.message?.includes('Unauthorized')) setIsAuthorized(false);
     } finally {
       setLoading(false);
     }
@@ -47,13 +60,22 @@ const ManagerDashboard: React.FC = () => {
           <h2 className="text-2xl font-black text-center mb-2 dark:text-white">منطقة المدير العام</h2>
           <p className="text-slate-400 text-center text-xs mb-8">يرجى إدخال المفتاح السري الماستر للوصول للسحابة</p>
           
+          {loginError && (
+            <div className="mb-6 p-4 bg-rose-600 text-white rounded-2xl font-black text-center animate-pulse border-4 border-rose-400 shadow-lg">
+               ❌ الوصول مرفوض: مفتاح الماستر غير صحيح!
+            </div>
+          )}
+
           <form onSubmit={handleMasterLogin} className="space-y-4">
             <input 
               type="password"
-              className="w-full p-5 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 rounded-2xl font-black text-center outline-none transition dark:text-white"
+              className={`w-full p-5 bg-slate-50 dark:bg-slate-800 border-2 rounded-2xl font-black text-center outline-none transition dark:text-white ${loginError ? 'border-rose-500 animate-bounce' : 'border-transparent focus:border-indigo-600'}`}
               placeholder="••••••••••••"
               value={masterKey}
-              onChange={e => setMasterKey(e.target.value)}
+              onChange={e => {
+                setMasterKey(e.target.value);
+                if(loginError) setLoginError(false);
+              }}
             />
             <button className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black shadow-lg hover:bg-indigo-700 transition">
               تحقق من الصلاحية
@@ -77,14 +99,14 @@ const ManagerDashboard: React.FC = () => {
             <h2 className="text-3xl font-black flex items-center gap-3">
               <Shield className="text-indigo-400" size={36} /> رادار التحكم السحابي
             </h2>
-            <p className="text-indigo-300 font-bold mt-2">أدخل مفتاح الترخيص لأي عميل لمراقبة بياناته وسجلاته</p>
+            <p className="text-indigo-300 font-bold mt-2">أدخل مفتاح الترخيص لأي عميل لمراقبة بياناته وسجلاته مباشرة</p>
           </div>
           
           <div className="flex gap-3 w-full md:w-auto">
             <div className="relative flex-1 md:w-80">
               <input 
-                className="w-full p-4 bg-white/10 border-2 border-white/20 rounded-2xl font-black text-white placeholder-white/40 outline-none focus:border-white transition"
-                placeholder="رقم ترخيص العميل..."
+                className="w-full p-4 bg-white/10 border-2 border-white/20 rounded-2xl font-black text-white placeholder-white/40 outline-none focus:border-white transition uppercase"
+                placeholder="SAM-PRO-XXXX-XXXX"
                 value={targetKey}
                 onChange={e => setTargetKey(e.target.value)}
               />
@@ -95,14 +117,14 @@ const ManagerDashboard: React.FC = () => {
               disabled={loading}
               className="bg-white text-indigo-900 px-8 py-4 rounded-2xl font-black hover:bg-indigo-50 transition flex items-center gap-2 shadow-xl"
             >
-              {loading ? 'جاري الاتصال...' : <Eye size={20}/>} بدء المراقبة
+              {loading ? 'جاري الاتصال بالسحابة...' : <Eye size={20}/>} بدء المراقبة
             </button>
           </div>
         </div>
       </div>
 
       {data && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in slide-in-from-bottom-4 duration-500">
           {/* معلومات الرخصة */}
           <div className="lg:col-span-3 bg-indigo-50 dark:bg-slate-800 p-6 rounded-3xl border-2 border-indigo-100 dark:border-slate-700 flex items-center justify-between">
              <div className="flex items-center gap-4">
@@ -112,15 +134,21 @@ const ManagerDashboard: React.FC = () => {
                    <p className="font-black text-indigo-900 dark:text-white">{data.info.id}</p>
                 </div>
              </div>
-             <div className="text-left">
-                <p className="text-[10px] font-black text-indigo-400 uppercase">اسم الجهاز المرتبط</p>
-                <p className="font-black text-indigo-900 dark:text-white">{data.info.device_name || 'غير معروف'}</p>
+             <div className="text-left flex gap-8">
+                <div>
+                  <p className="text-[10px] font-black text-indigo-400 uppercase">اسم الجهاز الأصلي</p>
+                  <p className="font-black text-indigo-900 dark:text-white">{data.info.device_name || 'غير معروف'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-indigo-400 uppercase">تاريخ التفعيل</p>
+                  <p className="font-black text-indigo-900 dark:text-white">{new Date(data.info.activated_at).toLocaleDateString('ar-EG')}</p>
+                </div>
              </div>
           </div>
 
           {/* قائمة الموظفين */}
           <div className="lg:col-span-1 bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800">
-            <h3 className="text-xl font-black mb-6 flex items-center gap-2 text-indigo-600"><Users /> قاعدة موظفي النسخة</h3>
+            <h3 className="text-xl font-black mb-6 flex items-center gap-2 text-indigo-600"><Users /> قاعدة موظفي العميل</h3>
             <div className="space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar">
               {data.employees.map((emp: any) => (
                 <div key={emp.id} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl flex justify-between items-center border border-transparent hover:border-indigo-200 transition">
@@ -133,7 +161,7 @@ const ManagerDashboard: React.FC = () => {
                   </div>
                 </div>
               ))}
-              {data.employees.length === 0 && <p className="text-center py-10 text-slate-400 italic">لا يوجد موظفين</p>}
+              {data.employees.length === 0 && <p className="text-center py-10 text-slate-400 italic">لا يوجد موظفين مسجلين</p>}
             </div>
           </div>
 
@@ -168,7 +196,7 @@ const ManagerDashboard: React.FC = () => {
       <div className="bg-amber-50 dark:bg-amber-900/20 p-6 rounded-3xl border-2 border-amber-100 dark:border-amber-900/40 flex items-center gap-4 text-amber-800 dark:text-amber-400 no-print">
          <AlertTriangle className="shrink-0" size={32} />
          <p className="text-xs font-bold leading-relaxed">
-           <strong>تنبيه أمني:</strong> أنت الآن في وضع "المراقب السحابي". أي بيانات تراها هنا هي بيانات حية من السيرفر. يرجى الحذر عند التعامل مع معلومات العملاء. يتم تسجيل دخولك لهذه اللوحة في سجلات النظام العليا.
+           <strong>تنبيه أمني:</strong> أنت الآن في وضع "المراقب السحابي". يتم جلب البيانات من السيرفر مباشرة دون قيود البصمة (HWID Bypass). أي بيانات تراها هنا هي بيانات حية من العميل. يرجى الحذر عند التعامل مع معلومات الخصوصية.
          </p>
          <button onClick={() => setIsAuthorized(false)} className="mr-auto bg-amber-200 dark:bg-amber-800 px-6 py-2 rounded-xl font-black text-xs hover:bg-amber-300 transition dark:text-white">خروج آمن</button>
       </div>

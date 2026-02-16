@@ -14,21 +14,37 @@ const pool = new Pool({
 });
 
 const JWT_SECRET = 'SAM_PRO_SECURE_2025_SECRET';
-const ADMIN_MASTER_SECRET = process.env.ADMIN_MASTER_SECRET || 'SAM_MASTER_2025_VIP'; // مفتاح المدير العام
+// مفتاح المدير العام المعتمد
+const ADMIN_MASTER_SECRET = process.env.ADMIN_MASTER_SECRET || 'SAM-PRO-MASTER-1993';
 
-// Middleware للتحقق من الترخيص العادي للنسخ
-const validateLicense = async (req, res, next) => {
+/**
+ * Middleware: التحقق من الترخيص العادي (للموظفين والعمليات العادية)
+ * يتحقق من بصمة الجهاز المربوطة بالمفتاح
+ */
+const validateLicenseWithFingerprint = async (req, res, next) => {
   const licenseKey = req.headers['x-license-key'];
-  if (!licenseKey) return res.status(401).json({ error: 'License key missing' });
+  const hwid = req.headers['x-hwid']; // بصمة الجهاز
 
-  const result = await pool.query('SELECT * FROM licenses WHERE license_key = $1 AND status = $2', [licenseKey, 'active']);
-  if (result.rows.length === 0) return res.status(403).json({ error: 'Invalid or revoked license' });
+  if (!licenseKey || !hwid) return res.status(401).json({ error: 'License or HWID missing' });
 
-  req.license = result.rows[0];
-  next();
+  try {
+    const result = await pool.query(
+      'SELECT * FROM licenses WHERE license_key = $1 AND hwid = $2 AND status = $3',
+      [licenseKey, hwid, 'active']
+    );
+    if (result.rows.length === 0) return res.status(403).json({ error: 'Unauthorized device or inactive license' });
+    
+    req.license = result.rows[0];
+    next();
+  } catch (err) {
+    res.status(500).json({ error: 'Database error' });
+  }
 };
 
-// Middleware خاص بلوحة المدير العام
+/**
+ * Middleware: التحقق الخاص بالمدير العام (للمراقبة السحابية)
+ * يعتمد فقط على مفتاح الماستر السري
+ */
 const validateMasterAdmin = (req, res, next) => {
   const adminSecret = req.headers['x-admin-secret'];
   if (adminSecret !== ADMIN_MASTER_SECRET) {
@@ -37,23 +53,46 @@ const validateMasterAdmin = (req, res, next) => {
   next();
 };
 
-// ... (Endpoints الأخرى تبقى كما هي)
+// --- مسارات المراقبة (مفصولة تماماً عن بصمة الجهاز) ---
 
-// لوحة المدير - جلب بيانات أي نسخة عبر الـ Key (محمي بمفتاح المدير العام)
+/**
+ * جلب بيانات أي نسخة عبر مفتاح الترخيص (للمدير العام فقط)
+ * الشرط الوحيد: المفتاح صحيح ومفعل في السيستم
+ */
 app.get('/api/manager/view/:targetKey', validateMasterAdmin, async (req, res) => {
   const { targetKey } = req.params;
   try {
-    const licenseRes = await pool.query('SELECT * FROM licenses WHERE license_key = $1', [targetKey]);
-    if (licenseRes.rows.length === 0) return res.status(404).json({ error: 'License not found' });
+    // التحقق من وجود المفتاح وحالته فقط (بدون HWID)
+    const licenseRes = await pool.query(
+      'SELECT * FROM licenses WHERE license_key = $1 AND status = $2', 
+      [targetKey, 'active']
+    );
     
-    const licenseId = licenseRes.rows[0].id;
+    if (licenseRes.rows.length === 0) {
+      return res.status(404).json({ error: 'License key not found or is currently inactive' });
+    }
+    
+    const licenseData = licenseRes.rows[0];
+    const licenseId = licenseData.id;
+
+    // جلب البيانات المرتبطة بهذا الترخيص
     const employees = await pool.query('SELECT * FROM employees WHERE license_id = $1', [licenseId]);
     const logs = await pool.query('SELECT * FROM logs WHERE license_id = $1 ORDER BY timestamp DESC LIMIT 100', [licenseId]);
     
-    res.json({ employees: employees.rows, logs: logs.rows, info: licenseRes.rows[0] });
+    res.json({ 
+      employees: employees.rows, 
+      logs: logs.rows, 
+      info: {
+        id: licenseData.id,
+        license_key: licenseData.license_key,
+        activated_at: licenseData.activated_at,
+        device_name: licenseData.device_name,
+        last_sync: licenseData.last_sync
+      } 
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Internal Server Error: ' + err.message });
   }
 });
 
-app.listen(3000, () => console.log('Server running on port 3000'));
+app.listen(3000, () => console.log('SAM Pro Cloud Server running on port 3000'));
