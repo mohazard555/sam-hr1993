@@ -375,6 +375,26 @@ const App: React.FC = () => {
       
       case 'payroll': return (
         <div className="space-y-8 animate-in fade-in duration-700">
+          {/* ترويسة الطباعة الرسمية لمسير الرواتب */}
+          <div className="hidden print:block text-right mb-8 pb-6 border-b-4 border-indigo-900">
+            <div className="flex justify-between items-start">
+              <div>
+                <h1 className="text-3xl font-black text-slate-900">{db.settings.name}</h1>
+                <h2 className="text-xl font-bold text-indigo-700 mt-2">
+                  {payrollCycleFilter === 'weekly' ? 'مسير الرواتب الأسبوعي' : 
+                   payrollCycleFilter === 'monthly' ? 'مسير الرواتب الشهري' : 
+                   'مسير الرواتب العام'} 
+                  (من {payrollDateFrom} إلى {payrollDateTo})
+                </h2>
+              </div>
+              {db.settings.logo && <img src={db.settings.logo} className="h-16 w-auto object-contain" alt="Logo" />}
+            </div>
+            <div className="flex justify-between items-center mt-4 text-xs font-bold text-slate-400">
+              <p>تاريخ استخراج التقرير: {new Date().toLocaleDateString('ar-EG')}</p>
+              <p>العملة المعتمدة: {db.settings.currency}</p>
+            </div>
+          </div>
+
           <div className="flex flex-col md:flex-row justify-between items-center no-print bg-white dark:bg-slate-900 p-8 rounded-[3rem] border dark:border-slate-800 shadow-xl gap-6 mb-8">
              <div className="flex items-center gap-4">
                 <div className="p-4 bg-indigo-600 text-white rounded-2xl shadow-lg">
