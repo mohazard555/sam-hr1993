@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Users, Clock, CreditCard, Calendar, 
   BarChart3, Settings as SettingsIcon, LayoutDashboard,
@@ -22,6 +22,9 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang, theme, toggleTheme, currentUser, onLogout }) => {
   const t = useTranslation(lang);
   const isRtl = lang === 'ar';
+  
+  // حالة التحكم في ظهور الإدارة السحابية (مخفية افتراضياً)
+  const [showCloudAdmin, setShowCloudAdmin] = useState(false);
 
   const menuItems = [
     { id: 'dashboard', label: t('dashboard'), icon: LayoutDashboard, roles: ['admin', 'manager', 'viewer'] },
@@ -36,12 +39,16 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang
     { id: 'payroll', label: t('payroll'), icon: BarChart3, roles: ['admin', 'manager'] },
     { id: 'documents', label: isRtl ? 'النماذج المطبوعة' : 'Print Forms', icon: ClipboardList, roles: ['admin', 'manager'] },
     { id: 'reports', label: isRtl ? 'التقارير النوعية' : 'Reports', icon: FileText, roles: ['admin', 'manager'] },
-    { id: 'manager', label: isRtl ? 'الإدارة السحابية' : 'Cloud Admin', icon: ShieldAlert, roles: ['admin'] },
+    { id: 'manager', label: isRtl ? 'الإدارة السحابية' : 'Cloud Admin', icon: ShieldAlert, roles: ['admin'], isHidden: true },
     { id: 'settings', label: t('settings'), icon: SettingsIcon, roles: ['admin'] },
   ];
 
   const filteredMenu = menuItems.filter(item => {
     if (!currentUser) return false;
+    
+    // إذا كان العنصر هو الإدارة السحابية، لا يظهر إلا إذا تم تفعيل حالة showCloudAdmin
+    if (item.id === 'manager' && !showCloudAdmin) return false;
+    
     if (currentUser.role === 'admin') return true;
     return item.roles.includes(currentUser.role);
   });
@@ -51,10 +58,18 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang
       {/* Sidebar */}
       <aside className="w-64 bg-indigo-950 text-white flex flex-col no-print border-l dark:border-slate-800 transition-all duration-300">
         <div className="p-6 border-b border-indigo-900">
-          <h1 className="text-2xl font-black text-indigo-400 flex items-center gap-2">
-            <div className="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/50">S</div>
-            <span>SAM</span>
-          </h1>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setShowCloudAdmin(!showCloudAdmin)} 
+              title={isRtl ? "تفعيل الخيارات المتقدمة" : "Toggle Advanced Options"}
+              className="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/50 hover:bg-indigo-400 transition-colors cursor-pointer"
+            >
+              S
+            </button>
+            <h1 className="text-2xl font-black text-indigo-400">
+              <span>SAM</span>
+            </h1>
+          </div>
           <p className="text-[10px] text-indigo-300 mt-1 font-bold tracking-widest uppercase">HRMS PRO</p>
         </div>
         <nav className="flex-1 overflow-y-auto p-4 space-y-1">

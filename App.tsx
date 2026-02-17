@@ -13,7 +13,7 @@ import PrintForms from './views/PrintForms';
 import ManagerDashboard from './views/ManagerDashboard';
 import { GenericModule } from './views/GenericModule';
 import { loadDB, saveDB, DB } from './db/store';
-import { Employee, PayrollRecord, FinancialEntry, Loan, LeaveRequest, ProductionEntry, AttendanceRecord, Warning, PrintHistoryRecord, PermissionRecord, SalaryCycle } from './types';
+import { Employee, PayrollRecord, FinancialEntry, Loan, LeaveRequest, ProductionEntry, AttendanceRecord, Warning, PrintHistoryRecord, PermissionRecord, SalaryCycle, User } from './types';
 import { generatePayrollForRange, calculateTimeDiffMinutes } from './utils/calculations';
 import { exportToExcel } from './utils/export';
 import { Printer, X, ReceiptText, CalendarDays, Loader2, FileText, CheckCircle, Info, ShieldAlert, Package, Layers, Clock, TrendingUp, Lock, HelpCircle, ToggleLeft, ToggleRight, AlertCircle, Calendar, FileDown, LayoutPanelLeft, LayoutPanelTop, Zap, Timer, Filter, ShieldCheck, Award } from 'lucide-react';
@@ -133,6 +133,39 @@ const App: React.FC = () => {
     if (confirm('هل تريد نقل هذا السجل إلى الأرشيف التاريخي؟')) {
       updateList(key, { ...item, isArchived: true });
     }
+  };
+
+  const handleClearData = () => {
+    if (confirm('تحذير نهائي: سيتم حذف كافة السجلات (موظفين، رواتب، حضور، إنتاج، سلف، ...) ولا يمكن التراجع عن هذا الإجراء. هل أنت متأكد؟')) {
+      setDb(prev => ({
+        ...prev,
+        employees: [],
+        attendance: [],
+        permissions: [],
+        loans: [],
+        leaves: [],
+        financials: [],
+        production: [],
+        warnings: [],
+        payrolls: [],
+        payrollHistory: [],
+        printHistory: []
+      }));
+      alert('تم مسح كافة سجلات البيانات بنجاح.');
+    }
+  };
+
+  const handleImport = (newDb: DB) => {
+    setDb(newDb);
+    setActiveTab('dashboard');
+  };
+
+  const handleUpdateAdmin = (updatedAdmin: Partial<User>) => {
+    setDb(prev => ({
+      ...prev,
+      users: prev.users.map(u => u.id === 'admin-sam' ? { ...u, ...updatedAdmin } : u)
+    }));
+    alert('تم تحديث بيانات المسؤول بنجاح.');
   };
 
   const formatMinutes = (totalMinutes: number) => {
@@ -490,7 +523,7 @@ const App: React.FC = () => {
       );
       case 'documents': return <PrintForms employees={db.employees || []} attendance={db.attendance || []} financials={db.financials || []} warnings={db.warnings || []} leaves={db.leaves || []} loans={db.loans || []} permissions={db.permissions} settings={db.settings} printHistory={db.printHistory || []} onPrint={(doc) => setIndividualPrintItem(doc as any)} />;
       case 'manager': return <ManagerDashboard />;
-      case 'settings': return <SettingsView settings={db.settings} admin={db.users[0]} db={db} onUpdateSettings={s => setDb(p => ({...p, settings: {...p.settings, ...s}}))} onUpdateAdmin={u => setDb(p => ({...p, users: [{...p.users[0], ...u}, ...p.users.slice(1)]}))} onImport={json => setDb(json)} onRunArchive={() => {}} onClearData={() => {}} />;
+      case 'settings': return <SettingsView settings={db.settings} admin={db.users[0]} db={db} onUpdateSettings={s => setDb(p => ({...p, settings: {...p.settings, ...s}}))} onUpdateAdmin={handleUpdateAdmin} onImport={handleImport} onRunArchive={() => {}} onClearData={handleClearData} />;
       case 'reports': return <ReportsView db={db} payrolls={currentPayrolls} lang={db.settings.language} onPrint={() => window.print()} />;
       default: return null;
     }
