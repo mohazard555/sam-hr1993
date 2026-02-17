@@ -56,6 +56,23 @@ const ReportsView: React.FC<Props> = ({ db, payrolls, lang, onPrint }) => {
     }).filter(Boolean);
   }, [selectedEmpId, startDate, endDate, db, payrolls]);
 
+  const handleExportStandardExcel = () => {
+    const dataToExport = proReportData.map((d: any) => ({
+      'اسم الموظف': d.empName,
+      'القسم': d.dept,
+      'الراتب الأساسي': d.base,
+      'المواصلات': d.trans,
+      'أيام الحضور': d.presentDays,
+      'دقائق التأخير': d.totalLate,
+      'الإضافي (ساعات)': (d.totalOT / 60).toFixed(2),
+      'المكافآت': d.bonuses,
+      'الاستقطاعات': d.deductions,
+      'السلف': d.loans,
+      'صافي المجموع المستلم': d.netPaid
+    }));
+    exportToExcel(dataToExport, "SAM_Payroll_Analysis");
+  };
+
   const comparativeData = useMemo(() => {
     const getPeriodStats = (m: number, y: number) => {
       const histRecords = (db.payrollHistory || []).filter(p => Number(p.month) === m && Number(p.year) === y);
@@ -144,7 +161,7 @@ const ReportsView: React.FC<Props> = ({ db, payrolls, lang, onPrint }) => {
                </div>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => exportToExcel(proReportData, "SAM_Payroll_Analysis")} className="bg-emerald-600 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg hover:bg-emerald-700 transition"><FileDown size={20} /> Excel</button>
+              <button onClick={handleExportStandardExcel} className="bg-emerald-600 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg hover:bg-emerald-700 transition"><FileDown size={20} /> Excel</button>
               <button onClick={onPrint} className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg hover:bg-black transition"><Printer size={20} /> طباعة</button>
             </div>
           </div>

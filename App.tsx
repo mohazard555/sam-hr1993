@@ -195,6 +195,14 @@ const App: React.FC = () => {
           archiveMode={archiveModes.permissions} onToggleArchive={() => setArchiveModes(p => ({...p, permissions: !p.permissions}))}
           onSave={i => updateList('permissions', i)} onDelete={id => deleteFromList('permissions', id)} onArchive={i => archiveItem('permissions', i)}
           onPrintIndividual={i => setIndividualPrintItem({title: "إذن خروج ساعي رسمي", type: 'permission', data: i})}
+          exportMapper={(item, name) => ({
+            'اسم الموظف': name,
+            'التاريخ': item.date,
+            'وقت الخروج': item.exitTime || '-',
+            'وقت العودة': item.returnTime || '-',
+            'المدة (ساعة)': item.hours,
+            'السبب': item.reason || 'مهمة عمل'
+          })}
           initialData={{ date: new Date().toISOString().split('T')[0], hours: 0, exitTime: '10:00', returnTime: '11:00', reason: '' }}
           tableHeaders={isRtl ? ['الموظف', 'التاريخ', 'من (خروج)', 'إلى (عودة)', 'المدة', 'السبب'] : ['Employee', 'Date', 'Exit', 'Return', 'Duration', 'Reason']}
           renderForm={(data, set) => {
@@ -250,6 +258,14 @@ const App: React.FC = () => {
           archiveMode={archiveModes.leaves} onToggleArchive={() => setArchiveModes(p => ({...p, leaves: !p.leaves}))} 
           onSave={i => updateList('leaves', i)} onDelete={id => deleteFromList('leaves', id)} onArchive={i => archiveItem('leaves', i)}
           onPrintIndividual={i => setIndividualPrintItem({title: "إشعار إجازة رسمي", type: 'leave', data: i})} 
+          exportMapper={(item, name) => ({
+            'اسم الموظف': name,
+            'نوع الإجازة': item.type === 'annual' ? 'سنوية' : item.type === 'sick' ? 'مرضية' : item.type === 'unpaid' ? 'بدون راتب' : item.type,
+            'الحالة': item.isPaid ? 'مأجورة' : 'غير مأجورة',
+            'تاريخ البدء': item.startDate,
+            'تاريخ الانتهاء': item.endDate,
+            'السبب': item.reason || '-'
+          })}
           initialData={{ type: 'annual', status: 'approved', isPaid: true, startDate: new Date().toISOString().split('T')[0], endDate: new Date().toISOString().split('T')[0] }} 
           tableHeaders={['الموظف', 'النوع', 'مأجورة', 'من', 'إلى']} 
           renderForm={(data, set) => (
@@ -294,6 +310,16 @@ const App: React.FC = () => {
           archiveMode={archiveModes.loans} onToggleArchive={() => setArchiveModes(p => ({...p, loans: !p.loans}))} 
           onSave={i => updateList('loans', i)} onDelete={id => deleteFromList('loans', id)} onArchive={i => archiveItem('loans', i)}
           onPrintIndividual={i => setIndividualPrintItem({title: "سند سلفة موظف", type: 'loan', data: i})} 
+          exportMapper={(item, name) => ({
+            'اسم الموظف': name,
+            'مبلغ السلفة': item.amount,
+            'عدد الأقساط': item.isImmediate ? 'فوري' : item.installmentsCount,
+            'قسط شهري': item.monthlyInstallment,
+            'المبلغ المتبقي': item.remainingAmount,
+            'تاريخ المنح': item.date,
+            'بداية التحصيل': item.isImmediate ? 'الراتب القادم' : item.collectionDate || '-',
+            'السبب': item.reason || '-'
+          })}
           initialData={{ amount: 0, installmentsCount: 1, monthlyInstallment: 0, remainingAmount: 0, date: new Date().toISOString().split('T')[0], collectionDate: new Date().toISOString().split('T')[0], isImmediate: false }} 
           tableHeaders={['الموظف', 'المبلغ', 'الأقساط', 'قيمة القسط', 'بداية التحصيل']} 
           renderForm={(data, set) => (
@@ -345,6 +371,13 @@ const App: React.FC = () => {
           archiveMode={archiveModes.financials} onToggleArchive={() => setArchiveModes(p => ({...p, financials: !p.financials}))} 
           onSave={i => updateList('financials', i)} onDelete={id => deleteFromList('financials', id)} onArchive={i => archiveItem('financials', i)}
           onPrintIndividual={i => setIndividualPrintItem({title: "سند مالي معتمد", type: 'financial', data: i})} 
+          exportMapper={(item, name) => ({
+            'اسم الموظف': name,
+            'نوع السند': item.type === 'bonus' ? 'مكافأة' : item.type === 'deduction' ? 'خصم' : item.type === 'production_incentive' ? 'حافز إنتاج' : 'سلفة فورية',
+            'المبلغ': item.amount,
+            'التاريخ': item.date,
+            'البيان / السبب': item.reason
+          })}
           initialData={{ type: 'bonus', amount: 0, date: new Date().toISOString().split('T')[0], reason: '' }} 
           tableHeaders={['الموظف', 'النوع', 'المبلغ', 'التاريخ']} 
           renderForm={(data, set) => (
@@ -863,6 +896,32 @@ const App: React.FC = () => {
     }, 600);
   };
 
+  const handleExportPayrollExcel = () => {
+    const exportData = currentPayrolls.map(p => {
+      const emp = db.employees.find(e => e.id === p.employeeId);
+      return {
+        'اسم الموظف': emp?.name,
+        'القسم': emp?.department,
+        'نوع الدوام': (emp?.cycleType || db.settings.salaryCycle) === 'weekly' ? 'أسبوعي' : 'شهري',
+        'الأساسي': p.baseSalary,
+        'بدل المواصلات': p.transport,
+        'أيام الحضور': p.workingDays,
+        'أيام الغياب': p.absenceDays,
+        'مكافآت': p.bonuses,
+        'إنتاج': p.production,
+        'عدد قطع الإنتاج': p.productionPieces,
+        'إضافي': p.overtimePay,
+        'تأخير': p.lateDeduction,
+        'انصراف مبكر': p.earlyDepartureDeduction,
+        'خصم أذونات': p.permissionDeduction,
+        'سلف': p.loanInstallment,
+        'خصومات أخرى': p.manualDeductions,
+        'صافي الراتب': p.netSalary
+      };
+    });
+    exportToExcel(exportData, "Payroll_Report");
+  };
+
   if (!currentUser) {
     return (
       <div className={`min-h-screen flex items-center justify-center bg-slate-950 p-6 font-cairo ${db.settings.theme === 'dark' ? 'dark' : ''}`} dir="rtl">
@@ -930,32 +989,6 @@ const App: React.FC = () => {
       </div>
     );
   }
-
-  const handleExportPayrollExcel = () => {
-    const exportData = currentPayrolls.map(p => {
-      const emp = db.employees.find(e => e.id === p.employeeId);
-      return {
-        'اسم الموظف': emp?.name,
-        'القسم': emp?.department,
-        'نوع الدوام': (emp?.cycleType || db.settings.salaryCycle) === 'weekly' ? 'أسبوعي' : 'شهري',
-        'الأساسي': p.baseSalary,
-        'بدل المواصلات': p.transport,
-        'أيام الحضور': p.workingDays,
-        'أيام الغياب': p.absenceDays,
-        'مكافآت': p.bonuses,
-        'إنتاج': p.production,
-        'عدد قطع الإنتاج': p.productionPieces,
-        'إضافي': p.overtimePay,
-        'تأخير': p.lateDeduction,
-        'انصراف مبكر': p.earlyDepartureDeduction,
-        'خصم أذونات': p.permissionDeduction,
-        'سلف': p.loanInstallment,
-        'خصومات أخرى': p.manualDeductions,
-        'صافي الراتب': p.netSalary
-      };
-    });
-    exportToExcel(exportData, "Payroll_Report");
-  };
 
   return (
     <div className={db.settings.theme === 'dark' ? 'dark' : ''}>
