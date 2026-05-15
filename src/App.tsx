@@ -33,7 +33,7 @@ const App: React.FC = () => {
   }, [db, notifications]);
 
   useEffect(() => {
-    const gistID = db.settings.gistID || db.settings.gistURL?.split('/').pop();
+    const gistID = db.settings.gistID || (db.settings.gistURL?.includes('gist.github.com') ? db.settings.gistURL.split('/').pop() : db.settings.gistURL?.split('/')[4]);
     if (!gistID || !db.settings.gistToken) return;
     
     // Simple debounce: only sync if DB changes and wait 15s
@@ -41,23 +41,27 @@ const App: React.FC = () => {
         setIsSyncing(true);
         try {
             // Must use the API URL
+            console.log("Attempting Gist Sync with ID:", gistID);
             const response = await fetch(`https://api.github.com/gists/${gistID}`, {
                 method: 'PATCH',
                 headers: { 
-                    'Authorization': `token ${db.settings.gistToken}`,
+                    'Authorization': `Bearer ${db.settings.gistToken.trim()}`,
                     'Content-Type': 'application/json' 
                 },
                 body: JSON.stringify({ files: { 'db.json': { content: JSON.stringify(db) } } })
             });
 
+            console.log("Gist Sync Response Status:", response.status);
             if (!response.ok) {
-                console.error("Gist Sync Failed", await response.text());
+                const errorText = await response.text();
+                console.error("Gist Sync Failed", errorText);
                 setNotifications(prev => [`فشل المزامنة: ${response.statusText}`, ...prev]);
             } else {
+                console.log("Gist Sync Successful");
                 setNotifications(prev => ['تمت المزامنة بنجاح', ...prev]);
             }
         } catch(e) { 
-            console.error(e); 
+            console.error("Gist Sync Exception:", e); 
             setNotifications(prev => [`خطأ في الاتصال بالمزامنة`, ...prev]);
         }
         setIsSyncing(false);
