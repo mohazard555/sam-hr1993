@@ -13,11 +13,16 @@ interface Props {
   onRunArchive: () => void;
   onClearData: () => void;
   onSaveUser: (u: User) => void;
+  onRemoveUser: (id: string) => void;
+  onManualSync: () => void;
+  isSyncing: boolean;
 }
 
-const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, onUpdateAdmin, onImport, onRunArchive, onClearData, onSaveUser }) => {
+const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, onUpdateAdmin, onImport, onRunArchive, onClearData, onSaveUser, onRemoveUser, onManualSync, isSyncing }) => {
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [adminForm, setAdminForm] = useState({ username: admin.username, password: admin.password || '' });
+
+  (window as any).onRemoveUser = onRemoveUser;
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -167,16 +172,26 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
                   <p className="font-black text-slate-800 dark:text-white">{user.name}</p>
                   <p className="text-[10px] font-bold text-slate-500">{user.role === 'admin' ? 'مسؤول' : 'مدخل بيانات'}</p>
                 </div>
-                <button onClick={() => {
-                  setEditingUserId(user.id);
-                  (document.getElementById('new-user-name') as HTMLInputElement).value = user.name;
-                  (document.getElementById('new-user-username') as HTMLInputElement).value = user.username;
-                  (document.getElementById('new-user-password') as HTMLInputElement).value = user.password;
-                  (document.getElementById('new-user-role') as HTMLSelectElement).value = user.role;
-                  document.querySelectorAll('.user-permission-checkbox').forEach((cb: any) => {
-                    cb.checked = user.permissions.includes(cb.value);
-                  });
-                }} className="text-xs bg-white dark:bg-slate-700 px-3 py-1 rounded-lg">تعديل</button>
+                <div className="flex gap-2">
+                  <button onClick={() => {
+                    setEditingUserId(user.id);
+                    (document.getElementById('new-user-name') as HTMLInputElement).value = user.name;
+                    (document.getElementById('new-user-username') as HTMLInputElement).value = user.username;
+                    (document.getElementById('new-user-password') as HTMLInputElement).value = user.password;
+                    (document.getElementById('new-user-role') as HTMLSelectElement).value = user.role;
+                    document.querySelectorAll('.user-permission-checkbox').forEach((cb: any) => {
+                      cb.checked = user.permissions.includes(cb.value);
+                    });
+                  }} className="text-xs bg-white dark:bg-slate-700 px-3 py-1 rounded-lg">تعديل</button>
+                  {user.id !== db.users[0].id && (
+                    <button onClick={() => {
+                      if(confirm('حذف المستخدم نهائياً؟')) {
+                        // We need onRemoveUser prop or similar. Let's use a trick or add it.
+                        (window as any).onRemoveUser(user.id);
+                      }
+                    }} className="text-xs bg-rose-50 text-rose-600 px-3 py-1 rounded-lg"><Trash2 size={14}/></button>
+                  )}
+                </div>
              </div>
            ))}
            <div className="pt-4 border-t">
@@ -251,7 +266,17 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
           <label className="text-xs font-black text-slate-400 mb-1 block uppercase">Token</label>
           <input type="password" className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 rounded-2xl" placeholder="ghp_..." value={settings.gistToken || ''} onChange={e => onUpdateSettings({gistToken: e.target.value})} />
         </div>
-        <button className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black">حفظ إعدادات المزامنة</button>
+        <div className="flex gap-2">
+          <button onClick={() => alert('تم حفظ الإعدادات')} className="flex-1 bg-slate-800 text-white py-4 rounded-2xl font-black">حفظ الإعدادات</button>
+          <button 
+            disabled={isSyncing}
+            onClick={onManualSync} 
+            className="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-black disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {isSyncing ? 'جاري الرفع...' : 'مزامنة الآن'}
+            <Database size={18}/>
+          </button>
+        </div>
       </div>
 
       {/* Database Maintenance */}

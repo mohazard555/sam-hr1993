@@ -32,44 +32,62 @@ const App: React.FC = () => {
     localStorage.setItem('sam_notifications', JSON.stringify(notifications));
   }, [db, notifications]);
 
-  useEffect(() => {
-    // Robust ID parsing:
-    // If gistURL is complete, try to extract ID. Otherwise assume it's an ID.
+  const syncToGist = async (manual = false) => {
+    // Extract Gist ID from various possible URL formats or direct ID
     const url = db.settings.gistURL || "";
-    const gistID = db.settings.gistID || (url.includes('gist.github.com/') ? url.split('/').pop() : url);
+    let gistID = db.settings.gistID || "";
     
-    if (!gistID || !db.settings.gistToken) return;
+    if (!gistID && url) {
+      if (url.includes('gist.github.com/')) {
+        gistID = url.split('/').pop() || "";
+      } else if (url.includes('gist.githubusercontent.com/')) {
+        gistID = url.split('/')[4] || "";
+      } else {
+        gistID = url;
+      }
+    }
     
-    // Simple debounce: only sync if DB changes and wait 15s
-    const timer = setTimeout(async () => {
-        setIsSyncing(true);
-        console.log("Attempting Gist Sync with ID:", gistID);
-        try {
-            // Must use the API URL
-            const response = await fetch(`https://api.github.com/gists/${gistID}`, {
-                method: 'PATCH',
-                headers: { 
-                    'Authorization': `Bearer ${db.settings.gistToken.trim()}`,
-                    'Content-Type': 'application/json' 
-                },
-                body: JSON.stringify({ files: { 'hrjordon.josn': { content: JSON.stringify(db) } } })
-            });
+    if (!gistID || !db.settings.gistToken) {
+      if (manual) setNotifications(prev => ['يرجى التأكد من إعدادات Gist', ...prev]);
+      return;
+    }
 
-            console.log("Gist Sync Response Status:", response.status);
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error("Gist Sync Failed", errorText);
-                setNotifications(prev => [`فشل المزامنة: ${response.statusText}`, ...prev]);
-            } else {
-                console.log("Gist Sync Successful");
-                setNotifications(prev => ['تمت المزامنة بنجاح', ...prev]);
-            }
-        } catch(e) { 
-            console.error("Gist Sync Exception:", e); 
-            setNotifications(prev => [`خطأ في الاتصال بالمزامنة`, ...prev]);
+    setIsSyncing(true);
+    try {
+        // Use the filename provided by the user: Hrjordon.josn (or similar)
+        // We will try to update 'Hrjordon.josn' and 'hrjordon.josn'
+        const filename = "Hrjordon.josn"; 
+        
+        const response = await fetch(`https://api.github.com/gists/${gistID}`, {
+            method: 'PATCH',
+            headers: { 
+                'Authorization': `Bearer ${db.settings.gistToken.trim()}`,
+                'Content-Type': 'application/json' 
+            },
+            body: JSON.stringify({ 
+              files: { 
+                [filename]: { content: JSON.stringify(db) }
+              } 
+            })
+        });
+
+        if (response.ok) {
+            setNotifications(prev => ['تمت المزامنة بنجاح', ...prev]);
+        } else {
+            const error = await response.text();
+            console.error("Sync Error:", error);
+            setNotifications(prev => [`فشل المزامنة: ${response.status}`, ...prev]);
         }
-        setIsSyncing(false);
-    }, 15000);
+    } catch(e) { 
+        console.error("Gist Sync Exception:", e); 
+        setNotifications(prev => [`خطأ في الاتصال بالمزامنة`, ...prev]);
+    }
+    setIsSyncing(false);
+  };
+
+  useEffect(() => {
+    // Simple debounce: only sync if DB changes and wait 15s
+    const timer = setTimeout(() => syncToGist(false), 15000);
     return () => clearTimeout(timer);
   }, [db]);
 
@@ -130,7 +148,22 @@ const App: React.FC = () => {
       case 'manager': return <ManagerDashboard />;
       case 'settings': 
         if (currentUser.role !== 'admin') return <div className="p-20 text-center font-black">لا تملك صلاحية الدخول</div>;
-        return <SettingsView settings={db.settings} admin={db.users[0]} db={db} onUpdateSettings={s => setDb(p => ({...p, settings: {...p.settings, ...s}}))} onUpdateAdmin={u => {}} onImport={d => {}} onRunArchive={() => {}} onClearData={() => {}} onSaveUser={u => updateList('users', u)} />;
+        return (
+          <SettingsView 
+            settings={db.settings} 
+            admin={db.users[0]} 
+            db={db} 
+            onUpdateSettings={s => setDb(p => ({...p, settings: {...p.settings, ...s}}))} 
+            onUpdateAdmin={u => {}} 
+            onImport={d => {}} 
+            onRunArchive={() => {}} 
+            onClearData={() => {}} 
+            onSaveUser={u => updateList('users', u)}
+            onRemoveUser={id => deleteFromList('users', id)}
+            onManualSync={() => syncToGist(true)}
+            isSyncing={isSyncing}
+          />
+        );
       default: return <div className="p-20 text-center font-black">قريباً...</div>;
     }
   };
