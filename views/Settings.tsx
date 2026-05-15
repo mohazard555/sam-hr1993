@@ -215,8 +215,8 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
       <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 space-y-6">
         <h3 className="text-xl font-black text-indigo-600 flex items-center gap-2"><Database size={24} /> مزامنة البيانات (Gist)</h3>
         <div>
-          <label className="text-xs font-black text-slate-400 mb-1 block uppercase">رابط Gist</label>
-          <input className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 rounded-2xl" placeholder="https://api.github.com/gists/..." value={settings.gistURL || ''} onChange={e => onUpdateSettings({gistURL: e.target.value})} />
+          <label className="text-xs font-black text-slate-400 mb-1 block uppercase">رقم تعريف Gist (ID)</label>
+          <input className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 rounded-2xl" placeholder="66e2253..." value={settings.gistID || ''} onChange={e => onUpdateSettings({gistID: e.target.value})} />
         </div>
         <div>
           <label className="text-xs font-black text-slate-400 mb-1 block uppercase">Token</label>

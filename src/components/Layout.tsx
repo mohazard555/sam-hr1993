@@ -106,7 +106,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang
                 {notifications.length > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>}
              </button>
              {showNotifications && (
-               <div className="absolute top-16 left-8 w-80 bg-white dark:bg-slate-800 shadow-xl rounded-2xl p-4 border dark:border-slate-700 z-50">
+               <div className="absolute top-16 z-50 w-80 bg-white dark:bg-slate-800 shadow-xl rounded-2xl p-4 border dark:border-slate-700 mt-2 right-8">
                  <h4 className="font-black text-slate-800 dark:text-white mb-2">الإشعارات</h4>
                  <div className="space-y-2">
                    {notifications.length === 0 ? <p className="text-sm font-bold text-slate-500">لا توجد إشعارات حالياً</p> : notifications.map((n, i) => <p key={i} className="text-sm font-bold text-slate-700 dark:text-slate-300 p-2 border-b">{n}</p>)}
