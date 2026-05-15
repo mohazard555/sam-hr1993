@@ -165,8 +165,17 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
              <div key={user.id} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl flex justify-between items-center">
                 <div>
                   <p className="font-black text-slate-800 dark:text-white">{user.name}</p>
-                  <p className="text-[10px] font-bold text-slate-500">{user.role}</p>
+                  <p className="text-[10px] font-bold text-slate-500">{user.role === 'admin' ? 'مسؤول' : 'مدخل بيانات'}</p>
                 </div>
+                <button onClick={() => {
+                  (document.getElementById('new-user-name') as HTMLInputElement).value = user.name;
+                  (document.getElementById('new-user-username') as HTMLInputElement).value = user.username;
+                  (document.getElementById('new-user-password') as HTMLInputElement).value = user.password;
+                  (document.getElementById('new-user-role') as HTMLSelectElement).value = user.role;
+                  document.querySelectorAll('.user-permission-checkbox').forEach((cb: any) => {
+                    cb.checked = user.permissions.includes(cb.value);
+                  });
+                }} className="text-xs bg-white dark:bg-slate-700 px-3 py-1 rounded-lg">تعديل</button>
              </div>
            ))}
            <div className="pt-4 border-t">
@@ -176,9 +185,21 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
               <div className="mb-4">
                   <label className="text-xs font-black text-slate-400 mb-2 block uppercase">الأقسام المسموح بها</label>
                   <div className="grid grid-cols-2 gap-2 text-[10px] font-bold">
-                    {['dashboard', 'employees', 'departments', 'attendance', 'leaves', 'financials', 'loans', 'production', 'payroll', 'documents', 'reports'].map(tab => (
-                      <label key={tab} className="flex items-center gap-2">
-                        <input type="checkbox" className="user-permission-checkbox" value={tab}/> {tab}
+                    {[
+                      {id: 'dashboard', label: 'لوحة التحكم'},
+                      {id: 'employees', label: 'الموظفون'},
+                      {id: 'departments', label: 'الأقسام'},
+                      {id: 'attendance', label: 'الحضور والانصراف'},
+                      {id: 'leaves', label: 'الإجازات'},
+                      {id: 'financials', label: 'المالية'},
+                      {id: 'loans', label: 'السلف'},
+                      {id: 'production', label: 'الإنتاج'},
+                      {id: 'payroll', label: 'الرواتب'},
+                      {id: 'documents', label: 'المستندات'},
+                      {id: 'reports', label: 'التقارير'}
+                    ].map(tab => (
+                      <label key={tab.id} className="flex items-center gap-2">
+                        <input type="checkbox" className="user-permission-checkbox" value={tab.id}/> {tab.label}
                       </label>
                     ))}
                   </div>

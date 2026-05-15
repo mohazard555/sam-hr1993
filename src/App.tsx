@@ -33,22 +33,25 @@ const App: React.FC = () => {
   }, [db, notifications]);
 
   useEffect(() => {
-    const gistID = db.settings.gistID || (db.settings.gistURL?.includes('gist.github.com') ? db.settings.gistURL.split('/').pop() : db.settings.gistURL?.split('/')[4]);
+    // Simplify ID parsing: look for the last part of a URL or assume it is an ID
+    const url = db.settings.gistURL || "";
+    const gistID = db.settings.gistID || (url.includes('/') ? url.split('/').pop() : url);
+    
     if (!gistID || !db.settings.gistToken) return;
     
     // Simple debounce: only sync if DB changes and wait 15s
     const timer = setTimeout(async () => {
         setIsSyncing(true);
+        console.log("Attempting Gist Sync with ID:", gistID);
         try {
             // Must use the API URL
-            console.log("Attempting Gist Sync with ID:", gistID);
             const response = await fetch(`https://api.github.com/gists/${gistID}`, {
                 method: 'PATCH',
                 headers: { 
                     'Authorization': `Bearer ${db.settings.gistToken.trim()}`,
                     'Content-Type': 'application/json' 
                 },
-                body: JSON.stringify({ files: { 'db.json': { content: JSON.stringify(db) } } })
+                body: JSON.stringify({ files: { 'hrjordon.josn': { content: JSON.stringify(db) } } })
             });
 
             console.log("Gist Sync Response Status:", response.status);
