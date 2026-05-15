@@ -33,9 +33,10 @@ const App: React.FC = () => {
   }, [db, notifications]);
 
   useEffect(() => {
-    // Simplify ID parsing: look for the last part of a URL or assume it is an ID
+    // Robust ID parsing:
+    // If gistURL is complete, try to extract ID. Otherwise assume it's an ID.
     const url = db.settings.gistURL || "";
-    const gistID = db.settings.gistID || (url.includes('/') ? url.split('/').pop() : url);
+    const gistID = db.settings.gistID || (url.includes('gist.github.com/') ? url.split('/').pop() : url);
     
     if (!gistID || !db.settings.gistToken) return;
     
@@ -127,7 +128,9 @@ const App: React.FC = () => {
       case 'departments': return <Departments departments={db.departments} employees={db.employees} onUpdate={d => setDb(p => ({...p, departments: d}))} onUpdateEmployee={e => updateList('employees', e)} />;
       case 'attendance': return <Attendance employees={db.employees} records={db.attendance} settings={db.settings} onSaveRecord={r => updateList('attendance', r)} onDeleteRecord={id => deleteFromList('attendance', id)} lang="ar" onPrint={() => {}} />;
       case 'manager': return <ManagerDashboard />;
-      case 'settings': return <SettingsView settings={db.settings} admin={db.users[0]} db={db} onUpdateSettings={s => setDb(p => ({...p, settings: {...p.settings, ...s}}))} onUpdateAdmin={u => {}} onImport={d => {}} onRunArchive={() => {}} onClearData={() => {}} />;
+      case 'settings': 
+        if (currentUser.role !== 'admin') return <div className="p-20 text-center font-black">لا تملك صلاحية الدخول</div>;
+        return <SettingsView settings={db.settings} admin={db.users[0]} db={db} onUpdateSettings={s => setDb(p => ({...p, settings: {...p.settings, ...s}}))} onUpdateAdmin={u => {}} onImport={d => {}} onRunArchive={() => {}} onClearData={() => {}} onSaveUser={u => updateList('users', u)} />;
       default: return <div className="p-20 text-center font-black">قريباً...</div>;
     }
   };

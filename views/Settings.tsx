@@ -12,11 +12,11 @@ interface Props {
   onImport: (db: DB) => void;
   onRunArchive: () => void;
   onClearData: () => void;
-  onAddUser: (u: User) => void;
+  onSaveUser: (u: User) => void;
 }
 
-const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, onUpdateAdmin, onImport, onRunArchive, onClearData, onAddUser }) => {
-  (window as any).onAddUser = onAddUser;
+const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, onUpdateAdmin, onImport, onRunArchive, onClearData, onSaveUser }) => {
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [adminForm, setAdminForm] = useState({ username: admin.username, password: admin.password || '' });
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -168,6 +168,7 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
                   <p className="text-[10px] font-bold text-slate-500">{user.role === 'admin' ? 'مسؤول' : 'مدخل بيانات'}</p>
                 </div>
                 <button onClick={() => {
+                  setEditingUserId(user.id);
                   (document.getElementById('new-user-name') as HTMLInputElement).value = user.name;
                   (document.getElementById('new-user-username') as HTMLInputElement).value = user.username;
                   (document.getElementById('new-user-password') as HTMLInputElement).value = user.password;
@@ -217,17 +218,24 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
                    const permissions = Array.from(checkboxes).map((cb: any) => cb.value);
                    const role = (document.getElementById('new-user-role') as HTMLSelectElement).value as any;
                    
-                   (window as any).onAddUser({ 
-                      id: Date.now().toString(), 
+                   onSaveUser({ 
+                      id: editingUserId || Date.now().toString(), 
                       name, 
                       username, 
                       password, 
                       role,
                       permissions 
                    });
+                   setEditingUserId(null);
+                   (document.getElementById('new-user-name') as HTMLInputElement).value = '';
+                   (document.getElementById('new-user-username') as HTMLInputElement).value = '';
+                   (document.getElementById('new-user-password') as HTMLInputElement).value = '';
+                   document.querySelectorAll('.user-permission-checkbox').forEach((cb: any) => (cb.checked = false));
                 }}
                 className="w-full bg-indigo-600 text-white py-3 rounded-xl font-black"
-              >إضافة مستخدم</button>
+              >
+                {editingUserId ? 'حفظ التعديلات' : 'إضافة مستخدم'}
+              </button>
            </div>
         </div>
       </div>
