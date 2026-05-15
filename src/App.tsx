@@ -39,32 +39,33 @@ const App: React.FC = () => {
     
     if (!gistID && url) {
       if (url.includes('gist.github.com/')) {
-        gistID = url.split('/').pop() || "";
+        gistID = url.split('/').pop()?.split('#')[0] || "";
       } else if (url.includes('gist.githubusercontent.com/')) {
         gistID = url.split('/')[4] || "";
       } else {
-        gistID = url;
+        gistID = url.trim();
       }
     }
     
     if (!gistID || !db.settings.gistToken) {
-      if (manual) setNotifications(prev => ['يرجى التأكد من إعدادات Gist', ...prev]);
+      if (manual) setNotifications(prev => ['يرجى التأكد من إعدادات Gist والـ Token', ...prev]);
       return;
     }
 
     setIsSyncing(true);
     try {
-        // Use the filename provided by the user: Hrjordon.josn (or similar)
-        // We will try to update 'Hrjordon.josn' and 'hrjordon.josn'
         const filename = "Hrjordon.josn"; 
-        
+        console.log("Syncing to Gist:", gistID, "File:", filename);
+
         const response = await fetch(`https://api.github.com/gists/${gistID}`, {
             method: 'PATCH',
             headers: { 
-                'Authorization': `Bearer ${db.settings.gistToken.trim()}`,
-                'Content-Type': 'application/json' 
+                'Authorization': `token ${db.settings.gistToken.trim()}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/vnd.github.v3+json'
             },
             body: JSON.stringify({ 
+              description: "SAM Pro Database Backup",
               files: { 
                 [filename]: { content: JSON.stringify(db) }
               } 
@@ -72,22 +73,22 @@ const App: React.FC = () => {
         });
 
         if (response.ok) {
-            setNotifications(prev => ['تمت المزامنة بنجاح', ...prev]);
+            setNotifications(prev => ['تمت المزامنة بنجاح ✓', ...prev.slice(0, 5)]);
         } else {
-            const error = await response.text();
+            const error = await response.json().catch(() => ({ message: 'خطأ غير معروف' }));
             console.error("Sync Error:", error);
-            setNotifications(prev => [`فشل المزامنة: ${response.status}`, ...prev]);
+            setNotifications(prev => [`فشل المزامنة: ${error.message || response.status}`, ...prev.slice(0, 5)]);
         }
     } catch(e) { 
         console.error("Gist Sync Exception:", e); 
-        setNotifications(prev => [`خطأ في الاتصال بالمزامنة`, ...prev]);
+        setNotifications(prev => [`خطأ في الاتصال بالمزامنة`, ...prev.slice(0, 5)]);
     }
     setIsSyncing(false);
   };
 
   useEffect(() => {
-    // Simple debounce: only sync if DB changes and wait 15s
-    const timer = setTimeout(() => syncToGist(false), 15000);
+    // Sync automatically 10 seconds after changes
+    const timer = setTimeout(() => syncToGist(false), 10000);
     return () => clearTimeout(timer);
   }, [db]);
 

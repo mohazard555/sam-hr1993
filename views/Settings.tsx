@@ -21,8 +21,48 @@ interface Props {
 const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, onUpdateAdmin, onImport, onRunArchive, onClearData, onSaveUser, onRemoveUser, onManualSync, isSyncing }) => {
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [adminForm, setAdminForm] = useState({ username: admin.username, password: admin.password || '' });
+  const [userForm, setUserForm] = useState<Partial<User>>({
+    name: '',
+    username: '',
+    password: '',
+    role: 'data_entry',
+    permissions: []
+  });
 
   (window as any).onRemoveUser = onRemoveUser;
+
+  const handleEditUser = (user: User) => {
+    setEditingUserId(user.id);
+    setUserForm({
+      name: user.name,
+      username: user.username,
+      password: user.password,
+      role: user.role,
+      permissions: user.permissions
+    });
+  };
+
+  const resetUserForm = () => {
+    setEditingUserId(null);
+    setUserForm({
+      name: '',
+      username: '',
+      password: '',
+      role: 'data_entry',
+      permissions: []
+    });
+  };
+
+  const handleTogglePermission = (permission: string) => {
+    setUserForm(prev => {
+      const perms = prev.permissions || [];
+      if (perms.includes(permission)) {
+        return { ...prev, permissions: perms.filter(p => p !== permission) };
+      } else {
+        return { ...prev, permissions: [...perms, permission] };
+      }
+    });
+  };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -173,31 +213,37 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
                   <p className="text-[10px] font-bold text-slate-500">{user.role === 'admin' ? 'مسؤول' : 'مدخل بيانات'}</p>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => {
-                    setEditingUserId(user.id);
-                    (document.getElementById('new-user-name') as HTMLInputElement).value = user.name;
-                    (document.getElementById('new-user-username') as HTMLInputElement).value = user.username;
-                    (document.getElementById('new-user-password') as HTMLInputElement).value = user.password;
-                    (document.getElementById('new-user-role') as HTMLSelectElement).value = user.role;
-                    document.querySelectorAll('.user-permission-checkbox').forEach((cb: any) => {
-                      cb.checked = user.permissions.includes(cb.value);
-                    });
-                  }} className="text-xs bg-white dark:bg-slate-700 px-3 py-1 rounded-lg">تعديل</button>
+                  <button onClick={() => handleEditUser(user)} className="text-xs bg-white dark:bg-slate-700 px-3 py-1 rounded-lg">تعديل</button>
                   {user.id !== db.users[0].id && (
                     <button onClick={() => {
                       if(confirm('حذف المستخدم نهائياً؟')) {
-                        // We need onRemoveUser prop or similar. Let's use a trick or add it.
-                        (window as any).onRemoveUser(user.id);
+                        onRemoveUser(user.id);
                       }
                     }} className="text-xs bg-rose-50 text-rose-600 px-3 py-1 rounded-lg"><Trash2 size={14}/></button>
                   )}
                 </div>
-             </div>
-           ))}
-           <div className="pt-4 border-t">
-              <input className="w-full p-3 mb-2 bg-slate-50 border rounded-xl font-bold" placeholder="اسم المستخدم" id="new-user-name" />
-              <input className="w-full p-3 mb-2 bg-slate-50 border rounded-xl font-bold" placeholder="اسم الدخول" id="new-user-username" />
-              <input className="w-full p-3 mb-2 bg-slate-50 border rounded-xl font-bold" placeholder="كلمة المرور" id="new-user-password" type="password" />
+              </div>
+            ))}
+            <div className="pt-4 border-t">
+              <input 
+                className="w-full p-3 mb-2 bg-slate-50 border rounded-xl font-bold" 
+                placeholder="اسم الشخص" 
+                value={userForm.name}
+                onChange={e => setUserForm({...userForm, name: e.target.value})}
+              />
+              <input 
+                className="w-full p-3 mb-2 bg-slate-50 border rounded-xl font-bold" 
+                placeholder="اسم المستخدم للدخول" 
+                value={userForm.username}
+                onChange={e => setUserForm({...userForm, username: e.target.value})}
+              />
+              <input 
+                className="w-full p-3 mb-2 bg-slate-50 border rounded-xl font-bold" 
+                placeholder="كلمة المرور" 
+                type="password" 
+                value={userForm.password}
+                onChange={e => setUserForm({...userForm, password: e.target.value})}
+              />
               <div className="mb-4">
                   <label className="text-xs font-black text-slate-400 mb-2 block uppercase">الأقسام المسموح بها</label>
                   <div className="grid grid-cols-2 gap-2 text-[10px] font-bold">
@@ -214,43 +260,53 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
                       {id: 'documents', label: 'المستندات'},
                       {id: 'reports', label: 'التقارير'}
                     ].map(tab => (
-                      <label key={tab.id} className="flex items-center gap-2">
-                        <input type="checkbox" className="user-permission-checkbox" value={tab.id}/> {tab.label}
+                      <label key={tab.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1 rounded transition">
+                        <input 
+                          type="checkbox" 
+                          className="user-permission-checkbox w-4 h-4" 
+                          value={tab.id}
+                          checked={userForm.permissions?.includes(tab.id)}
+                          onChange={() => handleTogglePermission(tab.id)}
+                        /> {tab.label}
                       </label>
                     ))}
                   </div>
               </div>
-              <select className="w-full p-3 mb-2 bg-slate-50 border rounded-xl font-bold" id="new-user-role">
+              <select 
+                className="w-full p-3 mb-2 bg-slate-50 border rounded-xl font-bold"
+                value={userForm.role}
+                onChange={e => setUserForm({...userForm, role: e.target.value as any})}
+              >
                 <option value="data_entry">مدخل بيانات</option>
                 <option value="admin">مسؤول</option>
               </select>
-              <button 
-                onClick={() => {
-                   const name = (document.getElementById('new-user-name') as HTMLInputElement).value;
-                   const username = (document.getElementById('new-user-username') as HTMLInputElement).value;
-                   const password = (document.getElementById('new-user-password') as HTMLInputElement).value;
-                   const checkboxes = document.querySelectorAll('.user-permission-checkbox:checked');
-                   const permissions = Array.from(checkboxes).map((cb: any) => cb.value);
-                   const role = (document.getElementById('new-user-role') as HTMLSelectElement).value as any;
-                   
-                   onSaveUser({ 
-                      id: editingUserId || Date.now().toString(), 
-                      name, 
-                      username, 
-                      password, 
-                      role,
-                      permissions 
-                   });
-                   setEditingUserId(null);
-                   (document.getElementById('new-user-name') as HTMLInputElement).value = '';
-                   (document.getElementById('new-user-username') as HTMLInputElement).value = '';
-                   (document.getElementById('new-user-password') as HTMLInputElement).value = '';
-                   document.querySelectorAll('.user-permission-checkbox').forEach((cb: any) => (cb.checked = false));
-                }}
-                className="w-full bg-indigo-600 text-white py-3 rounded-xl font-black"
-              >
-                {editingUserId ? 'حفظ التعديلات' : 'إضافة مستخدم'}
-              </button>
+              
+              <div className="flex gap-2">
+                {editingUserId && (
+                  <button onClick={resetUserForm} className="flex-1 bg-slate-200 text-slate-700 py-3 rounded-xl font-black">إلغاء</button>
+                )}
+                <button 
+                  onClick={() => {
+                     if (!userForm.name || !userForm.username || !userForm.password) {
+                       alert('يرجى إكمال الحقول الأساسية');
+                       return;
+                     }
+                     
+                     onSaveUser({ 
+                        id: editingUserId || Date.now().toString(), 
+                        name: userForm.name!, 
+                        username: userForm.username!, 
+                        password: userForm.password!, 
+                        role: userForm.role || 'data_entry',
+                        permissions: userForm.permissions || []
+                     });
+                     resetUserForm();
+                  }}
+                  className="flex-[2] bg-indigo-600 text-white py-3 rounded-xl font-black shadow-lg"
+                >
+                  {editingUserId ? 'حفظ التعديلات' : 'إضافة مستخدم جديد'}
+                </button>
+              </div>
            </div>
         </div>
       </div>
