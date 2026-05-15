@@ -26,6 +26,8 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loginForm, setLoginForm] = useState({ username: localStorage.getItem('sam_remember_username') || '', password: '' });
   const [rememberMe, setRememberMe] = useState(!!localStorage.getItem('sam_remember_username'));
+  const [notifications, setNotifications] = useState<string[]>(() => JSON.parse(localStorage.getItem('sam_notifications') || '[]'));
+  const [isSyncing, setIsSyncing] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [individualPrintItem, setIndividualPrintItem] = useState<{title: string, type: PrintType, data: any} | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
@@ -49,6 +51,63 @@ const App: React.FC = () => {
 
   useEffect(() => {
     saveDB(db);
+    localStorage.setItem('sam_notifications', JSON.stringify(notifications));
+  }, [db, notifications]);
+
+  const syncToGist = async (manual = false) => {
+    let gistURL = db.settings.gistURL || "";
+    let gistID = db.settings.gistID || "";
+    
+    const extractId = (str: string) => {
+      if (!str) return "";
+      if (str.includes('gist.github.com/')) {
+        return str.split('/').pop()?.split('#')[0] || "";
+      } else if (str.includes('gist.githubusercontent.com/')) {
+        return str.split('/')[4] || "";
+      }
+      return str.trim();
+    };
+
+    const finalID = extractId(gistURL) || extractId(gistID);
+    
+    if (!finalID || !db.settings.gistToken) {
+      if (manual) setNotifications(prev => ['يرجى التأكد من إعدادات Gist والـ Token', ...prev.slice(0, 5)]);
+      return;
+    }
+
+    setIsSyncing(true);
+    try {
+        const filename = "Hrjordon.josn"; 
+        const response = await fetch(`https://api.github.com/gists/${finalID}`, {
+            method: 'PATCH',
+            headers: { 
+                'Authorization': `token ${db.settings.gistToken.trim()}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/vnd.github.v3+json'
+            },
+            body: JSON.stringify({ 
+              description: "SAM Pro Database Backup",
+              files: { 
+                [filename]: { content: JSON.stringify(db) }
+              } 
+            })
+        });
+
+        if (response.ok) {
+            setNotifications(prev => ['تمت المزامنة بنجاح ✓', ...prev.slice(0, 5)]);
+        } else {
+            const error = await response.json().catch(() => ({ message: 'خطأ غير معروف' }));
+            setNotifications(prev => [`فشل المزامنة: ${error.message || response.status}`, ...prev.slice(0, 5)]);
+        }
+    } catch(e) { 
+        setNotifications(prev => [`خطأ في الاتصال بالمزامنة`, ...prev.slice(0, 5)]);
+    }
+    setIsSyncing(false);
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => syncToGist(false), 10000);
+    return () => clearTimeout(timer);
   }, [db]);
 
   const handleLogin = (e: React.FormEvent) => {
@@ -115,8 +174,10 @@ const App: React.FC = () => {
         let newList;
         if (index !== -1) {
           newList = list.map((i: any) => i.id === item.id ? { ...i, ...item } : i);
+          setNotifications(prevNotifs => [`تم تعديل ${key} : ${item.name || item.id || ''}`, ...prevNotifs.slice(0, 5)]);
         } else {
           newList = [...list, item];
+          setNotifications(prevNotifs => [`تم إضافة ${key} : ${item.name || item.id || ''}`, ...prevNotifs.slice(0, 5)]);
         }
         return { ...prev, [key]: newList };
       }
@@ -590,7 +651,22 @@ const App: React.FC = () => {
       ) : <div className="p-12 text-center text-rose-500 font-black">لا تملك صلاحية الدخول للمسير الرواتب</div>;
       case 'documents': return <PrintForms employees={db.employees || []} attendance={db.attendance || []} financials={db.financials || []} warnings={db.warnings || []} leaves={db.leaves || []} loans={db.loans || []} permissions={db.permissions} settings={db.settings} printHistory={db.printHistory || []} onPrint={(doc) => setIndividualPrintItem(doc as any)} />;
       case 'manager': return <ManagerDashboard />;
-      case 'settings': return currentUser?.role === 'admin' ? <SettingsView settings={db.settings} admin={db.users[0]} db={db} onUpdateSettings={s => setDb(p => ({...p, settings: {...p.settings, ...s}}))} onUpdateAdmin={handleUpdateAdmin} onImport={handleImport} onRunArchive={() => {}} onClearData={handleClearData} onAddUser={u => updateList('users', u)} /> : <div className="p-12 text-center text-rose-500 font-black">لا تملك صلاحية الدخول للإعدادات</div>;
+      case 'settings': return currentUser?.role === 'admin' ? (
+        <SettingsView 
+          settings={db.settings} 
+          admin={db.users[0]} 
+          db={db} 
+          onUpdateSettings={s => setDb(p => ({...p, settings: {...p.settings, ...s}}))} 
+          onUpdateAdmin={handleUpdateAdmin} 
+          onImport={handleImport} 
+          onRunArchive={() => {}} 
+          onClearData={handleClearData} 
+          onSaveUser={u => updateList('users', u)}
+          onRemoveUser={id => deleteFromList('users', id)}
+          onManualSync={() => syncToGist(true)}
+          isSyncing={isSyncing}
+        />
+      ) : <div className="p-12 text-center text-rose-500 font-black">لا تملك صلاحية الدخول للإعدادات</div>;
       case 'reports': return <ReportsView db={db} payrolls={currentPayrolls} lang={db.settings.language} onPrint={() => window.print()} />;
       default: return null;
     }
@@ -1006,7 +1082,17 @@ const App: React.FC = () => {
 
   return (
     <div className={db.settings.theme === 'dark' ? 'dark' : ''}>
-      <Layout activeTab={activeTab} setActiveTab={setActiveTab} lang={db.settings.language} theme={db.settings.theme} toggleTheme={() => setDb(p => ({...p, settings: {...p.settings, theme: p.settings.theme === 'light' ? 'dark' : 'light'}}))} currentUser={currentUser} onLogout={() => setCurrentUser(null)}>
+      <Layout 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
+        lang={db.settings.language} 
+        theme={db.settings.theme} 
+        toggleTheme={() => setDb(p => ({...p, settings: {...p.settings, theme: p.settings.theme === 'light' ? 'dark' : 'light'}}))} 
+        currentUser={currentUser} 
+        onLogout={() => setCurrentUser(null)}
+        notifications={notifications}
+        isSyncing={isSyncing}
+      >
         {renderActiveTab()}
         {individualPrintItem && (
           <div className="fixed inset-0 bg-slate-950/95 z-[500] flex items-start justify-center p-6 no-print overflow-y-auto">

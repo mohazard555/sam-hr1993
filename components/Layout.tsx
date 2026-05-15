@@ -3,8 +3,10 @@ import React, { useState } from 'react';
 import { 
   Users, Clock, CreditCard, Calendar, 
   BarChart3, Settings as SettingsIcon, LayoutDashboard,
-  Wallet, Zap, LogOut, Sun, Moon, FileText, Building, Printer, ClipboardList, ShieldAlert, Timer
+  Wallet, Zap, LogOut, Sun, Moon, FileText, Building, Printer, ClipboardList, ShieldAlert, Timer,
+  Bell, Loader2
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from '../utils/translations';
 import { Language, User, Theme } from '../types';
 
@@ -17,9 +19,11 @@ interface LayoutProps {
   toggleTheme: () => void;
   currentUser: User | null;
   onLogout: () => void;
+  notifications?: string[];
+  isSyncing?: boolean;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang, theme, toggleTheme, currentUser, onLogout }) => {
+const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang, theme, toggleTheme, currentUser, onLogout, notifications = [], isSyncing = false }) => {
   const t = useTranslation(lang);
   const isRtl = lang === 'ar';
   
@@ -127,6 +131,35 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang
           {children}
         </section>
       </main>
+      {/* Notifications & Sync Indicator */}
+      <div className="fixed bottom-6 right-6 z-[600] flex flex-col gap-3 pointer-events-none">
+        <AnimatePresence>
+          {isSyncing && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="bg-indigo-600 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border-2 border-white/20 pointer-events-auto"
+            >
+              <Loader2 size={18} className="animate-spin" />
+              <span className="font-black text-sm">جـاري مـزامـنـة الـبـيـانـات...</span>
+            </motion.div>
+          )}
+
+          {notifications.map((msg, i) => (
+            <motion.div 
+              key={i} 
+              initial={{ opacity: 0, x: isRtl ? 50 : -50 }} 
+              animate={{ opacity: 1, x: 0 }} 
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="bg-slate-900 text-white px-5 py-3 rounded-2xl text-xs font-black shadow-2xl flex items-center gap-3 border-2 border-white/10 pointer-events-auto"
+            >
+              <Bell size={16} className="text-indigo-400" />
+              {msg}
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
     </div>
   );
 };

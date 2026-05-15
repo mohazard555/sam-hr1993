@@ -42,6 +42,9 @@ export interface CompanySettings {
   archiveRetentionDays: number;
   archiveLogs: [];
   fridayIsWorkDay: boolean;
+  gistID?: string;
+  gistToken?: string;
+  gistURL?: string;
 }
 
 export interface Employee {

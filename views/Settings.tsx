@@ -204,108 +204,115 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
 
       {/* Admin Credentials */}
       <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 space-y-6">
-        <h3 className="text-xl font-black text-slate-800 dark:text-slate-200 flex items-center gap-2"><Shield size={24} /> إدارة المستخدمين</h3>
+        <h3 className="text-xl font-black text-indigo-600 flex items-center gap-2"><Shield size={24} /> إدارة المستخدمين</h3>
         <div className="space-y-4">
            {db.users.map(user => (
-             <div key={user.id} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl flex justify-between items-center">
+             <div key={user.id} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl flex justify-between items-center border border-slate-100 dark:border-slate-700">
                 <div>
-                  <p className="font-black text-slate-800 dark:text-white">{user.name}</p>
-                  <p className="text-[10px] font-bold text-slate-500">{user.role === 'admin' ? 'مسؤول' : 'مدخل بيانات'}</p>
+                  <p className="font-black text-slate-800 dark:text-white leading-none mb-1">{user.name}</p>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{user.role === 'admin' ? 'مدير كامل الصلاحيات' : 'مدخل بيانات'}</p>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => handleEditUser(user)} className="text-xs bg-white dark:bg-slate-700 px-3 py-1 rounded-lg">تعديل</button>
+                  <button onClick={() => handleEditUser(user)} className="p-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl hover:bg-indigo-100 transition"><Settings2 size={16}/></button>
                   {user.id !== db.users[0].id && (
                     <button onClick={() => {
                       if(confirm('حذف المستخدم نهائياً؟')) {
                         onRemoveUser(user.id);
                       }
-                    }} className="text-xs bg-rose-50 text-rose-600 px-3 py-1 rounded-lg"><Trash2 size={14}/></button>
+                    }} className="p-2 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-100 transition"><Trash2 size={16}/></button>
                   )}
                 </div>
               </div>
             ))}
-            <div className="pt-4 border-t">
+            
+            <div className="pt-6 border-t dark:border-slate-800 space-y-4 animate-in slide-in-from-bottom-2">
+              <h4 className="text-sm font-black text-slate-400 uppercase tracking-tight flex items-center gap-2">
+                {editingUserId ? <Clock size={16}/> : <Database size={16}/>}
+                {editingUserId ? 'تعديل بيانات المستخدم' : 'إضافة مستخدم جديد للنظام'}
+              </h4>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <input 
+                  className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 rounded-2xl font-black outline-none transition" 
+                  placeholder="الاسم الحقيقي" 
+                  value={userForm.name}
+                  onChange={e => setUserForm({...userForm, name: e.target.value})}
+                />
+                <input 
+                  className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 rounded-2xl font-black outline-none transition" 
+                  placeholder="اسم المستخدم" 
+                  value={userForm.username}
+                  onChange={e => setUserForm({...userForm, username: e.target.value})}
+                />
+              </div>
+
               <input 
-                className="w-full p-3 mb-2 bg-slate-50 border rounded-xl font-bold" 
-                placeholder="اسم الشخص" 
-                value={userForm.name}
-                onChange={e => setUserForm({...userForm, name: e.target.value})}
-              />
-              <input 
-                className="w-full p-3 mb-2 bg-slate-50 border rounded-xl font-bold" 
-                placeholder="اسم المستخدم للدخول" 
-                value={userForm.username}
-                onChange={e => setUserForm({...userForm, username: e.target.value})}
-              />
-              <input 
-                className="w-full p-3 mb-2 bg-slate-50 border rounded-xl font-bold" 
-                placeholder="كلمة المرور" 
+                className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 rounded-2xl font-black outline-none transition" 
+                placeholder="كلمة المرور الجديدة" 
                 type="password" 
                 value={userForm.password}
                 onChange={e => setUserForm({...userForm, password: e.target.value})}
               />
-              <div className="mb-4">
-                  <label className="text-xs font-black text-slate-400 mb-2 block uppercase">الأقسام المسموح بها</label>
-                  <div className="grid grid-cols-2 gap-2 text-[10px] font-bold">
+
+              <div className="p-4 bg-slate-100/50 dark:bg-slate-800 rounded-2xl border">
+                  <label className="text-[10px] font-black text-slate-400 mb-3 block uppercase flex items-center gap-2"><Shield size={12}/> صلاحيات المديول المتاحة</label>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-[11px] font-bold">
                     {[
-                      {id: 'dashboard', label: 'لوحة التحكم'},
-                      {id: 'employees', label: 'الموظفون'},
-                      {id: 'departments', label: 'الأقسام'},
-                      {id: 'attendance', label: 'الحضور والانصراف'},
-                      {id: 'leaves', label: 'الإجازات'},
-                      {id: 'financials', label: 'المالية'},
-                      {id: 'loans', label: 'السلف'},
-                      {id: 'production', label: 'الإنتاج'},
-                      {id: 'payroll', label: 'الرواتب'},
-                      {id: 'documents', label: 'المستندات'},
+                      {id: 'dashboard', label: 'لوحة التحكم'}, {id: 'employees', label: 'الموظفون'},
+                      {id: 'departments', label: 'الأقسام'}, {id: 'attendance', label: 'الحضور والانصراف'},
+                      {id: 'leaves', label: 'الإجازات'}, {id: 'financials', label: 'المالية'},
+                      {id: 'loans', label: 'السلف'}, {id: 'production', label: 'الإنتاج'},
+                      {id: 'payroll', label: 'الرواتب'}, {id: 'documents', label: 'المستندات'},
                       {id: 'reports', label: 'التقارير'}
                     ].map(tab => (
-                      <label key={tab.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1 rounded transition">
+                      <label key={tab.id} className="flex items-center justify-between cursor-pointer hover:bg-white dark:hover:bg-slate-700 p-2 rounded-xl transition border border-transparent hover:border-slate-200">
+                        <span>{tab.label}</span>
                         <input 
                           type="checkbox" 
-                          className="user-permission-checkbox w-4 h-4" 
-                          value={tab.id}
+                          className="w-4 h-4 accent-indigo-600" 
                           checked={userForm.permissions?.includes(tab.id)}
                           onChange={() => handleTogglePermission(tab.id)}
-                        /> {tab.label}
+                        />
                       </label>
                     ))}
                   </div>
               </div>
-              <select 
-                className="w-full p-3 mb-2 bg-slate-50 border rounded-xl font-bold"
-                value={userForm.role}
-                onChange={e => setUserForm({...userForm, role: e.target.value as any})}
-              >
-                <option value="data_entry">مدخل بيانات</option>
-                <option value="admin">مسؤول</option>
-              </select>
-              
-              <div className="flex gap-2">
-                {editingUserId && (
-                  <button onClick={resetUserForm} className="flex-1 bg-slate-200 text-slate-700 py-3 rounded-xl font-black">إلغاء</button>
-                )}
-                <button 
-                  onClick={() => {
-                     if (!userForm.name || !userForm.username || !userForm.password) {
-                       alert('يرجى إكمال الحقول الأساسية');
-                       return;
-                     }
-                     
-                     onSaveUser({ 
-                        id: editingUserId || Date.now().toString(), 
-                        name: userForm.name!, 
-                        username: userForm.username!, 
-                        password: userForm.password!, 
-                        role: userForm.role || 'data_entry',
-                        permissions: userForm.permissions || []
-                     });
-                     resetUserForm();
-                  }}
-                  className="flex-[2] bg-indigo-600 text-white py-3 rounded-xl font-black shadow-lg"
+
+              <div className="flex gap-3">
+                <select 
+                  className="w-2/5 p-4 bg-slate-200 dark:bg-slate-700 rounded-2xl font-black outline-none"
+                  value={userForm.role}
+                  onChange={e => setUserForm({...userForm, role: e.target.value as any})}
                 >
-                  {editingUserId ? 'حفظ التعديلات' : 'إضافة مستخدم جديد'}
-                </button>
+                  <option value="data_entry">مدخل بيانات</option>
+                  <option value="admin">مسؤول نظام</option>
+                </select>
+                
+                <div className="flex gap-2 flex-1">
+                  {editingUserId && (
+                    <button onClick={resetUserForm} className="bg-slate-100 text-slate-500 px-6 rounded-2xl font-black">إلغاء</button>
+                  )}
+                  <button 
+                    onClick={() => {
+                       if (!userForm.name || !userForm.username || !userForm.password) {
+                         alert('يرجى إكمال الحقول الأساسية (الاسم، المعرف، الرقم السري)');
+                         return;
+                       }
+                       onSaveUser({ 
+                          id: editingUserId || `user-${Date.now()}`, 
+                          name: userForm.name!, 
+                          username: userForm.username!, 
+                          password: userForm.password!, 
+                          role: userForm.role || 'data_entry',
+                          permissions: userForm.permissions || []
+                       });
+                       resetUserForm();
+                    }}
+                    className="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-black shadow-xl shadow-indigo-600/20 hover:bg-indigo-700 transition"
+                  >
+                    {editingUserId ? 'حفظ التغييرات' : 'تفعيل وصناعة المستخدم'}
+                  </button>
+                </div>
               </div>
            </div>
         </div>
@@ -313,25 +320,50 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
 
       {/* Sync Management */}
       <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 space-y-6">
-        <h3 className="text-xl font-black text-indigo-600 flex items-center gap-2"><Database size={24} /> مزامنة البيانات (Gist)</h3>
-        <div>
-          <label className="text-xs font-black text-slate-400 mb-1 block uppercase">رقم تعريف Gist (ID)</label>
-          <input className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 rounded-2xl" placeholder="66e2253..." value={settings.gistID || ''} onChange={e => onUpdateSettings({gistID: e.target.value})} />
+        <div className="flex justify-between items-center">
+            <h3 className="text-xl font-black text-indigo-600 flex items-center gap-2"><Database size={24} /> مزامنة Gist السحابية</h3>
+            <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${isSyncing ? 'bg-amber-100 text-amber-600 animate-pulse' : 'bg-emerald-100 text-emerald-600'}`}>
+                {isSyncing ? 'جاري المزامنة' : 'متصل سحابياً'}
+            </div>
         </div>
-        <div>
-          <label className="text-xs font-black text-slate-400 mb-1 block uppercase">Token</label>
-          <input type="password" className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 rounded-2xl" placeholder="ghp_..." value={settings.gistToken || ''} onChange={e => onUpdateSettings({gistToken: e.target.value})} />
-        </div>
-        <div className="flex gap-2">
-          <button onClick={() => alert('تم حفظ الإعدادات')} className="flex-1 bg-slate-800 text-white py-4 rounded-2xl font-black">حفظ الإعدادات</button>
-          <button 
-            disabled={isSyncing}
-            onClick={onManualSync} 
-            className="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-black disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {isSyncing ? 'جاري الرفع...' : 'مزامنة الآن'}
-            <Database size={18}/>
-          </button>
+        
+        <div className="space-y-4">
+            <div className="p-4 bg-indigo-50 dark:bg-indigo-900/10 rounded-2xl border-2 border-dashed border-indigo-100">
+                <label className="text-[10px] font-black text-indigo-400 mb-1 block uppercase">رابط Gist الكامل (أو الرقم التعريفي)</label>
+                <input 
+                  className="w-full bg-white dark:bg-slate-800 p-3 rounded-xl border font-mono text-xs outline-none focus:border-indigo-600" 
+                  placeholder="https://gist.github.com/username/id..." 
+                  value={settings.gistURL || settings.gistID || ''} 
+                  onChange={e => onUpdateSettings({gistURL: e.target.value, gistID: ''})} 
+                />
+            </div>
+            
+            <div>
+              <label className="text-[10px] font-black text-slate-400 mb-1 block uppercase">رقم الـ Token (سري)</label>
+              <input 
+                type="password" 
+                className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 rounded-2xl font-black" 
+                placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" 
+                value={settings.gistToken || ''} 
+                onChange={e => onUpdateSettings({gistToken: e.target.value})} 
+              />
+            </div>
+
+            <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-2xl text-[10px] font-bold text-slate-500 leading-relaxed">
+                <p>⚠️ تأكد من أن الـ Token يملك صلاحية <span className="text-indigo-600 font-black">'gist'</span> للوصول للملفات.</p>
+                <p>⚠️ النظام يقوم بالمزامنة تلقائياً كل <span className="text-indigo-600 font-black">10 ثوانٍ</span> من أي تعديل.</p>
+            </div>
+
+            <div className="flex gap-2">
+               <button 
+                disabled={isSyncing}
+                onClick={onManualSync} 
+                className="flex-1 bg-indigo-600 text-white py-5 rounded-3xl font-black shadow-xl shadow-indigo-600/30 disabled:opacity-50 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all text-xl"
+              >
+                {isSyncing ? <Loader2 className="animate-spin" size={24}/> : <Database size={24}/>}
+                {isSyncing ? 'جاري الرفع...' : 'مزامنة يدوية فورية'}
+              </button>
+            </div>
         </div>
       </div>
 
