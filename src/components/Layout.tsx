@@ -18,9 +18,10 @@ interface LayoutProps {
   currentUser: User | null;
   onLogout: () => void;
   notifications: string[];
+  isSyncing: boolean;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang, theme, toggleTheme, currentUser, onLogout, notifications }) => {
+const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang, theme, toggleTheme, currentUser, onLogout, notifications, isSyncing }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const t = useTranslation(lang);
   const isRtl = lang === 'ar';
@@ -99,6 +100,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang
             </h2>
           </div>
           <div className="flex items-center gap-4">
+             {isSyncing && <span className="text-[10px] font-black text-indigo-500 animate-pulse">جاري المزامنة...</span>}
              <button onClick={() => setShowNotifications(!showNotifications)} className="text-slate-500 dark:text-slate-400 p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition relative">
                 <Bell size={20} />
                 {notifications.length > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>}

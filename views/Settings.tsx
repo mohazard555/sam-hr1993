@@ -216,11 +216,11 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
         <h3 className="text-xl font-black text-indigo-600 flex items-center gap-2"><Database size={24} /> مزامنة البيانات (Gist)</h3>
         <div>
           <label className="text-xs font-black text-slate-400 mb-1 block uppercase">رابط Gist</label>
-          <input className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 rounded-2xl" placeholder="https://api.github.com/gists/..." />
+          <input className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 rounded-2xl" placeholder="https://api.github.com/gists/..." value={settings.gistURL || ''} onChange={e => onUpdateSettings({gistURL: e.target.value})} />
         </div>
         <div>
           <label className="text-xs font-black text-slate-400 mb-1 block uppercase">Token</label>
-          <input type="password" className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 rounded-2xl" placeholder="ghp_..." />
+          <input type="password" className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 rounded-2xl" placeholder="ghp_..." value={settings.gistToken || ''} onChange={e => onUpdateSettings({gistToken: e.target.value})} />
         </div>
         <button className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black">حفظ إعدادات المزامنة</button>
       </div>

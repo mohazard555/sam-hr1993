@@ -21,13 +21,31 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loginForm, setLoginForm] = useState({ username: localStorage.getItem('sam_remember_username') || '', password: '' });
   const [rememberMe, setRememberMe] = useState(!!localStorage.getItem('sam_remember_username'));
-  const [notifications, setNotifications] = useState<string[]>([]);
+  const [notifications, setNotifications] = useState<string[]>(() => JSON.parse(localStorage.getItem('sam_notifications') || '[]'));
+  const [isSyncing, setIsSyncing] = useState(false);
   const [showHint, setShowHint] = useState(false);
   
-  const GIST_URL = "https://gist.githubusercontent.com/mohazard555/66e225303745cc46f5cd33047f18e900/raw";
+  const GIST_URL = db.settings.gistURL || "";
 
   useEffect(() => {
     saveDB(db);
+    localStorage.setItem('sam_notifications', JSON.stringify(notifications));
+  }, [db, notifications]);
+
+  useEffect(() => {
+    if (!db.settings.gistURL || !db.settings.gistToken) return;
+    const timer = setTimeout(async () => {
+        setIsSyncing(true);
+        try {
+            await fetch(db.settings.gistURL!.replace('/raw', ''), {
+                method: 'PATCH',
+                headers: { 'Authorization': `token ${db.settings.gistToken}` },
+                body: JSON.stringify({ files: { 'db.json': { content: JSON.stringify(db) } } })
+            });
+        } catch(e) { console.error(e); }
+        setIsSyncing(false);
+    }, 15000);
+    return () => clearTimeout(timer);
   }, [db]);
 
   const handleLogin = (e: React.FormEvent) => {
@@ -126,7 +144,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <Layout activeTab={activeTab} setActiveTab={setActiveTab} lang={db.settings.language} theme={db.settings.theme} toggleTheme={() => setDb(p => ({...p, settings: {...p.settings, theme: p.settings.theme === 'light' ? 'dark' : 'light'}}))} currentUser={currentUser} onLogout={() => setCurrentUser(null)} notifications={notifications}>
+    <Layout activeTab={activeTab} setActiveTab={setActiveTab} lang={db.settings.language} theme={db.settings.theme} toggleTheme={() => setDb(p => ({...p, settings: {...p.settings, theme: p.settings.theme === 'light' ? 'dark' : 'light'}}))} currentUser={currentUser} onLogout={() => setCurrentUser(null)} notifications={notifications} isSyncing={isSyncing}>
       {renderActiveTab()}
     </Layout>
   );
