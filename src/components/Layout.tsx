@@ -1,9 +1,9 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Users, Clock, CreditCard, Calendar, 
   BarChart3, Settings as SettingsIcon, LayoutDashboard,
-  Wallet, Zap, LogOut, Sun, Moon, FileText, Building, Printer, ClipboardList, ShieldAlert
+  Wallet, Zap, LogOut, Sun, Moon, FileText, Building, Printer, ClipboardList, ShieldAlert, Bell
 } from 'lucide-react';
 import { useTranslation } from '../utils/translations';
 import { Language, User, Theme } from '../types';
@@ -17,9 +17,11 @@ interface LayoutProps {
   toggleTheme: () => void;
   currentUser: User | null;
   onLogout: () => void;
+  notifications: string[];
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang, theme, toggleTheme, currentUser, onLogout }) => {
+const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang, theme, toggleTheme, currentUser, onLogout, notifications }) => {
+  const [showNotifications, setShowNotifications] = useState(false);
   const t = useTranslation(lang);
   const isRtl = lang === 'ar';
 
@@ -42,7 +44,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang
   const filteredMenu = menuItems.filter(item => {
     if (!currentUser) return false;
     if (currentUser.role === 'admin') return true;
-    return item.roles.includes(currentUser.role);
+    return currentUser.permissions?.includes(item.id);
   });
 
   return (
@@ -97,6 +99,18 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang
             </h2>
           </div>
           <div className="flex items-center gap-4">
+             <button onClick={() => setShowNotifications(!showNotifications)} className="text-slate-500 dark:text-slate-400 p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition relative">
+                <Bell size={20} />
+                {notifications.length > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>}
+             </button>
+             {showNotifications && (
+               <div className="absolute top-16 left-8 w-80 bg-white dark:bg-slate-800 shadow-xl rounded-2xl p-4 border dark:border-slate-700 z-50">
+                 <h4 className="font-black text-slate-800 dark:text-white mb-2">الإشعارات</h4>
+                 <div className="space-y-2">
+                   {notifications.length === 0 ? <p className="text-sm font-bold text-slate-500">لا توجد إشعارات حالياً</p> : notifications.map((n, i) => <p key={i} className="text-sm font-bold text-slate-700 dark:text-slate-300 p-2 border-b">{n}</p>)}
+                 </div>
+               </div>
+             )}
              <div className="hidden md:block text-right">
                 <p className="text-xs text-slate-700 dark:text-slate-400 font-black">{currentUser?.name}</p>
                 <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-black uppercase tracking-widest">{currentUser?.role}</p>

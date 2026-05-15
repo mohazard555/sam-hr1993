@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import LicenseGuard from './components/LicenseGuard';
 import TrialLock from './components/TrialLock';
+import './src/index.css';
 
 // تسجيل Service Worker للعمل أوفلاين
 if ('serviceWorker' in navigator) {

@@ -1,6 +1,6 @@
 
 export type Language = 'ar' | 'en';
-export type UserRole = 'admin' | 'manager' | 'viewer';
+export type UserRole = 'admin' | 'data_entry';
 export type Theme = 'light' | 'dark';
 export type SalaryCycle = 'monthly' | 'weekly';
 

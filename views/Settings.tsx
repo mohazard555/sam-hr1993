@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { CompanySettings, User, ArchiveLog } from '../types';
 import { DB } from '../db/store';
@@ -13,9 +12,11 @@ interface Props {
   onImport: (db: DB) => void;
   onRunArchive: () => void;
   onClearData: () => void;
+  onAddUser: (u: User) => void;
 }
 
-const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, onUpdateAdmin, onImport, onRunArchive, onClearData }) => {
+const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, onUpdateAdmin, onImport, onRunArchive, onClearData, onAddUser }) => {
+  (window as any).onAddUser = onAddUser;
   const [adminForm, setAdminForm] = useState({ username: admin.username, password: admin.password || '' });
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -119,7 +120,6 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
                      <input type="number" className="w-full p-3 border rounded-xl font-black" value={settings.weeklyCycleDays || 7} onChange={e => onUpdateSettings({weeklyCycleDays: Number(e.target.value)})} />
                    </div>
                 </div>
-                <p className="text-[9px] font-bold text-slate-400 italic leading-relaxed">* سيقوم النظام بقسمة الراتب الأساسي للموظف على عدد الأيام المحدد هنا لاستخراج سعر اليوم بدقة.</p>
               </div>
 
               <div className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border">
@@ -159,12 +159,70 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
 
       {/* Admin Credentials */}
       <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 space-y-6">
-        <h3 className="text-xl font-black text-slate-800 dark:text-slate-200 flex items-center gap-2"><Shield size={24} /> حساب المسؤول</h3>
+        <h3 className="text-xl font-black text-slate-800 dark:text-slate-200 flex items-center gap-2"><Shield size={24} /> إدارة المستخدمين</h3>
         <div className="space-y-4">
-           <div><label className="text-xs font-black text-slate-400 block mb-1">اسم المستخدم</label><input className="w-full p-4 border rounded-2xl font-bold dark:bg-slate-800" value={adminForm.username} onChange={e => setAdminForm({...adminForm, username: e.target.value})} /></div>
-           <div><label className="text-xs font-black text-slate-400 block mb-1">كلمة المرور</label><input type="password" className="w-full p-4 border rounded-2xl font-bold dark:bg-slate-800" value={adminForm.password} onChange={e => setAdminForm({...adminForm, password: e.target.value})} /></div>
-           <button onClick={() => onUpdateAdmin(adminForm)} className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black shadow-lg">تحديث بيانات الدخول</button>
+           {db.users.map(user => (
+             <div key={user.id} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl flex justify-between items-center">
+                <div>
+                  <p className="font-black text-slate-800 dark:text-white">{user.name}</p>
+                  <p className="text-[10px] font-bold text-slate-500">{user.role}</p>
+                </div>
+             </div>
+           ))}
+           <div className="pt-4 border-t">
+              <input className="w-full p-3 mb-2 bg-slate-50 border rounded-xl font-bold" placeholder="اسم المستخدم" id="new-user-name" />
+              <input className="w-full p-3 mb-2 bg-slate-50 border rounded-xl font-bold" placeholder="اسم الدخول" id="new-user-username" />
+              <input className="w-full p-3 mb-2 bg-slate-50 border rounded-xl font-bold" placeholder="كلمة المرور" id="new-user-password" type="password" />
+              <div className="mb-4">
+                  <label className="text-xs font-black text-slate-400 mb-2 block uppercase">الأقسام المسموح بها</label>
+                  <div className="grid grid-cols-2 gap-2 text-[10px] font-bold">
+                    {['dashboard', 'employees', 'departments', 'attendance', 'leaves', 'financials', 'loans', 'production', 'payroll', 'documents', 'reports'].map(tab => (
+                      <label key={tab} className="flex items-center gap-2">
+                        <input type="checkbox" className="user-permission-checkbox" value={tab}/> {tab}
+                      </label>
+                    ))}
+                  </div>
+              </div>
+              <select className="w-full p-3 mb-2 bg-slate-50 border rounded-xl font-bold" id="new-user-role">
+                <option value="data_entry">مدخل بيانات</option>
+                <option value="admin">مسؤول</option>
+              </select>
+              <button 
+                onClick={() => {
+                   const name = (document.getElementById('new-user-name') as HTMLInputElement).value;
+                   const username = (document.getElementById('new-user-username') as HTMLInputElement).value;
+                   const password = (document.getElementById('new-user-password') as HTMLInputElement).value;
+                   const checkboxes = document.querySelectorAll('.user-permission-checkbox:checked');
+                   const permissions = Array.from(checkboxes).map((cb: any) => cb.value);
+                   const role = (document.getElementById('new-user-role') as HTMLSelectElement).value as any;
+                   
+                   (window as any).onAddUser({ 
+                      id: Date.now().toString(), 
+                      name, 
+                      username, 
+                      password, 
+                      role,
+                      permissions 
+                   });
+                }}
+                className="w-full bg-indigo-600 text-white py-3 rounded-xl font-black"
+              >إضافة مستخدم</button>
+           </div>
         </div>
+      </div>
+
+      {/* Sync Management */}
+      <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 space-y-6">
+        <h3 className="text-xl font-black text-indigo-600 flex items-center gap-2"><Database size={24} /> مزامنة البيانات (Gist)</h3>
+        <div>
+          <label className="text-xs font-black text-slate-400 mb-1 block uppercase">رابط Gist</label>
+          <input className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 rounded-2xl" placeholder="https://api.github.com/gists/..." />
+        </div>
+        <div>
+          <label className="text-xs font-black text-slate-400 mb-1 block uppercase">Token</label>
+          <input type="password" className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 rounded-2xl" placeholder="ghp_..." />
+        </div>
+        <button className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black">حفظ إعدادات المزامنة</button>
       </div>
 
       {/* Database Maintenance */}

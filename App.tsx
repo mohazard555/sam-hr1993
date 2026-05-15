@@ -22,9 +22,10 @@ type PrintType = 'production' | 'loan' | 'leave' | 'financial' | 'document' | 'v
 
 const App: React.FC = () => {
   const [db, setDb] = useState<DB>(loadDB());
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [loginForm, setLoginForm] = useState({ username: '', password: '' });
+  const [loginForm, setLoginForm] = useState({ username: localStorage.getItem('sam_remember_username') || '', password: '' });
+  const [rememberMe, setRememberMe] = useState(!!localStorage.getItem('sam_remember_username'));
   const [showHint, setShowHint] = useState(false);
   const [individualPrintItem, setIndividualPrintItem] = useState<{title: string, type: PrintType, data: any} | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
@@ -54,6 +55,11 @@ const App: React.FC = () => {
     e.preventDefault();
     const user = db.users.find(u => u.username === loginForm.username && u.password === loginForm.password);
     if (user) {
+      if (rememberMe) {
+        localStorage.setItem('sam_remember_username', loginForm.username);
+      } else {
+        localStorage.removeItem('sam_remember_username');
+      }
       setCurrentUser(user);
       setShowHint(false);
     } else {
@@ -119,6 +125,10 @@ const App: React.FC = () => {
   };
 
   const deleteFromList = <K extends keyof DB>(key: K, id: string) => {
+    if (currentUser?.role !== 'admin') {
+        alert('لا تملك صلاحية الحذف، يرجى مراجعة المسؤول.');
+        return;
+    }
     if(!confirm('هل أنت متأكد من الحذف؟')) return;
     setDb(prev => {
       const currentVal = prev[key];
@@ -130,6 +140,10 @@ const App: React.FC = () => {
   };
 
   const archiveItem = <K extends keyof DB>(key: K, item: any) => {
+    if (currentUser?.role !== 'admin') {
+        alert('لا تملك صلاحية الأرشفة، يرجى مراجعة المسؤول.');
+        return;
+    }
     if (confirm('هل تريد نقل هذا السجل إلى الأرشيف التاريخي؟')) {
       updateList(key, { ...item, isArchived: true });
     }
@@ -406,10 +420,10 @@ const App: React.FC = () => {
       );
       case 'production': return <Production employees={db.employees} items={db.production || []} settings={db.settings} onSave={i => updateList('production', i)} onDelete={id => deleteFromList('production', id)} archiveMode={archiveModes.production} onToggleArchive={() => setArchiveModes(p => ({...p, production: !p.production}))} onPrintIndividual={i => setIndividualPrintItem({title: "إشعار إنتاجية موظف", type: 'production', data: i})} />;
       
-      case 'payroll': return (
+      case 'payroll': return currentUser?.role === 'admin' ? (
         <div className="space-y-8 animate-in fade-in duration-700">
-          {/* ترويسة الطباعة الرسمية لمسير الرواتب */}
-          <div className="hidden print:block text-right mb-8 pb-6 border-b-4 border-indigo-900">
+           {/* ترويسة الطباعة الرسمية لمسير الرواتب */}
+           <div className="hidden print:block text-right mb-8 pb-6 border-b-4 border-indigo-900">
             <div className="flex justify-between items-start">
               <div>
                 <h1 className="text-3xl font-black text-slate-900">{db.settings.name}</h1>
@@ -427,7 +441,7 @@ const App: React.FC = () => {
               <p>العملة المعتمدة: {db.settings.currency}</p>
             </div>
           </div>
-
+          
           <div className="flex flex-col md:flex-row justify-between items-center no-print bg-white dark:bg-slate-900 p-8 rounded-[3rem] border dark:border-slate-800 shadow-xl gap-6 mb-8">
              <div className="flex items-center gap-4">
                 <div className="p-4 bg-indigo-600 text-white rounded-2xl shadow-lg">
@@ -573,10 +587,10 @@ const App: React.FC = () => {
              </div>
           </div>
         </div>
-      );
+      ) : <div className="p-12 text-center text-rose-500 font-black">لا تملك صلاحية الدخول للمسير الرواتب</div>;
       case 'documents': return <PrintForms employees={db.employees || []} attendance={db.attendance || []} financials={db.financials || []} warnings={db.warnings || []} leaves={db.leaves || []} loans={db.loans || []} permissions={db.permissions} settings={db.settings} printHistory={db.printHistory || []} onPrint={(doc) => setIndividualPrintItem(doc as any)} />;
       case 'manager': return <ManagerDashboard />;
-      case 'settings': return <SettingsView settings={db.settings} admin={db.users[0]} db={db} onUpdateSettings={s => setDb(p => ({...p, settings: {...p.settings, ...s}}))} onUpdateAdmin={handleUpdateAdmin} onImport={handleImport} onRunArchive={() => {}} onClearData={handleClearData} />;
+      case 'settings': return currentUser?.role === 'admin' ? <SettingsView settings={db.settings} admin={db.users[0]} db={db} onUpdateSettings={s => setDb(p => ({...p, settings: {...p.settings, ...s}}))} onUpdateAdmin={handleUpdateAdmin} onImport={handleImport} onRunArchive={() => {}} onClearData={handleClearData} onAddUser={u => updateList('users', u)} /> : <div className="p-12 text-center text-rose-500 font-black">لا تملك صلاحية الدخول للإعدادات</div>;
       case 'reports': return <ReportsView db={db} payrolls={currentPayrolls} lang={db.settings.language} onPrint={() => window.print()} />;
       default: return null;
     }

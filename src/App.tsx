@@ -19,11 +19,12 @@ const App: React.FC = () => {
   const [db, setDb] = useState<DB>(loadDB());
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [loginForm, setLoginForm] = useState({ username: '', password: '' });
+  const [loginForm, setLoginForm] = useState({ username: localStorage.getItem('sam_remember_username') || '', password: '' });
+  const [rememberMe, setRememberMe] = useState(!!localStorage.getItem('sam_remember_username'));
+  const [notifications, setNotifications] = useState<string[]>([]);
   const [showHint, setShowHint] = useState(false);
   
-  const [payrollDateFrom, setPayrollDateFrom] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]);
-  const [payrollDateTo, setPayrollDateTo] = useState(new Date().toISOString().split('T')[0]);
+  const GIST_URL = "https://gist.githubusercontent.com/mohazard555/66e225303745cc46f5cd33047f18e900/raw";
 
   useEffect(() => {
     saveDB(db);
@@ -33,6 +34,11 @@ const App: React.FC = () => {
     e.preventDefault();
     const user = db.users.find(u => u.username === loginForm.username && u.password === loginForm.password);
     if (user) {
+      if (rememberMe) {
+        localStorage.setItem('sam_remember_username', loginForm.username);
+      } else {
+        localStorage.removeItem('sam_remember_username');
+      }
       setCurrentUser(user);
       setShowHint(false);
     } else {
@@ -56,7 +62,13 @@ const App: React.FC = () => {
     setDb(prev => {
       const list = Array.isArray(prev[key]) ? [...(prev[key] as any[])] : [];
       const index = list.findIndex((i: any) => i.id === item.id);
-      if (index !== -1) list[index] = item; else list.push(item);
+      if (index !== -1) {
+        list[index] = item;
+        setNotifications(prevNotifs => [`تم تعديل ${key} : ${item.name || item.id || ''}`, ...prevNotifs]);
+      } else {
+        list.push(item);
+        setNotifications(prevNotifs => [`تم إضافة ${key} : ${item.name || item.id || ''}`, ...prevNotifs]);
+      }
       return { ...prev, [key]: list };
     });
   };
@@ -100,6 +112,10 @@ const App: React.FC = () => {
                  value={loginForm.password} 
                  onChange={e => setLoginForm({...loginForm, password: e.target.value})} 
                />
+                <label className="flex items-center gap-2 cursor-pointer pt-2">
+                    <input type="checkbox" className="w-5 h-5 accent-indigo-600" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
+                    <span className="font-black text-slate-600">تذكرني</span>
+                </label>
                <button type="submit" className="w-full bg-indigo-600 text-white py-6 rounded-[2.2rem] font-black text-2xl shadow-xl hover:bg-indigo-700 transition-all">
                   دخـول
                </button>
@@ -110,7 +126,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <Layout activeTab={activeTab} setActiveTab={setActiveTab} lang={db.settings.language} theme={db.settings.theme} toggleTheme={() => setDb(p => ({...p, settings: {...p.settings, theme: p.settings.theme === 'light' ? 'dark' : 'light'}}))} currentUser={currentUser} onLogout={() => setCurrentUser(null)}>
+    <Layout activeTab={activeTab} setActiveTab={setActiveTab} lang={db.settings.language} theme={db.settings.theme} toggleTheme={() => setDb(p => ({...p, settings: {...p.settings, theme: p.settings.theme === 'light' ? 'dark' : 'light'}}))} currentUser={currentUser} onLogout={() => setCurrentUser(null)} notifications={notifications}>
       {renderActiveTab()}
     </Layout>
   );
