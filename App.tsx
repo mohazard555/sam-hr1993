@@ -55,22 +55,20 @@ const App: React.FC = () => {
   }, [db, notifications]);
 
   const syncToGist = async (manual = false) => {
-    let gistURL = db.settings.gistURL || "";
-    let gistID = db.settings.gistID || "";
+    const gistURL = db.settings.gistURL || "";
+    const gistID = db.settings.gistID || "";
+    const token = db.settings.gistToken?.trim();
     
     const extractId = (str: string) => {
       if (!str) return "";
-      if (str.includes('gist.github.com/')) {
-        return str.split('/').pop()?.split('#')[0] || "";
-      } else if (str.includes('gist.githubusercontent.com/')) {
-        return str.split('/')[4] || "";
-      }
+      const urlMatches = str.match(/([a-f0-9]{32})/);
+      if (urlMatches) return urlMatches[0];
       return str.trim();
     };
 
     const finalID = extractId(gistURL) || extractId(gistID);
     
-    if (!finalID || !db.settings.gistToken) {
+    if (!finalID || !token) {
       if (manual) setNotifications(prev => ['يرجى التأكد من إعدادات Gist والـ Token', ...prev.slice(0, 5)]);
       return;
     }
@@ -81,12 +79,11 @@ const App: React.FC = () => {
         const response = await fetch(`https://api.github.com/gists/${finalID}`, {
             method: 'PATCH',
             headers: { 
-                'Authorization': `token ${db.settings.gistToken.trim()}`,
+                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
                 'Accept': 'application/vnd.github.v3+json'
             },
             body: JSON.stringify({ 
-              description: "SAM Pro Database Backup",
               files: { 
                 [filename]: { content: JSON.stringify(db) }
               } 
@@ -101,8 +98,9 @@ const App: React.FC = () => {
         }
     } catch(e) { 
         setNotifications(prev => [`خطأ في الاتصال بالمزامنة`, ...prev.slice(0, 5)]);
+    } finally {
+        setIsSyncing(false);
     }
-    setIsSyncing(false);
   };
 
   useEffect(() => {
@@ -166,6 +164,7 @@ const App: React.FC = () => {
   }, [currentPayrolls]);
 
   const updateList = <K extends keyof DB>(key: K, item: any) => {
+    if (!item) return;
     setDb(prev => {
       const currentVal = prev[key];
       if (Array.isArray(currentVal)) {

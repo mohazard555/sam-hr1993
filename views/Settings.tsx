@@ -298,14 +298,18 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
                          alert('يرجى إكمال الحقول الأساسية (الاسم، المعرف، الرقم السري)');
                          return;
                        }
-                       onSaveUser({ 
+                       
+                       const newUser: User = { 
                           id: editingUserId || `user-${Date.now()}`, 
                           name: userForm.name!, 
                           username: userForm.username!, 
                           password: userForm.password!, 
                           role: userForm.role || 'data_entry',
                           permissions: userForm.permissions || []
-                       });
+                       };
+                       
+                       onSaveUser(newUser);
+                       alert(editingUserId ? 'تم تحديث بيانات المستخدم بنجاح' : 'تم إضافة المستخدم الجديد بنجاح');
                        resetUserForm();
                     }}
                     className="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-black shadow-xl shadow-indigo-600/20 hover:bg-indigo-700 transition"
