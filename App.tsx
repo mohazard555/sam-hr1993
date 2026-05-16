@@ -115,7 +115,7 @@ const App: React.FC = () => {
         const response = await fetch(`https://api.github.com/gists/${finalID}`, {
             method: 'PATCH',
             headers: { 
-                'Authorization': `token ${token}`,
+                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
                 'Accept': 'application/vnd.github.v3+json'
             },
@@ -155,7 +155,7 @@ const App: React.FC = () => {
         try {
           const response = await fetch(`https://api.github.com/gists/${gistID}`, {
             headers: { 
-              'Authorization': `token ${token}`,
+              'Authorization': `Bearer ${token}`,
               'Accept': 'application/vnd.github.v3+json'
             }
           });
@@ -587,7 +587,7 @@ const App: React.FC = () => {
               </div>
             </div>
           )} 
-          renderRow={(i, name) => (<><td className="px-6 py-4 font-black text-lg">{name}</td><td className="px-6 py-4 font-bold">{i.amount.toLocaleString()}</td><td className="px-6 py-4">{i.isImmediate ? 'فوري' : i.installmentsCount}</td><td className="px-6 py-4 font-black text-indigo-700">{Math.round(i.monthlyInstallment).toLocaleString()}</td><td className="px-6 py-4 text-xs font-bold text-slate-500">{i.isImmediate ? 'الراتب القادم' : i.collectionDate}</td></>)} 
+          renderRow={(i, name) => (<><td className="px-6 py-4 font-black text-lg">{name}</td><td className="px-6 py-4 font-bold">{i.amount.toLocaleString()} {db.settings.currency}</td><td className="px-6 py-4">{i.isImmediate ? 'فوري' : i.installmentsCount}</td><td className="px-6 py-4 font-black text-indigo-700">{Math.round(i.monthlyInstallment).toLocaleString()} {db.settings.currency}</td><td className="px-6 py-4 text-xs font-bold text-slate-500">{i.isImmediate ? 'الراتب القادم' : i.collectionDate}</td></>)} 
         />
       );
       case 'financials': return (
@@ -627,7 +627,7 @@ const App: React.FC = () => {
                 </div>
             </div>
           )} 
-          renderRow={(i, name) => (<><td className="px-6 py-4 font-black text-lg">{name}</td><td className="px-6 py-4 font-bold">{i.type === 'bonus' ? 'مكافأة' : i.type === 'deduction' ? 'خصم' : i.type === 'production_incentive' ? 'حافز إنتاج' : 'سلفة'}</td><td className={`px-6 py-4 font-black text-xl ${i.type==='deduction'||i.type==='payment'?'text-rose-600':'text-indigo-700'}`}>{i.amount.toLocaleString()}</td><td className="px-6 py-4">{i.date}</td></>)} 
+          renderRow={(i, name) => (<><td className="px-6 py-4 font-black text-lg">{name}</td><td className="px-6 py-4 font-bold">{i.type === 'bonus' ? 'مكافأة' : i.type === 'deduction' ? 'خصم' : i.type === 'production_incentive' ? 'حافز إنتاج' : 'سلفة'}</td><td className={`px-6 py-4 font-black text-xl ${i.type==='deduction'||i.type==='payment'?'text-rose-600':'text-indigo-700'}`}>{i.amount.toLocaleString()} {db.settings.currency}</td><td className="px-6 py-4">{i.date}</td></>)} 
         />
       );
       case 'production': return <Production employees={db.employees} items={db.production || []} settings={db.settings} onSave={i => updateList('production', i)} onDelete={id => deleteFromList('production', id)} archiveMode={archiveModes.production} onToggleArchive={() => setArchiveModes(p => ({...p, production: !p.production}))} onPrintIndividual={i => setIndividualPrintItem({title: "إشعار إنتاجية موظف", type: 'production', data: i})} />;
@@ -763,7 +763,7 @@ const App: React.FC = () => {
                        <td className="px-1 py-5 text-rose-600">-{p.loanInstallment.toLocaleString()}</td>
                        <td className="px-1 py-5 text-rose-600">-{p.manualDeductions.toLocaleString()}</td>
                        <td className="px-4 py-5 font-black bg-indigo-50/80 dark:bg-indigo-900/10 text-[18px] text-indigo-900 dark:text-indigo-300 border-r border-indigo-100 print:bg-white print:text-black print:text-[12px]">
-                          {p.netSalary.toLocaleString()}
+                          {p.netSalary.toLocaleString()} {db.settings.currency}
                        </td>
                      </tr>
                    ))}
@@ -862,7 +862,7 @@ const App: React.FC = () => {
              <tbody className="divide-y">
                 {employeesList.map((emp, idx) => (
                   <tr key={emp.id} className="hover:bg-slate-50 border-x">
-                    <td className="p-1 border">{idx + 1}</td><td className="p-1 border font-black whitespace-nowrap">{emp.name}</td><td className="p-1 border">{emp.position}</td><td className="p-1 border">{emp.department}</td><td className="p-1 border text-[6px]">{emp.address || '-'}</td><td className="p-1 border">{emp.baseSalary.toLocaleString()}</td><td className="p-1 border">{emp.transportAllowance.toLocaleString()}</td><td className="p-1 border">{emp.cycleType === 'weekly' ? 'أسبوعي' : 'شهري'}</td><td className="p-1 border">{emp.nationalId}</td><td className="p-1 border">{emp.joinDate}</td>
+                    <td className="p-1 border">{idx + 1}</td><td className="p-1 border font-black whitespace-nowrap">{emp.name}</td><td className="p-1 border">{emp.position}</td><td className="p-1 border">{emp.department}</td><td className="p-1 border text-[6px]">{emp.address || '-'}</td><td className="p-1 border">{emp.baseSalary.toLocaleString()} {db.settings.currency}</td><td className="p-1 border">{emp.transportAllowance.toLocaleString()} {db.settings.currency}</td><td className="p-1 border">{emp.cycleType === 'weekly' ? 'أسبوعي' : 'شهري'}</td><td className="p-1 border">{emp.nationalId}</td><td className="p-1 border">{emp.joinDate}</td>
                   </tr>
                 ))}
              </tbody>
@@ -1106,7 +1106,7 @@ const App: React.FC = () => {
                <div className="bg-slate-50 p-2 rounded-xl mb-3 space-y-1 border border-slate-100">
                   <div className="flex justify-between items-center text-slate-700">
                     <span className="font-black">الراتب التعاقدي:</span>
-                    <span className="font-black text-indigo-700">{p.baseSalary.toLocaleString()}</span>
+                    <span className="font-black text-indigo-700">{p.baseSalary.toLocaleString()} {db.settings.currency}</span>
                   </div>
                   <div className="flex justify-between items-center text-slate-700">
                     <span className="font-black">ساعات العمل الفعلية:</span>
@@ -1198,11 +1198,10 @@ const App: React.FC = () => {
             .print-container-fixed { 
               width: 100% !important;
               max-width: ${printOrientation === 'portrait' ? '190mm' : '277mm'} !important; 
-              margin: 0 !important;
+              margin: 0 auto !important;
               border-width: 2px !important;
               box-shadow: none !important;
               overflow: visible !important;
-              float: right !important; /* Ensure it stays pinned to right in RTL */
             }
             .print-card {
               break-inside: avoid !important;

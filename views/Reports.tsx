@@ -188,13 +188,13 @@ const ReportsView: React.FC<Props> = ({ db, payrolls, lang, onPrint }) => {
                             <p className="font-black text-[14px] text-slate-900 dark:text-white leading-none">{d.empName}</p>
                             <p className="text-[10px] text-slate-400 mt-1 font-bold">{d.dept}</p>
                          </td>
-                         <td className="p-5 text-center text-slate-600">{d.base.toLocaleString()}</td>
-                         <td className="p-5 text-center text-indigo-700">{d.trans.toLocaleString()}</td>
+                         <td className="p-5 text-center text-slate-600">{d.base.toLocaleString()} {db.settings.currency}</td>
+                         <td className="p-5 text-center text-indigo-700">{d.trans.toLocaleString()} {db.settings.currency}</td>
                          <td className="p-5 text-center font-black text-slate-800 dark:text-slate-200">{d.presentDays} ي</td>
                          <td className="p-5 text-center text-emerald-600">{(d.totalOT / 60).toFixed(1)}</td>
-                         <td className="p-5 text-center text-rose-500">{(d.deductions).toLocaleString()}</td>
-                         <td className="p-5 text-center text-rose-600 font-black">{(d.loans).toLocaleString()}</td>
-                         <td className="p-5 text-center font-black text-[16px] bg-indigo-50/50 dark:bg-indigo-900/10 text-indigo-900 dark:text-indigo-300 border-r border-indigo-100 print:bg-transparent print:text-black">{d.netPaid.toLocaleString()}</td>
+                         <td className="p-5 text-center text-rose-500">{(d.deductions).toLocaleString()} {db.settings.currency}</td>
+                         <td className="p-5 text-center text-rose-600 font-black">{(d.loans).toLocaleString()} {db.settings.currency}</td>
+                         <td className="p-5 text-center font-black text-[16px] bg-indigo-50/50 dark:bg-indigo-900/10 text-indigo-900 dark:text-indigo-300 border-r border-indigo-100 print:bg-transparent print:text-black">{d.netPaid.toLocaleString()} {db.settings.currency}</td>
                       </tr>
                     ))}
                  </tbody>
@@ -263,7 +263,7 @@ const ReportsView: React.FC<Props> = ({ db, payrolls, lang, onPrint }) => {
                        <div className="p-8 bg-slate-900 text-white rounded-[3rem] shadow-xl flex flex-col items-center text-center relative overflow-hidden print:p-4 print:rounded-2xl">
                           <Calculator className="absolute -bottom-4 -right-4 opacity-10 no-print" size={100}/>
                           <p className="text-[10px] font-black uppercase opacity-60 mb-2 tracking-widest">إجمالي الرواتب الأساسية</p>
-                          <p className="text-2xl font-black leading-none print:text-lg">{comparativeData.p1.totalBase.toLocaleString()}</p>
+                          <p className="text-2xl font-black leading-none print:text-lg">{comparativeData.p1.totalBase.toLocaleString()} {db.settings.currency}</p>
                        </div>
 
                        <div className="p-6 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-3xl border border-emerald-100 dark:border-emerald-900/40 text-center print:p-2 print:rounded-xl">
@@ -319,7 +319,7 @@ const ReportsView: React.FC<Props> = ({ db, payrolls, lang, onPrint }) => {
                           <Calculator className="absolute -bottom-4 -right-4 opacity-10 no-print" size={100}/>
                           <div className="absolute top-3 right-5">{renderVariance(comparativeData.p1.totalBase, comparativeData.p2.totalBase)}</div>
                           <p className="text-[10px] font-black uppercase opacity-60 mb-2 tracking-widest">إجمالي الأساسي</p>
-                          <p className="text-2xl font-black leading-none print:text-lg">{comparativeData.p2.totalBase.toLocaleString()}</p>
+                          <p className="text-2xl font-black leading-none print:text-lg">{comparativeData.p2.totalBase.toLocaleString()} {db.settings.currency}</p>
                        </div>
 
                        <div className="p-6 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-3xl border border-emerald-100 dark:border-emerald-900/40 text-center relative print:p-2 print:rounded-xl">
