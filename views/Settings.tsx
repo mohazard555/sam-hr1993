@@ -447,7 +447,7 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
                   try {
                     const response = await fetch(`https://api.github.com/gists/${finalID}`, {
                       headers: { 
-                        'Authorization': `Bearer ${token}`,
+                        'Authorization': `token ${token}`,
                         'Accept': 'application/vnd.github.v3+json'
                       }
                     });

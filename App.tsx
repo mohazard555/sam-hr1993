@@ -115,7 +115,7 @@ const App: React.FC = () => {
         const response = await fetch(`https://api.github.com/gists/${finalID}`, {
             method: 'PATCH',
             headers: { 
-                'Authorization': `Bearer ${token}`,
+                'Authorization': `token ${token}`,
                 'Content-Type': 'application/json',
                 'Accept': 'application/vnd.github.v3+json'
             },
@@ -155,7 +155,7 @@ const App: React.FC = () => {
         try {
           const response = await fetch(`https://api.github.com/gists/${gistID}`, {
             headers: { 
-              'Authorization': `Bearer ${token}`,
+              'Authorization': `token ${token}`,
               'Accept': 'application/vnd.github.v3+json'
             }
           });
@@ -827,21 +827,21 @@ const App: React.FC = () => {
     const emp = db.employees.find(e => e.id === data.employeeId);
     
     const PrintHeader = ({ title: titleOverride }: { title?: string }) => (
-      <div className="flex justify-between items-start border-b-4 border-indigo-900 pb-6 mb-8 text-right">
+      <div className="flex justify-between items-start border-b-4 border-indigo-900 pb-2 mb-2 text-right">
         <div>
-          <h1 className="text-3xl font-black text-indigo-950 mb-1">{db.settings.name}</h1>
-          <p className="text-indigo-600 font-black text-sm uppercase tracking-widest">{titleOverride || title}</p>
-          <div className="mt-2 text-[10px] font-bold text-slate-500">
+          <h1 className="text-xl font-black text-indigo-950 mb-0.5">{db.settings.name}</h1>
+          <p className="text-indigo-600 font-black text-xs uppercase tracking-widest">{titleOverride || title}</p>
+          <div className="mt-0.5 text-[8px] font-bold text-slate-500">
              <p>{db.settings.address}</p>
              <p>تاريخ الصدور: {new Date().toLocaleDateString('ar-EG')}</p>
           </div>
         </div>
-        {db.settings.logo && <img src={db.settings.logo} className="h-16 w-auto object-contain" alt="Logo" referrerPolicy="no-referrer" />}
+        {db.settings.logo && <img src={db.settings.logo} className="h-10 w-auto object-contain" alt="Logo" referrerPolicy="no-referrer" />}
       </div>
     );
 
     const Signatures = () => (
-      <div className="mt-16 pt-8 border-t-2 border-dashed flex justify-between items-center text-center font-black text-xs text-slate-700">
+      <div className="mt-4 pt-2 border-t-2 border-dashed flex justify-between items-center text-center font-black text-[10px] text-slate-700">
          <div className="flex-1">توقيع الموظف</div>
          <div className="flex-1">توقيع المدير المباشر</div>
          <div className="flex-1">ختم المؤسسة</div>
@@ -877,16 +877,16 @@ const App: React.FC = () => {
     const isHalfSheet = ['permission', 'leave', 'financial', 'loan', 'production', 'warning'].includes(type);
 
     return (
-      <div className={`print-container-fixed p-8 md:p-12 w-full bg-white flex flex-col border-4 border-indigo-950 rounded-[2.5rem] text-right ${isHalfSheet ? 'min-h-[200mm] print:min-h-0 print:h-auto print:m-0' : 'min-h-[280mm]'}`}>
+      <div className={`print-container-fixed p-3 w-full bg-white flex flex-col border-4 border-indigo-950 rounded-[2rem] text-right ${isHalfSheet ? 'min-h-[140mm] print:min-h-0 print:h-auto print:m-0' : 'min-h-[240mm]'}`}>
           <PrintHeader title={isHalfSheet ? (data.title || 'إشعار إداري') : undefined} />
-          <div className={`flex-1 ${isHalfSheet ? 'space-y-6 pb-6' : 'space-y-12'}`}>
-             <div className={`bg-slate-50 ${isHalfSheet ? 'p-6 gap-y-4' : 'p-10 gap-y-10'} rounded-[2.5rem] border-2 border-slate-100 grid grid-cols-2`}>
-                <div><p className="text-xs font-black text-slate-400 uppercase mb-2">اسم الموظف</p><p className={`${isHalfSheet ? 'text-2xl' : 'text-3xl'} font-black text-indigo-950`}>{emp?.name || data.employeeName}</p></div>
-                <div><p className="text-xs font-black text-slate-400 uppercase mb-2">المنصب</p><p className={`${isHalfSheet ? 'text-lg' : 'text-xl'} font-bold text-slate-700`}>{emp?.position || 'موظف مؤسسة'} - {emp?.department || 'كافة الأقسام'}</p></div>
-                <div className="col-span-2 border-t pt-4 text-left font-mono text-xs text-slate-400 uppercase tracking-tighter">REF: {data.id?.toUpperCase() || Math.random().toString(36).substr(2, 9).toUpperCase()}</div>
+          <div className={`flex-1 ${isHalfSheet ? 'space-y-3 pb-3' : 'space-y-6'}`}>
+             <div className={`bg-slate-50 ${isHalfSheet ? 'p-3 gap-y-2' : 'p-6 gap-y-6'} rounded-[1.5rem] border-2 border-slate-100 grid grid-cols-2`}>
+                <div><p className="text-[10px] font-black text-slate-400 uppercase mb-1">اسم الموظف</p><p className={`${isHalfSheet ? 'text-lg' : 'text-2xl'} font-black text-indigo-950`}>{emp?.name || data.employeeName}</p></div>
+                <div><p className="text-[10px] font-black text-slate-400 uppercase mb-1">المنصب</p><p className={`${isHalfSheet ? 'text-sm' : 'text-lg'} font-bold text-slate-700`}>{emp?.position || 'موظف مؤسسة'} - {emp?.department || 'كافة الأقسام'}</p></div>
+                <div className="col-span-2 border-t pt-2 text-left font-mono text-[9px] text-slate-400 uppercase tracking-tighter">REF: {data.id?.toUpperCase() || Math.random().toString(36).substr(2, 9).toUpperCase()}</div>
              </div>
 
-             <div className={`${isHalfSheet ? 'p-8' : 'p-12'} bg-white border-2 border-dashed border-slate-200 rounded-[2.5rem]`}>
+             <div className={`${isHalfSheet ? 'p-4' : 'p-8'} bg-white border-2 border-dashed border-slate-200 rounded-[1.5rem]`}>
                 {type === 'production' && (
                   <div className="space-y-6">
                      <h4 className="text-2xl font-black text-indigo-700 mb-8 text-center border-b pb-4">إشعار إنتاجية معتمد</h4>
@@ -951,31 +951,31 @@ const App: React.FC = () => {
                   </div>
                 )}
                 {type === 'loan' && (
-                  <div className="space-y-6">
-                     <h4 className="text-2xl font-black text-emerald-700 mb-8 text-center border-b pb-4">سند سلفة مالية</h4>
-                     <div className="text-center p-10 bg-emerald-50 rounded-[3rem] border-2 border-emerald-100">
-                        <p className="text-xs font-black text-emerald-600 uppercase mb-2">المبلغ المعتمد</p>
-                        <p className="text-5xl font-black text-emerald-900">{data.amount?.toLocaleString()} {db.settings.currency}</p>
+                  <div className="space-y-4">
+                     <h4 className="text-xl font-black text-emerald-700 mb-4 text-center border-b pb-2">سند سلفة مالية</h4>
+                     <div className="text-center p-6 bg-emerald-50 rounded-[2rem] border-2 border-emerald-100">
+                        <p className="text-[10px] font-black text-emerald-600 uppercase mb-1">المبلغ المعتمد</p>
+                        <p className="text-3xl font-black text-emerald-900">{data.amount?.toLocaleString()} {db.settings.currency}</p>
                      </div>
-                     <div className="grid grid-cols-2 gap-6 mt-8">
-                        <div className="bg-slate-50 p-5 rounded-2xl border text-center">
-                           <span className="block text-[10px] font-black text-slate-400 mb-1">تاريخ منح السلفة</span>
-                           <span className="text-lg font-black">{data.date}</span>
+                     <div className="grid grid-cols-2 gap-4 mt-4">
+                        <div className="bg-slate-50 p-3 rounded-xl border text-center">
+                           <span className="block text-[9px] font-black text-slate-400 mb-0.5">تاريخ منح السلفة</span>
+                           <span className="text-md font-black">{data.date}</span>
                         </div>
-                        <div className="bg-slate-50 p-5 rounded-2xl border text-center">
-                           <span className="block text-[10px] font-black text-slate-400 mb-1">بداية التحصيل</span>
-                           <span className="text-lg font-black">{data.isImmediate ? 'الراتب القادم (فوري)' : data.collectionDate}</span>
+                        <div className="bg-slate-50 p-3 rounded-xl border text-center">
+                           <span className="block text-[9px] font-black text-slate-400 mb-0.5">بداية التحصيل</span>
+                           <span className="text-md font-black">{data.isImmediate ? 'الراتب القادم (فوري)' : data.collectionDate}</span>
                         </div>
-                        <div className="col-span-2 bg-indigo-50 p-6 rounded-[2rem] border-2 border-dashed border-indigo-200 text-center font-bold">
+                        <div className="col-span-2 bg-indigo-50 p-4 rounded-[1.5rem] border-2 border-dashed border-indigo-200 text-center text-sm font-bold">
                            {data.isImmediate ? (
                              <p className="text-indigo-900">سيتم تحصيل كامل المبلغ <span className="font-black">دفعة واحدة</span> من أقرب مسير رواتب.</p>
                            ) : (
                              <p className="text-indigo-900">يتم تحصيل المبلغ على <span className="text-indigo-600 font-black">{data.installmentsCount} أقساط</span>، بقيمة <span className="text-indigo-600 font-black">{data.monthlyInstallment?.toLocaleString()}</span> للقسط الواحد.</p>
                            )}
                         </div>
-                        <div className="col-span-2 bg-rose-50 p-4 rounded-xl text-center border">
-                           <span className="block text-[10px] font-black text-rose-600 uppercase mb-1">الرصيد المتبقي للذمة</span>
-                           <span className="text-2xl font-black text-rose-900">{data.remainingAmount?.toLocaleString()} {db.settings.currency}</span>
+                        <div className="col-span-2 bg-rose-50 p-3 rounded-lg text-center border">
+                           <span className="block text-[9px] font-black text-rose-600 uppercase mb-0.5">الرصيد المتبقي للذمة</span>
+                           <span className="text-lg font-black text-rose-900">{data.remainingAmount?.toLocaleString()} {db.settings.currency}</span>
                         </div>
                      </div>
                   </div>
@@ -1081,7 +1081,7 @@ const App: React.FC = () => {
   };
 
   const VouchersPrintGrid = ({ payrolls }: { payrolls: PayrollRecord[] }) => (
-    <div className={`vouchers-grid-print grid ${printOrientation === 'landscape' ? 'grid-cols-2' : 'grid-cols-1'} gap-4 p-4`} dir="rtl">
+    <div className={`vouchers-grid-print grid ${printOrientation === 'landscape' ? 'grid-cols-2' : 'grid-cols-1'} gap-2 p-2`} dir="rtl">
       {payrolls.map(p => {
         const emp = db.employees.find(e => e.id === p.employeeId);
         
@@ -1178,7 +1178,7 @@ const App: React.FC = () => {
     return createPortal(
       <div className="print-isolated-wrapper text-right w-full bg-white" dir="rtl">
         <style dangerouslySetInnerHTML={{ __html: `
-          @page { size: A4 ${printOrientation}; margin: 10mm; }
+          @page { size: A4 ${printOrientation}; margin: 5mm; }
           @media print {
             html, body { 
               margin: 0 !important; 
@@ -1197,7 +1197,7 @@ const App: React.FC = () => {
             }
             .print-container-fixed { 
               width: 100% !important;
-              max-width: ${printOrientation === 'portrait' ? '190mm' : '277mm'} !important; 
+              max-width: ${printOrientation === 'portrait' ? '195mm' : '282mm'} !important; 
               margin: 0 auto !important;
               border-width: 2px !important;
               box-shadow: none !important;
