@@ -365,6 +365,24 @@ const App: React.FC = () => {
     localStorage.removeItem('sam_notifications');
   };
 
+  const handlePrintDocument = (doc: { title: string, type: PrintType, data: any }) => {
+    // Save to history log
+    const newRecord: PrintHistoryRecord = {
+      id: Math.random().toString(36).substr(2, 9),
+      date: new Date().toISOString(),
+      title: doc.title,
+      employeeId: doc.data.employeeId || 'ALL',
+      employeeName: doc.data.employeeName || 'كل الموظفين'
+    };
+    
+    setDb(prev => ({
+      ...prev,
+      printHistory: [newRecord, ...(prev.printHistory || []).slice(0, 99)]
+    }));
+
+    setIndividualPrintItem(doc);
+  };
+
   const renderActiveTab = () => {
     const isRtl = db.settings.language === 'ar';
     
@@ -780,7 +798,7 @@ const App: React.FC = () => {
           </div>
         </div>
       ) : <div className="p-12 text-center text-rose-500 font-black">لا تملك صلاحية الدخول للمسير الرواتب</div>;
-      case 'documents': return <PrintForms employees={db.employees || []} attendance={db.attendance || []} financials={db.financials || []} warnings={db.warnings || []} leaves={db.leaves || []} loans={db.loans || []} permissions={db.permissions} settings={db.settings} printHistory={db.printHistory || []} onPrint={(doc) => setIndividualPrintItem(doc as any)} />;
+      case 'documents': return <PrintForms employees={db.employees || []} attendance={db.attendance || []} financials={db.financials || []} warnings={db.warnings || []} leaves={db.leaves || []} loans={db.loans || []} permissions={db.permissions} settings={db.settings} printHistory={db.printHistory || []} onPrint={handlePrintDocument} />;
       case 'manager': return <ManagerDashboard />;
       case 'settings': return currentUser?.role === 'admin' ? (
         <SettingsView 
@@ -854,8 +872,10 @@ const App: React.FC = () => {
       );
     }
 
+    const isA5 = ['permission', 'leave', 'financial', 'loan', 'production', 'warning'].includes(type);
+
     return (
-      <div className="p-10 w-full bg-white min-h-[95vh] flex flex-col border-4 border-indigo-950 rounded-[2rem] text-right">
+      <div className={`p-10 w-full bg-white flex flex-col border-4 border-indigo-950 rounded-[2rem] text-right ${isA5 ? 'min-h-[148mm] max-h-[148mm] overflow-hidden print:m-0' : 'min-h-[95vh]'}`}>
           <PrintHeader />
           <div className="flex-1 space-y-10">
              <div className="bg-slate-50 p-8 rounded-[2rem] border-2 border-slate-100 grid grid-cols-2 gap-y-6">
@@ -1299,6 +1319,9 @@ const App: React.FC = () => {
                     <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl gap-2 no-print">
                       <button onClick={() => setPrintOrientation('landscape')} className={`px-4 py-2 rounded-xl text-sm font-black ${printOrientation === 'landscape' ? 'bg-white dark:bg-slate-900 shadow-md text-indigo-700 dark:text-indigo-400' : 'text-slate-400'}`}><LayoutPanelLeft size={18}/> عرضي</button>
                       <button onClick={() => setPrintOrientation('portrait')} className={`px-4 py-2 rounded-xl text-sm font-black ${printOrientation === 'portrait' ? 'bg-white dark:bg-slate-900 shadow-md text-indigo-700 dark:text-indigo-400' : 'text-slate-400'}`}><LayoutPanelTop size={18}/> طولي</button>
+                    </div>
+                    <div className="bg-amber-50 text-amber-600 px-4 py-2 rounded-xl text-xs font-black border border-amber-200">
+                      سيتم الطباعة بنظام {(individualPrintItem.type && ['permission', 'leave', 'financial', 'loan', 'production', 'warning'].includes(individualPrintItem.type)) ? 'A5 (نصف ورقة)' : 'A4 (كاملة)'}
                     </div>
                   </div>
                   <button onClick={() => setIndividualPrintItem(null)} className="text-rose-500 p-2 hover:bg-rose-50 rounded-full transition transform hover:rotate-90" disabled={isPrinting}><X size={44}/></button>

@@ -3,9 +3,17 @@ import { AttendanceRecord, CompanySettings, Employee, Loan, FinancialEntry, Payr
 
 export const calculateTimeDiffMinutes = (time1: string, time2: string): number => {
   if (!time1 || !time2) return 0;
-  const [h1, m1] = time1.split(':').map(Number);
-  const [h2, m2] = time2.split(':').map(Number);
-  return (h1 * 60 + m1) - (h2 * 60 + m2);
+  
+  const parseTime = (t: string) => {
+    const match = t.match(/(\d+):(\d+)/);
+    if (!match) return 0;
+    let h = parseInt(match[1]), m = parseInt(match[2]);
+    if (t.toLowerCase().includes('pm') && h < 12) h += 12;
+    if (t.toLowerCase().includes('am') && h === 12) h = 0;
+    return h * 60 + m;
+  };
+
+  return parseTime(time1) - parseTime(time2);
 };
 
 const getOverlapDays = (start1: Date, end1: Date, start2: Date, end2: Date): number => {
