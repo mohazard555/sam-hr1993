@@ -184,9 +184,9 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
                     </span>
                   </td>
                   <td className="px-6 py-5 text-center">
-                    <p className="font-black text-slate-900 dark:text-white">{emp.baseSalary.toLocaleString()}</p>
+                    <p className="font-black text-slate-900 dark:text-white">{emp.baseSalary.toLocaleString()} {settings.currency}</p>
                     <p className={`text-[10px] font-bold ${emp.isTransportExempt ? 'text-emerald-600' : 'text-slate-500'}`}>
-                       +{emp.transportAllowance.toLocaleString()} {emp.isTransportExempt && '(ثابت)'}
+                       +{emp.transportAllowance.toLocaleString()} {settings.currency} {emp.isTransportExempt && '(ثابت)'}
                     </p>
                   </td>
                   <td className="px-6 py-5">
@@ -296,12 +296,12 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
                  </div>
                  <div className="flex items-center gap-3">
                     <Calculator className="text-indigo-600" size={28} />
-                    <div><p className="text-[10px] font-black text-indigo-700 uppercase">سعر الساعة</p><p className="text-2xl font-black text-slate-900 dark:text-white">{Math.round(hourlyRate).toLocaleString()}</p></div>
+                    <div><p className="text-[10px] font-black text-indigo-700 uppercase">سعر الساعة</p><p className="text-2xl font-black text-slate-900 dark:text-white">{Math.round(hourlyRate).toLocaleString()} <span className="text-xs">{settings.currency}</span></p></div>
                  </div>
                  <div className="h-12 w-px bg-indigo-200 hidden md:block"></div>
-                 <div><p className="text-[10px] font-black text-emerald-700 uppercase">الإضافي (ساعة)</p><p className="text-2xl font-black text-emerald-600">{Math.round(finalOvertimeHourPrice).toLocaleString()}</p></div>
+                 <div><p className="text-[10px] font-black text-emerald-700 uppercase">الإضافي (ساعة)</p><p className="text-2xl font-black text-emerald-600">{Math.round(finalOvertimeHourPrice).toLocaleString()} <span className="text-xs">{settings.currency}</span></p></div>
                  <div className="h-12 w-px bg-indigo-200 hidden md:block"></div>
-                 <div><p className="text-[10px] font-black text-rose-700 uppercase">الخصم (ساعة)</p><p className="text-2xl font-black text-rose-600">{Math.round(finalDeductionHourPrice).toLocaleString()}</p></div>
+                 <div><p className="text-[10px] font-black text-rose-700 uppercase">الخصم (ساعة)</p><p className="text-2xl font-black text-rose-600">{Math.round(finalDeductionHourPrice).toLocaleString()} <span className="text-xs">{settings.currency}</span></p></div>
               </div>
 
               {/* إعدادات الدوام المتقدمة */}

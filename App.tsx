@@ -115,7 +115,7 @@ const App: React.FC = () => {
         const response = await fetch(`https://api.github.com/gists/${finalID}`, {
             method: 'PATCH',
             headers: { 
-                'Authorization': `Bearer ${token}`,
+                'Authorization': `token ${token}`,
                 'Content-Type': 'application/json',
                 'Accept': 'application/vnd.github.v3+json'
             },
@@ -155,7 +155,7 @@ const App: React.FC = () => {
         try {
           const response = await fetch(`https://api.github.com/gists/${gistID}`, {
             headers: { 
-              'Authorization': `Bearer ${token}`,
+              'Authorization': `token ${token}`,
               'Accept': 'application/vnd.github.v3+json'
             }
           });
@@ -407,6 +407,7 @@ const App: React.FC = () => {
         todayAttendance={db.attendance.filter(a => a.date === new Date().toISOString().split('T')[0]).length} 
         totalLoans={db.loans.filter(l => !l.isArchived && l.remainingAmount > 0).reduce((acc, l) => acc + (l.remainingAmount || 0), 0)} 
         totalSalaryBudget={currentPayrolls.reduce((acc, p) => acc + p.netSalary, 0)} 
+        currency={db.settings.currency}
       />;
       case 'employees': return <Employees employees={db.employees} departments={db.departments} settings={db.settings} onAdd={e => updateList('employees', e)} onDelete={id => deleteFromList('employees', id)} onPrintList={(list) => setIndividualPrintItem({ title: 'قائمة الموظفين الكاملة', type: 'employee_list', data: list })} />;
       case 'departments': return <Departments departments={db.departments || []} employees={db.employees || []} onUpdate={depts => setDb(prev => ({...prev, departments: [...depts]}))} onUpdateEmployee={emp => updateList('employees', emp)} onPrintDept={(name, emps) => setIndividualPrintItem({ title: `قائمة موظفي قسم ${name}`, type: 'department_list', data: emps })} />;
@@ -1265,8 +1266,14 @@ const App: React.FC = () => {
             <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-indigo-600/10 rounded-full blur-3xl"></div>
             
             <div className="text-center mb-6 relative z-10">
-               <div className="w-16 h-16 bg-indigo-600 rounded-[1.5rem] mx-auto flex items-center justify-center text-white text-3xl font-black mb-3 shadow-2xl shadow-indigo-500/40">S</div>
-               <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter">نظام SAM Pro</h2>
+               <div className="w-20 h-20 bg-indigo-600 rounded-[1.8rem] mx-auto flex items-center justify-center text-white text-3xl font-black mb-4 shadow-2xl shadow-indigo-500/40 overflow-hidden">
+                  {db.settings.logo ? (
+                    <img src={db.settings.logo} className="w-full h-full object-contain" alt="Logo" referrerPolicy="no-referrer" />
+                  ) : (
+                    'S'
+                  )}
+               </div>
+               <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter">{db.settings.name || 'نظام SAM Pro'}</h2>
                <p className="text-slate-400 font-bold mt-1 text-[10px]">نظام إدارة الموارد البشرية المتطور</p>
             </div>
 
@@ -1342,6 +1349,8 @@ const App: React.FC = () => {
         notifications={notifications}
         onClearNotifications={handleClearNotifications}
         isSyncing={isSyncing}
+        logo={db.settings.logo}
+        companyName={db.settings.name}
       >
         {renderActiveTab()}
         {individualPrintItem && (

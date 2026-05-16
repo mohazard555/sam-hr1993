@@ -7,14 +7,15 @@ interface StatsProps {
   todayAttendance: number;
   totalLoans: number;
   totalSalaryBudget: number;
+  currency?: string;
 }
 
-const Dashboard: React.FC<StatsProps> = ({ employeesCount, todayAttendance, totalLoans, totalSalaryBudget }) => {
+const Dashboard: React.FC<StatsProps> = ({ employeesCount, todayAttendance, totalLoans, totalSalaryBudget, currency = 'JOD' }) => {
   const cards = [
     { title: 'إجمالي الموظفين', value: employeesCount, icon: Users, color: 'text-blue-600', bg: 'bg-blue-100 dark:bg-blue-900/20' },
     { title: 'حضور اليوم', value: todayAttendance, icon: Clock, color: 'text-green-600', bg: 'bg-green-100 dark:bg-green-900/20' },
-    { title: 'السلف القائمة', value: totalLoans.toLocaleString(), icon: CreditCard, color: 'text-orange-600', bg: 'bg-orange-100 dark:bg-orange-900/20' },
-    { title: 'ميزانية الرواتب', value: totalSalaryBudget.toLocaleString(), icon: Banknote, color: 'text-purple-600', bg: 'bg-purple-100 dark:bg-purple-900/20' },
+    { title: 'السلف القائمة', value: `${totalLoans.toLocaleString()} ${currency}`, icon: CreditCard, color: 'text-orange-600', bg: 'bg-orange-100 dark:bg-orange-900/20' },
+    { title: 'ميزانية الرواتب', value: `${totalSalaryBudget.toLocaleString()} ${currency}`, icon: Banknote, color: 'text-purple-600', bg: 'bg-purple-100 dark:bg-purple-900/20' },
   ];
 
   return (

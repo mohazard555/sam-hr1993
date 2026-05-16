@@ -157,7 +157,17 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
                 />
               </div>
               
-              <div className="p-6 bg-indigo-50/50 dark:bg-slate-800 rounded-3xl border-2 border-indigo-100 dark:border-slate-700 space-y-4">
+              <div>
+              <label className="text-[10px] font-black text-slate-400 mb-1 block uppercase">عملة النظام</label>
+              <input 
+                className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 rounded-2xl font-black outline-none transition" 
+                placeholder="مثال: JOD أو $"
+                value={settings.currency || ''} 
+                onChange={e => onUpdateSettings({currency: e.target.value})} 
+              />
+            </div>
+            
+            <div className="p-6 bg-indigo-50/50 dark:bg-slate-800 rounded-3xl border-2 border-indigo-100 dark:border-slate-700 space-y-4">
                 <h4 className="text-sm font-black text-indigo-700 flex items-center gap-2"><Settings2 size={18}/> تخصيص دورة الرواتب</h4>
                 <div>
                   <label className="text-xs font-black text-slate-500 mb-1 block uppercase">نظام الدورة</label>
@@ -437,7 +447,7 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
                   try {
                     const response = await fetch(`https://api.github.com/gists/${finalID}`, {
                       headers: { 
-                        'Authorization': `Bearer ${token}`,
+                        'Authorization': `token ${token}`,
                         'Accept': 'application/vnd.github.v3+json'
                       }
                     });

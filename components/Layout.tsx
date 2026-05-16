@@ -22,11 +22,14 @@ interface LayoutProps {
   notifications?: string[];
   onClearNotifications?: () => void;
   isSyncing?: boolean;
+  logo?: string;
+  companyName?: string;
 }
 
 const Layout: React.FC<LayoutProps> = ({ 
   children, activeTab, setActiveTab, lang, theme, toggleTheme, 
-  currentUser, onLogout, notifications = [], onClearNotifications, isSyncing = false 
+  currentUser, onLogout, notifications = [], onClearNotifications, isSyncing = false,
+  logo, companyName
 }) => {
   const t = useTranslation(lang);
   const isRtl = lang === 'ar';
@@ -70,19 +73,25 @@ const Layout: React.FC<LayoutProps> = ({
       {/* Sidebar */}
       <aside className="w-64 bg-indigo-950 text-white flex flex-col no-print border-l dark:border-slate-800 transition-all duration-300">
         <div className="p-6 border-b border-indigo-900">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button 
               onClick={() => setShowCloudAdmin(!showCloudAdmin)} 
               title={isRtl ? "تفعيل الخيارات المتقدمة" : "Toggle Advanced Options"}
-              className="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/50 hover:bg-indigo-400 transition-colors cursor-pointer"
+              className="w-12 h-12 bg-indigo-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/50 hover:bg-indigo-400 transition-colors cursor-pointer overflow-hidden group"
             >
-              S
+              {logo ? (
+                <img src={logo} className="w-full h-full object-contain group-hover:scale-110 transition-transform" alt="Logo" referrerPolicy="no-referrer" />
+              ) : (
+                <span className="text-xl font-black">S</span>
+              )}
             </button>
-            <h1 className="text-2xl font-black text-indigo-400">
-              <span>SAM</span>
-            </h1>
+            <div className="flex flex-col min-w-0">
+                <h1 className="text-lg font-black text-white truncate leading-tight">
+                    {companyName || 'SAM'}
+                </h1>
+                <p className="text-[10px] text-indigo-300 font-bold tracking-widest uppercase opacity-60">HRMS PRO</p>
+            </div>
           </div>
-          <p className="text-[10px] text-indigo-300 mt-1 font-bold tracking-widest uppercase">HRMS PRO</p>
         </div>
         <nav className="flex-1 overflow-y-auto p-4 space-y-1">
           {filteredMenu.map((item) => (
