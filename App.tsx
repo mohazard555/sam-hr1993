@@ -242,18 +242,34 @@ const App: React.FC = () => {
 
   const updateList = <K extends keyof DB>(key: K, item: any) => {
     if (!item || !item.id) return;
+
+    const keyLabels: Record<string, string> = {
+      employees: 'الموظفين',
+      departments: 'الأقسام',
+      users: 'المستخدمين',
+      attendance: 'الحضور',
+      leaves: 'الإجازات',
+      loans: 'السلف',
+      financials: 'المالية',
+      production: 'الإنتاج',
+      permissions: 'الأذونات',
+      warnings: 'الإنذارات'
+    };
+
     setDb(prev => {
       const currentVal = prev[key];
       if (Array.isArray(currentVal)) {
         const list = [...currentVal];
         const index = list.findIndex((i: any) => String(i.id) === String(item.id));
         let newList;
+        const itemName = item.name || item.employeeName || item.id || '';
+        
         if (index !== -1) {
           newList = list.map((i: any) => String(i.id) === String(item.id) ? { ...i, ...item } : i);
-          setNotifications(prevNotifs => [`تم تعديل ${key} : ${item.name || item.id || ''}`, ...prevNotifs.slice(0, 5)]);
+          setNotifications(prevNotifs => [`تم تحديث في ${keyLabels[key as string] || key}: ${itemName}`, ...prevNotifs.slice(0, 5)]);
         } else {
           newList = [...list, item];
-          setNotifications(prevNotifs => [`تم إضافة ${key} : ${item.name || item.id || ''}`, ...prevNotifs.slice(0, 5)]);
+          setNotifications(prevNotifs => [`إضافة جديدة في ${keyLabels[key as string] || key}: ${itemName}`, ...prevNotifs.slice(0, 5)]);
         }
         return { ...prev, [key]: newList };
       }
@@ -267,9 +283,26 @@ const App: React.FC = () => {
         return;
     }
     if(!confirm('هل أنت متأكد من الحذف؟')) return;
+
+    const keyLabels: Record<string, string> = {
+      employees: 'الموظفين',
+      departments: 'الأقسام',
+      users: 'المستخدمين',
+      attendance: 'الحضور',
+      leaves: 'الإجازات',
+      loans: 'السلف',
+      financials: 'المالية',
+      production: 'الإنتاج',
+      permissions: 'الأذونات',
+      warnings: 'الإنذارات'
+    };
+
     setDb(prev => {
       const currentVal = prev[key];
       if (Array.isArray(currentVal)) {
+        const itemToDelete = (currentVal as any[]).find((i: any) => i.id === id);
+        const itemName = itemToDelete?.name || itemToDelete?.employeeName || id;
+        setNotifications(prevNotifs => [`تم حذف من ${keyLabels[key as string] || key}: ${itemName}`, ...prevNotifs.slice(0, 5)]);
         return { ...prev, [key]: (currentVal as any[]).filter((i:any) => id !== i.id) };
       }
       return prev;

@@ -21,6 +21,8 @@ interface Props {
 const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, onUpdateAdmin, onImport, onRunArchive, onClearData, onSaveUser, onRemoveUser, onManualSync, isSyncing }) => {
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [adminForm, setAdminForm] = useState({ username: admin.username, password: admin.password || '' });
+  const [isGistLocked, setIsGistLocked] = useState(true);
+  const [gistPasswordInput, setGistPasswordInput] = useState('');
   const [userForm, setUserForm] = useState<Partial<User>>({
     name: '',
     username: '',
@@ -28,6 +30,15 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
     role: 'data_entry',
     permissions: []
   });
+
+  const handleUnlockGist = () => {
+    if (gistPasswordInput === 'sam1993') {
+      setIsGistLocked(false);
+      setGistPasswordInput('');
+    } else {
+      alert('الرمز السري غير صحيح');
+    }
+  };
 
   (window as any).onRemoveUser = onRemoveUser;
 
@@ -324,15 +335,36 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
       </div>
 
       {/* Sync Management */}
-      <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 space-y-6">
+      <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border dark:border-slate-800 space-y-6 relative overflow-hidden">
         <div className="flex justify-between items-center">
             <h3 className="text-xl font-black text-indigo-600 flex items-center gap-2"><Database size={24} /> مزامنة Gist السحابية</h3>
-            <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${isSyncing ? 'bg-amber-100 text-amber-600 animate-pulse' : 'bg-emerald-100 text-emerald-600'}`}>
-                {isSyncing ? 'جاري المزامنة' : 'متصل سحابياً'}
+            <div className="flex items-center gap-2">
+                {isGistLocked ? (
+                   <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                      <input 
+                        type="password" 
+                        className="w-20 bg-transparent text-[10px] font-black outline-none px-2 text-center" 
+                        placeholder="رمز القفل"
+                        value={gistPasswordInput}
+                        onChange={e => setGistPasswordInput(e.target.value)}
+                        onKeyPress={e => e.key === 'Enter' && handleUnlockGist()}
+                      />
+                      <button onClick={handleUnlockGist} className="bg-indigo-600 text-white p-1.5 rounded-lg hover:bg-indigo-700 transition">
+                         <Shield size={12}/>
+                      </button>
+                   </div>
+                ) : (
+                  <button onClick={() => setIsGistLocked(true)} className="bg-rose-500 text-white px-3 py-1 rounded-lg text-[10px] font-black flex items-center gap-1">
+                     <Lock size={10}/> قفل الإعدادات
+                  </button>
+                )}
+                <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${isSyncing ? 'bg-amber-100 text-amber-600 animate-pulse' : 'bg-emerald-100 text-emerald-600'}`}>
+                    {isSyncing ? 'جاري المزامنة' : 'متصل سحابياً'}
+                </div>
             </div>
         </div>
         
-        <div className="space-y-4">
+        <div className={`space-y-4 transition-all duration-500 ${isGistLocked ? 'blur-sm pointer-events-none opacity-40' : ''}`}>
             <div className="p-4 bg-indigo-50 dark:bg-indigo-900/10 rounded-2xl border-2 border-dashed border-indigo-100">
                 <label className="text-[10px] font-black text-indigo-400 mb-1 block uppercase">رابط Gist الكامل (أو الرقم التعريفي)</label>
                 <input 
@@ -355,12 +387,9 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
             </div>
 
             <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-2xl text-[10px] font-bold text-slate-500 leading-relaxed space-y-2">
+                <p className="text-rose-600 font-extrabold flex items-center gap-1"><ShieldAlert size={12}/> تجنب حذف بيانات المزامنة أو مشاركتها لضمان استمرارية العمل السحابي.</p>
                 <p>⚠️ تأكد من أن الـ Token يملك صلاحية <span className="text-indigo-600 font-black">'gist'</span> للوصول للملفات.</p>
                 <p>⚠️ النظام يقوم بالمزامنة تلقائياً كل <span className="text-indigo-600 font-black">20 ثانية</span> من أي تعديل.</p>
-                <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
-                   <p className="text-rose-500 font-extrabold mb-1">لماذا قد يفشل التوكين فجأة؟</p>
-                   <p>يقوم GitHub بإيقاف التوكين فوراً إذا تم اكتشافه في مكان عام. تأكد من عدم مشاركة رابط إعداداتك مع أحد. إذا ظهرت رسالة <span className="dir-ltr inline-block bg-white px-1 rounded">'Bad credentials'</span>، فيجب عليك إنشاء توكين جديد (Classic Token) مع صلاحية <span className="font-black text-indigo-600">Gist</span> حصراً.</p>
-                </div>
             </div>
 
             <div className="flex flex-col gap-2">
