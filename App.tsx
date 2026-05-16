@@ -61,9 +61,12 @@ const App: React.FC = () => {
     
     const extractId = (str: string) => {
       if (!str) return "";
-      const urlMatches = str.match(/([a-f0-9]{32})/);
-      if (urlMatches) return urlMatches[0];
-      return str.trim();
+      const trimmed = str.trim();
+      // If it looks like a URL, take only the last part
+      if (trimmed.includes('/')) {
+        return trimmed.split('/').filter(Boolean).pop()?.split('#')[0] || trimmed;
+      }
+      return trimmed;
     };
 
     const finalID = extractId(gistURL) || extractId(gistID);
@@ -75,17 +78,17 @@ const App: React.FC = () => {
 
     setIsSyncing(true);
     try {
-        const filename = "Hrjordon.josn"; 
+        const filename = " Hrjordon.json"; 
         const response = await fetch(`https://api.github.com/gists/${finalID}`, {
             method: 'PATCH',
             headers: { 
-                'Authorization': `Bearer ${token}`,
+                'Authorization': `token ${token}`, // Use 'token' prefix for legacy compatibility
                 'Content-Type': 'application/json',
                 'Accept': 'application/vnd.github.v3+json'
             },
             body: JSON.stringify({ 
               files: { 
-                [filename]: { content: JSON.stringify(db) }
+                [filename.trim()]: { content: JSON.stringify(db) }
               } 
             })
         });
@@ -94,10 +97,11 @@ const App: React.FC = () => {
             setNotifications(prev => ['تمت المزامنة بنجاح ✓', ...prev.slice(0, 5)]);
         } else {
             const error = await response.json().catch(() => ({ message: 'خطأ غير معروف' }));
-            setNotifications(prev => [`فشل المزامنة: ${error.message || response.status}`, ...prev.slice(0, 5)]);
+            const errorMsg = typeof error.message === 'string' ? error.message : JSON.stringify(error.message || 'خطأ غير متوقع');
+            setNotifications(prev => [`فشل المزامنة: ${errorMsg}`, ...prev.slice(0, 5)]);
         }
-    } catch(e) { 
-        setNotifications(prev => [`خطأ في الاتصال بالمزامنة`, ...prev.slice(0, 5)]);
+    } catch(e: any) { 
+        setNotifications(prev => [`خطأ في الاتصال: ${e.message || 'مشكلة في الشبكة'}`, ...prev.slice(0, 5)]);
     } finally {
         setIsSyncing(false);
     }
@@ -164,15 +168,15 @@ const App: React.FC = () => {
   }, [currentPayrolls]);
 
   const updateList = <K extends keyof DB>(key: K, item: any) => {
-    if (!item) return;
+    if (!item || !item.id) return;
     setDb(prev => {
       const currentVal = prev[key];
       if (Array.isArray(currentVal)) {
         const list = [...currentVal];
-        const index = list.findIndex((i: any) => i.id === item.id);
+        const index = list.findIndex((i: any) => String(i.id) === String(item.id));
         let newList;
         if (index !== -1) {
-          newList = list.map((i: any) => i.id === item.id ? { ...i, ...item } : i);
+          newList = list.map((i: any) => String(i.id) === String(item.id) ? { ...i, ...item } : i);
           setNotifications(prevNotifs => [`تم تعديل ${key} : ${item.name || item.id || ''}`, ...prevNotifs.slice(0, 5)]);
         } else {
           newList = [...list, item];

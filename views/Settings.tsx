@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { CompanySettings, User, ArchiveLog } from '../types';
 import { DB } from '../db/store';
-import { Shield, Upload, Download, Database, Trash2, Image as ImageIcon, History, Archive, FileJson, CalendarDays, Clock, Banknote, HelpCircle, Settings2 } from 'lucide-react';
+import { Shield, Upload, Download, Database, Trash2, Image as ImageIcon, History, Archive, FileJson, CalendarDays, Clock, Banknote, HelpCircle, Settings2, Loader2 } from 'lucide-react';
 
 interface Props {
   settings: CompanySettings;
