@@ -105,10 +105,7 @@ const App: React.FC = () => {
             },
             body: JSON.stringify({ 
               files: { 
-                [filename]: { content: JSON.stringify(db) },
-                "Hrjordon.josn": null, // Attempt to delete the typo file if it exists
-                "hrjordon.json": null,
-                "hrjordon.josn": null
+                [filename]: { content: JSON.stringify(db) }
               } 
             })
         });
@@ -280,15 +277,15 @@ const App: React.FC = () => {
   const renderActiveTab = () => {
     const isRtl = db.settings.language === 'ar';
     
-    // Check permissions for non-admin users
     if (currentUser && currentUser.role !== 'admin') {
       const hasPermission = (currentUser.permissions || []).includes(activeTab);
-      if (!hasPermission && activeTab !== 'dashboard') {
+      // Dashboard is allowed for everyone by default
+      if (activeTab !== 'dashboard' && !hasPermission) {
          return (
            <div className="flex flex-col items-center justify-center p-20 text-center space-y-4">
               <ShieldAlert size={80} className="text-rose-500 opacity-20" />
               <h3 className="text-2xl font-black text-rose-600">عذراً، لا تملك صلاحية الوصول لهذا المديول</h3>
-              <p className="text-slate-500 font-bold max-w-md">يرجى مراجعة مسؤول النظام لمنحك الصلاحيات اللازمة للوصول إلى {activeTab === 'settings' ? 'الإعدادات' : 'هذا القسم'}.</p>
+              <p className="text-slate-500 font-bold max-w-md">يرجى مراجعة مسؤول النظام لمنحك الصلاحيات اللازمة للوصول إلى هذا القسم.</p>
            </div>
          );
       }
