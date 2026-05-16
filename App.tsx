@@ -692,10 +692,10 @@ const App: React.FC = () => {
           
           <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl border dark:border-slate-800 overflow-hidden relative print:border-none print:shadow-none print:w-full">
              <div className="overflow-x-auto print:overflow-visible">
-               <table className="w-full text-center text-[13px] font-bold print:text-[10px] print:w-full">
-                 <thead className="bg-indigo-950 text-white font-black text-[15px] uppercase">
+               <table className="w-full text-center text-[13px] font-bold print:text-[8px] print:w-full print:table-fixed">
+                 <thead className="bg-indigo-950 text-white font-black text-[15px] uppercase print:bg-slate-100 print:text-black">
                    <tr>
-                     <th className="px-4 py-5 text-right sticky right-0 bg-indigo-950 z-10 min-w-[180px] print:min-w-[120px]">الموظف</th>
+                     <th className="px-4 py-5 text-right sticky right-0 bg-indigo-950 z-10 min-w-[180px] print:min-w-[100px] print:bg-slate-100 text-sm print:text-[9px]">الموظف</th>
                      <th className="px-1 py-5">الأساسي</th>
                      <th className="px-1 py-5">مواصلات</th>
                      <th className="px-1 py-5">حضور</th>
@@ -714,7 +714,7 @@ const App: React.FC = () => {
                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                    {currentPayrolls.map(p => (
                      <tr key={p.id} className="hover:bg-indigo-50/40 transition-all border-b print:border-slate-300">
-                       <td className="px-4 py-5 text-right font-black text-slate-900 dark:text-white whitespace-nowrap sticky right-0 bg-white dark:bg-slate-900 z-10 border-l border-slate-50 text-lg print:text-[11px]">
+                       <td className="px-4 py-5 text-right font-black text-slate-900 dark:text-white whitespace-nowrap sticky right-0 bg-white dark:bg-slate-900 z-10 border-l border-slate-50 text-lg print:text-[8px] print:bg-white print:text-black">
                           <div>{db.employees.find(e => e.id === p.employeeId)?.name}</div>
                           <div className="text-[8px] font-black text-indigo-500 uppercase tracking-widest no-print">
                              {db.employees.find(e => e.id === p.employeeId)?.cycleType === 'weekly' ? 'أسبوعي' : 'شهري'}
@@ -781,7 +781,7 @@ const App: React.FC = () => {
                        <td className="px-1 py-6 text-rose-300">-{payrollTotals.permissions.toLocaleString()}</td>
                        <td className="px-1 py-6 text-rose-300">-{payrollTotals.loans.toLocaleString()}</td>
                        <td className="px-1 py-6 text-rose-300">-{payrollTotals.manual.toLocaleString()}</td>
-                       <td className="px-4 py-6 text-[22px] bg-indigo-900 text-white shadow-2xl print:bg-slate-300 print:text-black print:text-[14px]">
+                       <td className="px-4 py-6 text-[22px] bg-indigo-900 text-white shadow-2xl print:bg-slate-300 print:text-black print:text-[10px]">
                           {payrollTotals.net.toLocaleString()}
                        </td>
                     </tr>
@@ -1179,14 +1179,29 @@ const App: React.FC = () => {
         <style dangerouslySetInnerHTML={{ __html: `
           @page { size: A4 ${printOrientation}; margin: 10mm; }
           @media print {
-            html, body { margin: 0 !important; padding: 0 !important; height: auto !important; overflow: visible !important; }
-            .print-isolated-wrapper { width: 100% !important; overflow: visible !important; }
+            html, body { 
+              margin: 0 !important; 
+              padding: 0 !important; 
+              height: auto !important; 
+              overflow: visible !important;
+              direction: rtl !important;
+              width: 100% !important;
+            }
+            .print-isolated-wrapper { 
+              width: 100% !important; 
+              overflow: visible !important;
+              padding: 0 !important;
+              margin: 0 !important;
+              display: block !important;
+            }
             .print-container-fixed { 
-              width: ${printOrientation === 'portrait' ? '190mm' : '270mm'} !important; 
-              margin: 0 auto !important; 
+              width: 100% !important;
+              max-width: ${printOrientation === 'portrait' ? '190mm' : '277mm'} !important; 
+              margin: 0 !important;
               border-width: 2px !important;
               box-shadow: none !important;
               overflow: visible !important;
+              float: right !important; /* Ensure it stays pinned to right in RTL */
             }
             .print-card {
               break-inside: avoid !important;
@@ -1195,12 +1210,13 @@ const App: React.FC = () => {
           }
           .vouchers-grid-print { 
             grid-template-columns: ${printOrientation === 'landscape' ? 'repeat(2, minmax(0, 1fr))' : 'repeat(1, minmax(0, 1fr))'}; 
+            width: 100%;
           }
         ` }} />
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-start w-full">
             {individualPrintItem.type === 'vouchers' 
-              ? <div className="print-container-fixed w-full"><VouchersPrintGrid payrolls={individualPrintItem.data} /></div>
-              : <DocumentPrintCard title={individualPrintItem.title} type={individualPrintItem.type} data={individualPrintItem.data} />}
+              ? <div className="print-container-fixed"><VouchersPrintGrid payrolls={individualPrintItem.data} /></div>
+              : <div className="print-container-fixed"><DocumentPrintCard title={individualPrintItem.title} type={individualPrintItem.type} data={individualPrintItem.data} /></div>}
         </div>
       </div>,
       portalNode
