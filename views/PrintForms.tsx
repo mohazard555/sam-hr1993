@@ -39,13 +39,14 @@ const PrintForms: React.FC<Props> = ({ employees, attendance, financials, warnin
     { id: 'permission', title: 'أذونات العمل', cat: 'admin', icon: CheckCircle2, desc: 'سجل تصاريح الخروج والمهمات الخارجية' },
     { id: 'warning', title: 'عقوبات الموظف (الخصومات)', cat: 'admin', icon: ShieldAlert, desc: 'سجل الخصومات المالية والجزاءات المسجلة' },
     { id: 'movements', title: 'تقرير حركات الموظف الشامل', cat: 'reports', icon: ClipboardList, desc: 'تقرير شامل بكافة حركات الموظف خلال فترة زمنية' },
-    { id: 'bonus', title: 'المكافآت والحوافز', cat: 'finance', icon: Award, desc: 'بيان بالمكافآت المالية والتحفيزية المستحقة' },
+    { id: 'bonus', title: 'المكافآت والحوافز', cat: 'finance', icon: Award, desc: 'بيان بالمكافآت المالية والتحفيزية المستحق' },
     { id: 'loan', title: 'سند سلفة موظف', cat: 'finance', icon: Wallet, desc: 'توثيق مبالغ السلف وجدولة الأقساط المعتمدة' },
     { id: 'att_summary', title: 'سجل الحضور والانصراف', cat: 'reports', icon: History, desc: 'تقرير شامل لمواعيد الدوام لفترة محددة' },
-    { id: 'evaluation', title: 'التقييم السنوي للآداء', cat: 'reports', icon: Zap, desc: 'شهادة تقييم مهنية بناءً على مؤشرات الأداء' }
+    { id: 'evaluation', title: 'تقييم أداء سنوي', cat: 'reports', icon: Star, desc: 'نموذج التقييم الشامل للإنتاجية والسلوك الوظيفي' },
   ];
 
   const filteredEmployees = useMemo(() => {
+    if (!searchTerm) return employees;
     return employees.filter(e => 
       e.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
       e.department.toLowerCase().includes(searchTerm.toLowerCase())
@@ -53,17 +54,19 @@ const PrintForms: React.FC<Props> = ({ employees, attendance, financials, warnin
   }, [employees, searchTerm]);
 
   const handleGenerate = (templateId: string) => {
-    if (!selectedEmp && templateId !== 'att_summary' && templateId !== 'movements') {
+    const isGlobalAllowed = ['att_summary', 'movements', 'warning', 'leave', 'permission', 'bonus'].includes(templateId);
+    
+    if (!selectedEmp && !isGlobalAllowed) {
       return alert('يرجى اختيار موظف من القائمة الجانبية أولاً لهذا النوع من التقارير');
     }
     
     const emp = employees.find(e => e.id === selectedEmp);
     const template = templates.find(t => t.id === templateId);
-
+    
     let type = 'document';
     let data: any = {
-      employeeId: selectedEmp,
-      employeeName: emp?.name || 'كل الموظفين',
+      employeeId: selectedEmp || 'ALL',
+      employeeName: emp?.name || 'كافة الموظفين',
       date: new Date().toISOString().split('T')[0],
       dateFrom: dateFrom,
       dateTo: dateTo,
@@ -79,7 +82,6 @@ const PrintForms: React.FC<Props> = ({ employees, attendance, financials, warnin
       );
     } else if (templateId === 'movements') {
        type = 'report_movements';
-       
        const moves: any[] = [];
        const targetEmployees = selectedEmp ? [selectedEmp] : employees.map(e => e.id);
        
@@ -108,61 +110,73 @@ const PrintForms: React.FC<Props> = ({ employees, attendance, financials, warnin
             moves.push({ date: l.startDate, typeLabel: 'إجازة', details: `${empName}: من ${l.startDate} إلى ${l.endDate} (${l.type})` });
          });
        });
-
        data.movements = moves.sort((a, b) => a.date.localeCompare(b.date));
     } else if (templateId === 'warning') {
-      type = 'report_movements'; // Re-use movements layout for deductions list
+      type = 'report_movements'; 
       const lastDeductions = financials.filter(f => 
-        f.employeeId === selectedEmp && 
+        (!selectedEmp || f.employeeId === selectedEmp) && 
         f.type === 'deduction' && 
         f.date >= dateFrom && 
         f.date <= dateTo
       );
-      
-      if (lastDeductions.length === 0) {
-          alert('لا توجد خصومات مالية مسجلة لهذا الموظف في هذه الفترة.');
-          return;
-      }
-      data.movements = lastDeductions.map(f => ({
-        date: f.date,
-        typeLabel: 'خصم مالي / عقوبة',
-        details: `المبلغ: ${f.amount} ${settings.currency} - ${f.reason}`
-      }));
-      data.title = `سجل عقوبات وخصومات: ${emp?.name}`;
+      data.movements = lastDeductions.map(f => {
+        const eName = employees.find(e => e.id === f.employeeId)?.name || f.employeeId;
+        return {
+          date: f.date,
+          typeLabel: 'خصم مالي / عقوبة',
+          details: `الموظف: ${eName} - المبلغ: ${f.amount} ${settings.currency} - ${f.reason}`
+        }
+      });
+      data.title = `سجل عقوبات وخصومات: ${emp?.name || 'للجميع'}`;
     } else if (templateId === 'leave') {
-       type = 'leave';
-       const lastLeaves = leaves.filter(l => l.employeeId === selectedEmp && l.startDate >= dateFrom && l.startDate <= dateTo);
-       if (lastLeaves.length === 0) {
-           alert('لا توجد إجازات مسجلة في هذه الفترة.');
-           return;
+       const filteredLeaves = leaves.filter(l => (!selectedEmp || l.employeeId === selectedEmp) && l.startDate >= dateFrom && l.startDate <= dateTo);
+       if (filteredLeaves.length === 0) return alert('لا توجد إجازات في هذه الفترة.');
+       if (!selectedEmp) {
+         type = 'report_movements';
+         data.movements = filteredLeaves.map(l => ({
+           date: l.startDate,
+           typeLabel: 'طلب إجازة',
+           details: `الموظف: ${employees.find(e => e.id === l.employeeId)?.name} (${l.type}) من ${l.startDate} إلى ${l.endDate}`
+         }));
+       } else {
+         type = 'leave';
+         data = { ...data, ...filteredLeaves[0] };
        }
-       data = { ...data, ...lastLeaves[0] }; // Default to most recent for individual doc
     } else if (templateId === 'permission') {
-       type = 'permission';
-       const lastPermissions = permissions.filter(p => p.employeeId === selectedEmp && p.date >= dateFrom && p.date <= dateTo);
-       if (lastPermissions.length === 0) {
-           alert('لا توجد أذونات خروج في هذه الفترة.');
-           return;
+       const filteredPerms = permissions.filter(p => (!selectedEmp || p.employeeId === selectedEmp) && p.date >= dateFrom && p.date <= dateTo);
+       if (filteredPerms.length === 0) return alert('لا توجد أذونات في هذه الفترة.');
+       if (!selectedEmp) {
+          type = 'report_movements';
+          data.movements = filteredPerms.map(p => ({
+            date: p.date,
+            typeLabel: 'إذن انصراف',
+            details: `الموظف: ${employees.find(e => e.id === p.employeeId)?.name} - خروج ${p.exitTime} (المدة ${p.hours}س)`
+          }));
+       } else {
+          type = 'permission';
+          data = { ...data, ...filteredPerms[0] };
        }
-       data = { ...data, ...lastPermissions[0] };
     } else if (templateId === 'loan') {
        type = 'loan';
        const activeLoan = loans.filter(l => l.employeeId === selectedEmp && l.remainingAmount > 0).sort((a,b) => b.date.localeCompare(a.date))[0];
-       if (!activeLoan) {
-           alert('لا توجد سلف نشطة مسجلة لهذا الموظف حالياً.');
-           return;
-       }
+       if (!activeLoan) return alert('لا توجد سلف نشطة مسجلة لهذا الموظف حالياً.');
        data = { ...data, ...activeLoan };
     } else if (templateId === 'evaluation') {
-       data.notes = "إقرار أداء: بناءً على مراجعة الكفاءة للفترة المنقضية، نؤكد أن الموظف المذكور قد استوفى معايير الأداء المؤسسي بمستوى (جيد جداً)، مع التوصية بالاستمرار في تطوير مهارات القيادة والعمل الجماعي.";
+       data.notes = "إقرار أداء: بناءً على مراجعة الكفاءة للفترة المنقضية، نؤكد أن الموظف المذكور قد استوفى معايير الأداء المؤسسي بمستوى (جيد جداً).";
     } else if (templateId === 'bonus') {
-       type = 'financial';
-       const lastBonus = financials.filter(f => f.employeeId === selectedEmp && f.type === 'bonus' && f.date >= dateFrom && f.date <= dateTo).sort((a,b) => b.date.localeCompare(a.date))[0];
-       if (!lastBonus) {
-           alert('لا توجد مكافآت مسجلة في هذه الفترة.');
-           return;
+       const bEntries = financials.filter(f => (!selectedEmp || f.employeeId === selectedEmp) && f.type === 'bonus' && f.date >= dateFrom && f.date <= dateTo);
+       if (bEntries.length === 0) return alert('لا توجد مكافآت مسجلة في هذه الفترة.');
+       if (!selectedEmp) {
+          type = 'report_movements';
+          data.movements = bEntries.map(f => ({
+            date: f.date,
+            typeLabel: 'مكافأة مالية',
+            details: `الموظف: ${employees.find(e => e.id === f.employeeId)?.name} - المبلغ: ${f.amount} ${settings.currency}`
+          }));
+       } else {
+          type = 'financial';
+          data = { ...data, ...bEntries[0] };
        }
-       data = { ...data, ...lastBonus };
     }
 
     onPrint({
@@ -199,7 +213,6 @@ const PrintForms: React.FC<Props> = ({ employees, attendance, financials, warnin
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        {/* الموظفين والبحث */}
         <div className="lg:col-span-1 space-y-6 no-print">
            <div className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] shadow-2xl border dark:border-slate-800">
               <h3 className="text-xl font-black mb-6 text-indigo-700 flex items-center gap-2">
@@ -240,7 +253,6 @@ const PrintForms: React.FC<Props> = ({ employees, attendance, financials, warnin
                       {selectedEmp === emp.id && <ArrowRight size={20}/>}
                    </button>
                  ))}
-                 {filteredEmployees.length === 0 && <p className="text-center py-10 text-slate-400 italic">لا يوجد نتائج للبحث</p>}
               </div>
            </div>
 
@@ -263,7 +275,6 @@ const PrintForms: React.FC<Props> = ({ employees, attendance, financials, warnin
            )}
         </div>
 
-        {/* القوالب المتاحة / سجل المحفوظات */}
         <div className="lg:col-span-2">
            {activeCategory === 'history' ? (
              <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl border dark:border-slate-800 overflow-hidden text-right">
@@ -283,13 +294,6 @@ const PrintForms: React.FC<Props> = ({ employees, attendance, financials, warnin
                            <p className="text-[10px] font-bold text-slate-500 italic mt-1">{record.employeeName} - {new Date(record.date).toLocaleString('ar-EG')}</p>
                         </div>
                      </div>
-                     <button 
-                       onClick={() => handleGenerate(templates.find(t => t.title === record.title)?.id || 'evaluation')} 
-                       className="p-3 text-indigo-600 hover:bg-indigo-50 rounded-xl transition"
-                       title="إعادة إصدار"
-                     >
-                       <Printer size={18}/>
-                     </button>
                    </div>
                  ))}
                  {printHistory.length === 0 && (
@@ -322,21 +326,6 @@ const PrintForms: React.FC<Props> = ({ employees, attendance, financials, warnin
                 ))}
              </div>
            )}
-
-           {/* تلميحات احترافية */}
-           <div className="mt-10 bg-slate-900 text-white p-10 rounded-[3.5rem] shadow-2xl flex items-center gap-10">
-              <div className="hidden md:block">
-                 <div className="w-24 h-24 bg-indigo-500/20 rounded-full flex items-center justify-center animate-pulse">
-                    <FileText size={40} className="text-indigo-400"/>
-                 </div>
-              </div>
-              <div className="text-right">
-                 <h5 className="text-xl font-black mb-2">معلومات النظام الذكي</h5>
-                 <p className="text-sm font-bold text-slate-400 leading-relaxed">
-                   عند إصدار "سند سلفة"، سيقوم النظام تلقائياً بسحب تفاصيل آخر سلفة نشطة للموظف بما في ذلك جدول الأقساط. يمكنك التحكم في اتجاه الطباعة (طولي/عرضي) من نافذة المعاينة لضمان أفضل تنسيق للمستند قبل تنفيذه. يتم الاحتفاظ بنسخة رقمية من السند في تبويب "المحفوظات".
-                 </p>
-              </div>
-           </div>
         </div>
       </div>
     </div>

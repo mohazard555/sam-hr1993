@@ -875,16 +875,16 @@ const App: React.FC = () => {
     const isA5 = ['permission', 'leave', 'financial', 'loan', 'production', 'warning'].includes(type);
 
     return (
-      <div className={`p-10 w-full bg-white flex flex-col border-4 border-indigo-950 rounded-[2rem] text-right ${isA5 ? 'min-h-[148mm] max-h-[148mm] overflow-hidden print:m-0' : 'min-h-[95vh]'}`}>
+      <div className={`p-6 md:p-8 w-full bg-white flex flex-col border-4 border-indigo-950 rounded-[2rem] text-right ${isA5 ? 'max-h-[85vh] overflow-y-auto print:max-h-none print:min-h-[148mm] print:overflow-hidden print:m-0' : 'min-h-[95vh]'}`}>
           <PrintHeader />
-          <div className="flex-1 space-y-10">
-             <div className="bg-slate-50 p-8 rounded-[2rem] border-2 border-slate-100 grid grid-cols-2 gap-y-6">
-                <div><p className="text-[10px] font-black text-slate-400 uppercase mb-1">اسم الموظف</p><p className="text-xl font-black text-indigo-950">{emp?.name || data.employeeName}</p></div>
-                <div><p className="text-[10px] font-black text-slate-400 uppercase mb-1">المنصب</p><p className="text-lg font-bold text-slate-700">{emp?.position} - {emp?.department}</p></div>
-                <div className="col-span-2 border-t pt-4 text-left font-mono text-xs text-slate-400">REF: {data.id?.toUpperCase() || 'NEW-DOC'}</div>
+          <div className={`flex-1 ${isA5 ? 'space-y-6' : 'space-y-10'}`}>
+             <div className={`bg-slate-50 ${isA5 ? 'p-6 gap-y-4' : 'p-8 gap-y-6'} rounded-[2rem] border-2 border-slate-100 grid grid-cols-2`}>
+                <div><p className="text-[10px] font-black text-slate-400 uppercase mb-1">اسم الموظف</p><p className={`${isA5 ? 'text-lg' : 'text-xl'} font-black text-indigo-950`}>{emp?.name || data.employeeName}</p></div>
+                <div><p className="text-[10px] font-black text-slate-400 uppercase mb-1">المنصب</p><p className={`${isA5 ? 'text-sm' : 'text-lg'} font-bold text-slate-700`}>{emp?.position} - {emp?.department}</p></div>
+                <div className="col-span-2 border-t pt-4 text-left font-mono text-[10px] text-slate-400 uppercase tracking-tighter">REF: {data.id?.toUpperCase() || Math.random().toString(36).substr(2, 9).toUpperCase()}</div>
              </div>
 
-             <div className="p-8 bg-white border-2 border-dashed border-slate-200 rounded-[2rem]">
+             <div className={`${isA5 ? 'p-6' : 'p-8'} bg-white border-2 border-dashed border-slate-200 rounded-[2rem]`}>
                 {type === 'production' && (
                   <div className="space-y-6">
                      <h4 className="text-2xl font-black text-indigo-700 mb-8 text-center border-b pb-4">إشعار إنتاجية معتمد</h4>
