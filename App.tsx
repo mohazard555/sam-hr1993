@@ -253,7 +253,8 @@ const App: React.FC = () => {
       financials: 'المالية',
       production: 'الإنتاج',
       permissions: 'الأذونات',
-      warnings: 'الإنذارات'
+      warnings: 'الإنذارات',
+      report_movements: 'تقرير الحركات'
     };
 
     setDb(prev => {
@@ -294,7 +295,8 @@ const App: React.FC = () => {
       financials: 'المالية',
       production: 'الإنتاج',
       permissions: 'الأذونات',
-      warnings: 'الإنذارات'
+      warnings: 'الإنذارات',
+      report_movements: 'تقرير الحركات'
     };
 
     setDb(prev => {
@@ -407,7 +409,7 @@ const App: React.FC = () => {
             'المدة (ساعة)': item.hours,
             'السبب': item.reason || 'مهمة عمل'
           })}
-          initialData={{ date: new Date().toISOString().split('T')[0], hours: 0, exitTime: '10:00', returnTime: '11:00', reason: '' }}
+          initialData={{ date: new Date().toISOString().split('T')[0], hours: 1, exitTime: '10:00', returnTime: '11:00', reason: '' }}
           tableHeaders={isRtl ? ['الموظف', 'التاريخ', 'من (خروج)', 'إلى (عودة)', 'المدة', 'السبب'] : ['Employee', 'Date', 'Exit', 'Return', 'Duration', 'Reason']}
           renderForm={(data, set) => {
              const updateHours = (exit: string, back: string) => {
@@ -987,6 +989,66 @@ const App: React.FC = () => {
                 {type === 'document' && (
                   <div className="p-10 text-center font-black text-slate-400 italic">
                      {data.notes || 'وثيقة رسمية صادرة ومعتمدة من النظام السحابي لمؤسسة SAM HRMS'}
+                  </div>
+                )}
+                {type === 'report_attendance' && (
+                  <div className="space-y-6">
+                    <h4 className="text-2xl font-black text-indigo-700 mb-6 text-center border-b pb-4">تقرير الحضور والانصراف التفصيلي</h4>
+                    <p className="text-center font-bold text-slate-500 mb-4 text-xs">من {data.dateFrom} إلى {data.dateTo}</p>
+                    <table className="w-full text-right text-[9px] border-collapse">
+                      <thead className="bg-slate-100 font-black">
+                        <tr>
+                          <th className="p-2 border">التاريخ</th>
+                          <th className="p-2 border">الحالة</th>
+                          <th className="p-2 border">الحضور</th>
+                          <th className="p-2 border">الانصراف</th>
+                          <th className="p-2 border">تأخير/إضافي</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(data.records || []).map((r: any, idx: number) => (
+                          <tr key={idx}>
+                            <td className="p-2 border">{r.date}</td>
+                            <td className="p-2 border">{r.status === 'present' ? 'حاضر' : 'غائب'}</td>
+                            <td className="p-2 border text-rose-500">{r.checkIn || '-'}</td>
+                            <td className="p-2 border text-emerald-600">{r.checkOut || '-'}</td>
+                            <td className="p-2 border text-[8px] font-medium">
+                              {r.status === 'present' ? (
+                                <div className="space-y-0.5">
+                                  {calculateTimeDiffMinutes(r.checkIn, db.settings.officialCheckIn) > (db.settings.gracePeriodMinutes || 0) && <p className="text-rose-500">تأخير: {formatMinutes(calculateTimeDiffMinutes(r.checkIn, db.settings.officialCheckIn))}</p>}
+                                  {calculateTimeDiffMinutes(r.checkOut, db.settings.officialCheckOut) > 0 && <p className="text-emerald-600">إضافي: {formatMinutes(calculateTimeDiffMinutes(r.checkOut, db.settings.officialCheckOut))}</p>}
+                                </div>
+                              ) : '-'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                {type === 'report_movements' && (
+                  <div className="space-y-6">
+                    <h4 className="text-2xl font-black text-indigo-700 mb-6 text-center border-b pb-4">تقرير حركات الموظف الشامل</h4>
+                    <p className="text-center font-bold text-slate-500 mb-4 text-xs">سجل النشاطات من {data.dateFrom} إلى {data.dateTo}</p>
+                    <table className="w-full text-right text-[8px] border-collapse">
+                      <thead className="bg-slate-100 font-black">
+                        <tr>
+                          <th className="p-2 border">التاريخ</th>
+                          <th className="p-2 border">نوع الحركة</th>
+                          <th className="p-2 border">التفاصيل / القيمة</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(data.movements || []).map((m: any, idx: number) => (
+                          <tr key={idx} className="border-b hover:bg-slate-50">
+                            <td className="p-2 border whitespace-nowrap">{m.date}</td>
+                            <td className="p-2 border font-black">{m.typeLabel}</td>
+                            <td className="p-2 border font-medium leading-relaxed">{m.details}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {data.movements.length === 0 && <p className="text-center py-10 text-slate-400 italic">لا توجد حركات مسجلة خلال هذه الفترة</p>}
                   </div>
                 )}
              </div>

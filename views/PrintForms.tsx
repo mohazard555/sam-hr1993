@@ -38,6 +38,7 @@ const PrintForms: React.FC<Props> = ({ employees, attendance, financials, warnin
     { id: 'leave', title: 'سجل إجازات الموظف', cat: 'admin', icon: Calendar, desc: 'تقرير مفصل بكافة الإجازات السنوية والطبية' },
     { id: 'permission', title: 'أذونات العمل', cat: 'admin', icon: CheckCircle2, desc: 'سجل تصاريح الخروج والمهمات الخارجية' },
     { id: 'warning', title: 'عقوبات الموظف', cat: 'admin', icon: ShieldAlert, desc: 'سجل الإنذارات الرسمية والإجراءات التأديبية' },
+    { id: 'movements', title: 'تقرير حركات الموظف', cat: 'reports', icon: ClipboardList, desc: 'تقرير شامل بكافة حركات الموظف خلال فترة زمنية' },
     { id: 'bonus', title: 'المكافآت والحوافز', cat: 'finance', icon: Award, desc: 'بيان بالمكافآت المالية والتحفيزية المستحقة' },
     { id: 'loan', title: 'سند سلفة موظف', cat: 'finance', icon: Wallet, desc: 'توثيق مبالغ السلف وجدولة الأقساط المعتمدة' },
     { id: 'att_summary', title: 'سجل الحضور والانصراف', cat: 'reports', icon: History, desc: 'تقرير شامل لمواعيد الدوام لفترة محددة' },
@@ -67,7 +68,37 @@ const PrintForms: React.FC<Props> = ({ employees, attendance, financials, warnin
 
     if (templateId === 'att_summary') {
       type = 'report_attendance';
+      data.dateFrom = dateFrom;
+      data.dateTo = dateTo;
       data.records = attendance.filter(a => a.employeeId === selectedEmp && a.date >= dateFrom && a.date <= dateTo);
+    } else if (templateId === 'movements') {
+       type = 'report_movements';
+       data.dateFrom = dateFrom;
+       data.dateTo = dateTo;
+       
+       const moves: any[] = [];
+       attendance.filter(a => a.employeeId === selectedEmp && a.date >= dateFrom && a.date <= dateTo).forEach(a => {
+         moves.push({ 
+           date: a.date, 
+           typeLabel: 'حضور وانصراف', 
+           details: `${a.status === 'present' ? `حاضر (${a.checkIn} - ${a.checkOut})` : 'غائب'}` 
+         });
+       });
+       permissions.filter(p => p.employeeId === selectedEmp && p.date >= dateFrom && p.date <= dateTo).forEach(p => {
+          moves.push({ date: p.date, typeLabel: 'إذن ساعي', details: `خروج: ${p.exitTime}، عودة: ${p.returnTime} (المدة: ${p.hours} ساعة) - السبب: ${p.reason}` });
+       });
+       financials.filter(f => f.employeeId === selectedEmp && f.date >= dateFrom && f.date <= dateTo).forEach(f => {
+          const typeMap: any = { bonus: 'مكافأة', deduction: 'خصم مالي', payment: 'سند صرف', production_incentive: 'حافز إنتاج' };
+          moves.push({ date: f.date, typeLabel: typeMap[f.type] || f.type, details: `المبلغ: ${f.amount} ${settings.currency} - ${f.reason}` });
+       });
+       warnings.filter(w => w.employeeId === selectedEmp && w.date >= dateFrom && w.date <= dateTo).forEach(w => {
+          moves.push({ date: w.date, typeLabel: 'إنذار رسمي', details: `السبب: ${w.reason}` });
+       });
+       leaves.filter(l => l.employeeId === selectedEmp && l.startDate >= dateFrom && l.startDate <= dateTo).forEach(l => {
+          moves.push({ date: l.startDate, typeLabel: 'إجازة', details: `من ${l.startDate} إلى ${l.endDate} (${l.type}) - ${l.isPaid ? 'مأجورة' : 'غير مأجورة'}` });
+       });
+
+       data.movements = moves.sort((a, b) => a.date.localeCompare(b.date));
     } else if (templateId === 'warning') {
       type = 'warning';
       const lastWarning = warnings.filter(w => w.employeeId === selectedEmp).sort((a,b) => b.date.localeCompare(a.date))[0];
