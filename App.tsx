@@ -64,14 +64,22 @@ const App: React.FC = () => {
       if (!str) return "";
       const trimmed = str.trim();
       
-      // Look for the 32-character hex Gist ID anywhere in the string
+      // If it contains a known Gist URL pattern
+      if (trimmed.includes('github.com')) {
+        const parts = trimmed.split('/');
+        // The ID is usually the part after the username in gist.github.com/user/id
+        // or after the username in gist.githubusercontent.com/user/id/raw/...
+        const gistIndex = parts.findIndex(p => p.includes('github.com'));
+        if (gistIndex !== -1 && parts[gistIndex + 2]) {
+           return parts[gistIndex + 2].split('#')[0].split('?')[0];
+        }
+      }
+
+      // Fallback: look for 32-character hex Gist ID
       const idMatch = trimmed.match(/[a-f0-9]{32}/i);
       if (idMatch) return idMatch[0];
       
-      // Fallback: If it's a short string without slashes, treat as ID
-      if (!trimmed.includes('/') && trimmed.length >= 20) return trimmed;
-      
-      return "";
+      return trimmed;
     };
 
     const finalID = extractId(gistURL) || extractId(gistID);
@@ -87,7 +95,7 @@ const App: React.FC = () => {
         const response = await fetch(`https://api.github.com/gists/${finalID}`, {
             method: 'PATCH',
             headers: { 
-                'Authorization': `Bearer ${token}`,
+                'Authorization': `token ${token}`,
                 'Content-Type': 'application/json',
                 'Accept': 'application/vnd.github.v3+json'
             },
@@ -102,8 +110,8 @@ const App: React.FC = () => {
             setNotifications(prev => ['تمت المزامنة بنجاح ✓', ...prev.slice(0, 5)]);
         } else {
             const error = await response.json().catch(() => ({ message: 'خطأ غير معروف' }));
-            const errorMsg = typeof error.message === 'string' ? error.message : JSON.stringify(error.message);
-            setNotifications(prev => [`فشل المزامنة: ${errorMsg || response.status}`, ...prev.slice(0, 5)]);
+            const errorMsg = error.message || response.statusText || response.status;
+            setNotifications(prev => [`فشل المزامنة: ${errorMsg}`, ...prev.slice(0, 5)]);
         }
     } catch(e: any) { 
         setNotifications(prev => [`خطأ في الاتصال: ${e.message || 'مشكلة في الشبكة'}`, ...prev.slice(0, 5)]);
