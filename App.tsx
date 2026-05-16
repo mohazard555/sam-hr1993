@@ -59,14 +59,19 @@ const App: React.FC = () => {
     const gistID = db.settings.gistID || "";
     const token = db.settings.gistToken?.trim();
     
+    // Improved ID extraction for both standard and raw URLs
     const extractId = (str: string) => {
       if (!str) return "";
       const trimmed = str.trim();
-      // If it looks like a URL, take only the last part
-      if (trimmed.includes('/')) {
-        return trimmed.split('/').filter(Boolean).pop()?.split('#')[0] || trimmed;
-      }
-      return trimmed;
+      
+      // Look for the 32-character hex Gist ID anywhere in the string
+      const idMatch = trimmed.match(/[a-f0-9]{32}/i);
+      if (idMatch) return idMatch[0];
+      
+      // Fallback: If it's a short string without slashes, treat as ID
+      if (!trimmed.includes('/') && trimmed.length >= 20) return trimmed;
+      
+      return "";
     };
 
     const finalID = extractId(gistURL) || extractId(gistID);
@@ -78,17 +83,17 @@ const App: React.FC = () => {
 
     setIsSyncing(true);
     try {
-        const filename = " Hrjordon.json"; 
+        const filename = "Hrjordon.json"; 
         const response = await fetch(`https://api.github.com/gists/${finalID}`, {
             method: 'PATCH',
             headers: { 
-                'Authorization': `token ${token}`, // Use 'token' prefix for legacy compatibility
+                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
                 'Accept': 'application/vnd.github.v3+json'
             },
             body: JSON.stringify({ 
               files: { 
-                [filename.trim()]: { content: JSON.stringify(db) }
+                [filename]: { content: JSON.stringify(db) }
               } 
             })
         });
@@ -97,8 +102,8 @@ const App: React.FC = () => {
             setNotifications(prev => ['تمت المزامنة بنجاح ✓', ...prev.slice(0, 5)]);
         } else {
             const error = await response.json().catch(() => ({ message: 'خطأ غير معروف' }));
-            const errorMsg = typeof error.message === 'string' ? error.message : JSON.stringify(error.message || 'خطأ غير متوقع');
-            setNotifications(prev => [`فشل المزامنة: ${errorMsg}`, ...prev.slice(0, 5)]);
+            const errorMsg = typeof error.message === 'string' ? error.message : JSON.stringify(error.message);
+            setNotifications(prev => [`فشل المزامنة: ${errorMsg || response.status}`, ...prev.slice(0, 5)]);
         }
     } catch(e: any) { 
         setNotifications(prev => [`خطأ في الاتصال: ${e.message || 'مشكلة في الشبكة'}`, ...prev.slice(0, 5)]);
