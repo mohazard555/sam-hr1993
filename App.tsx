@@ -141,7 +141,7 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    const timer = setTimeout(() => syncToGist(false), 20000);
+    const timer = setTimeout(() => syncToGist(false), 60000);
     return () => clearTimeout(timer);
   }, [db]);
 

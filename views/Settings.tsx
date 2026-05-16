@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { CompanySettings, User, ArchiveLog } from '../types';
 import { DB } from '../db/store';
-import { Shield, Upload, Download, Database, Trash2, Image as ImageIcon, History, Archive, FileJson, CalendarDays, Clock, Banknote, HelpCircle, Settings2, Loader2 } from 'lucide-react';
+import { Shield, Lock, ShieldAlert, Upload, Download, Database, Trash2, Image as ImageIcon, History, Archive, FileJson, CalendarDays, Clock, Banknote, HelpCircle, Settings2, Loader2 } from 'lucide-react';
 
 interface Props {
   settings: CompanySettings;
@@ -389,7 +389,7 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
             <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-2xl text-[10px] font-bold text-slate-500 leading-relaxed space-y-2">
                 <p className="text-rose-600 font-extrabold flex items-center gap-1"><ShieldAlert size={12}/> تجنب حذف بيانات المزامنة أو مشاركتها لضمان استمرارية العمل السحابي.</p>
                 <p>⚠️ تأكد من أن الـ Token يملك صلاحية <span className="text-indigo-600 font-black">'gist'</span> للوصول للملفات.</p>
-                <p>⚠️ النظام يقوم بالمزامنة تلقائياً كل <span className="text-indigo-600 font-black">20 ثانية</span> من أي تعديل.</p>
+                <p>⚠️ النظام يقوم بالمزامنة تلقائياً كل <span className="text-indigo-600 font-black">60 ثانية</span> من أي تعديل.</p>
             </div>
 
             <div className="flex flex-col gap-2">
