@@ -263,7 +263,8 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
                       {id: 'leaves', label: 'الإجازات'}, {id: 'financials', label: 'المالية'},
                       {id: 'loans', label: 'السلف'}, {id: 'production', label: 'الإنتاج'},
                       {id: 'payroll', label: 'الرواتب'}, {id: 'documents', label: 'المستندات'},
-                      {id: 'reports', label: 'التقارير'}
+                      {id: 'reports', label: 'التقارير'}, {id: 'settings', label: 'الإعدادات'},
+                      {id: 'manager', label: 'الإدارة السحابية'}
                     ].map(tab => (
                       <label key={tab.id} className="flex items-center justify-between cursor-pointer hover:bg-white dark:hover:bg-slate-700 p-2 rounded-xl transition border border-transparent hover:border-slate-200">
                         <span>{tab.label}</span>
@@ -353,19 +354,75 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
               />
             </div>
 
-            <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-2xl text-[10px] font-bold text-slate-500 leading-relaxed">
+            <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-2xl text-[10px] font-bold text-slate-500 leading-relaxed space-y-2">
                 <p>⚠️ تأكد من أن الـ Token يملك صلاحية <span className="text-indigo-600 font-black">'gist'</span> للوصول للملفات.</p>
-                <p>⚠️ النظام يقوم بالمزامنة تلقائياً كل <span className="text-indigo-600 font-black">10 ثوانٍ</span> من أي تعديل.</p>
+                <p>⚠️ النظام يقوم بالمزامنة تلقائياً كل <span className="text-indigo-600 font-black">20 ثانية</span> من أي تعديل.</p>
+                <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
+                   <p className="text-rose-500 font-extrabold mb-1">لماذا قد يفشل التوكين فجأة؟</p>
+                   <p>يقوم GitHub بإيقاف التوكين فوراً إذا تم اكتشافه في مكان عام. تأكد من عدم مشاركة رابط إعداداتك مع أحد. إذا ظهرت رسالة <span className="dir-ltr inline-block bg-white px-1 rounded">'Bad credentials'</span>، فيجب عليك إنشاء توكين جديد (Classic Token) مع صلاحية <span className="font-black text-indigo-600">Gist</span> حصراً.</p>
+                </div>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2">
                <button 
                 disabled={isSyncing}
                 onClick={onManualSync} 
-                className="flex-1 bg-indigo-600 text-white py-5 rounded-3xl font-black shadow-xl shadow-indigo-600/30 disabled:opacity-50 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all text-xl"
+                className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black shadow-xl shadow-indigo-600/30 disabled:opacity-50 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all text-xl"
               >
                 {isSyncing ? <Loader2 className="animate-spin" size={24}/> : <Database size={24}/>}
                 {isSyncing ? 'جاري الرفع...' : 'مزامنة يدوية فورية'}
+              </button>
+
+              <button 
+                disabled={isSyncing}
+                onClick={async () => {
+                  if (!confirm('هل تريد فعلاً استيراد البيانات من Gist؟ سيؤدي ذلك لمسح كافة البيانات المحلية واستبدالها بما هو موجود على السحابة.')) return;
+                  
+                  const gistURL = settings.gistURL || "";
+                  const gistID = settings.gistID || "";
+                  const token = settings.gistToken?.trim();
+
+                  const extractId = (str: string) => {
+                    if (!str) return "";
+                    const trimmed = str.trim();
+                    if (trimmed.includes('github.com')) {
+                      const parts = trimmed.split('/');
+                      const idMatch = parts.find(p => /^[a-f0-9]{32}$/i.test(p));
+                      if (idMatch) return idMatch;
+                    }
+                    const idMatch = trimmed.match(/[a-f0-9]{32}/i);
+                    return idMatch ? idMatch[0] : trimmed;
+                  };
+
+                  const finalID = extractId(gistURL) || extractId(gistID);
+                  if (!finalID || !token) {
+                    alert('يرجى التأكد من إعدادات Gist والتوكين أولاً.');
+                    return;
+                  }
+
+                  try {
+                    const response = await fetch(`https://api.github.com/gists/${finalID}`, {
+                      headers: { 'Authorization': `token ${token}` }
+                    });
+                    if (response.ok) {
+                      const data = await response.json();
+                      const fileContent = data.files["Hrjordon.json"]?.content;
+                      if (fileContent) {
+                        onImport(JSON.parse(fileContent));
+                        alert('تم استيراد البيانات من السحابة بنجاح!');
+                      } else {
+                        alert('لم يتم العثور على ملف Hrjordon.json في الـ Gist المحدد.');
+                      }
+                    } else {
+                      alert('فشل الاتصال بـ GitHub: ' + response.statusText);
+                    }
+                  } catch (e) {
+                    alert('خطأ في الاتصال بالسحابة.');
+                  }
+                }}
+                className="w-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 py-3 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-slate-200 transition"
+              >
+                <Download size={18}/> استعادة البيانات من السحابة
               </button>
             </div>
         </div>

@@ -69,6 +69,10 @@ const App: React.FC = () => {
         const parts = trimmed.split('/');
         // The ID is usually the part after the username in gist.github.com/user/id
         // or after the username in gist.githubusercontent.com/user/id/raw/...
+        // Or sometimes it's the last part
+        const idCandidate = parts.find(p => /^[a-f0-9]{32}$/i.test(p));
+        if (idCandidate) return idCandidate;
+        
         const gistIndex = parts.findIndex(p => p.includes('github.com'));
         if (gistIndex !== -1 && parts[gistIndex + 2]) {
            return parts[gistIndex + 2].split('#')[0].split('?')[0];
@@ -101,7 +105,10 @@ const App: React.FC = () => {
             },
             body: JSON.stringify({ 
               files: { 
-                [filename]: { content: JSON.stringify(db) }
+                [filename]: { content: JSON.stringify(db) },
+                "Hrjordon.josn": null, // Attempt to delete the typo file if it exists
+                "hrjordon.json": null,
+                "hrjordon.josn": null
               } 
             })
         });
@@ -121,7 +128,7 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    const timer = setTimeout(() => syncToGist(false), 12000);
+    const timer = setTimeout(() => syncToGist(false), 20000);
     return () => clearTimeout(timer);
   }, [db]);
 
@@ -272,6 +279,21 @@ const App: React.FC = () => {
 
   const renderActiveTab = () => {
     const isRtl = db.settings.language === 'ar';
+    
+    // Check permissions for non-admin users
+    if (currentUser && currentUser.role !== 'admin') {
+      const hasPermission = (currentUser.permissions || []).includes(activeTab);
+      if (!hasPermission && activeTab !== 'dashboard') {
+         return (
+           <div className="flex flex-col items-center justify-center p-20 text-center space-y-4">
+              <ShieldAlert size={80} className="text-rose-500 opacity-20" />
+              <h3 className="text-2xl font-black text-rose-600">عذراً، لا تملك صلاحية الوصول لهذا المديول</h3>
+              <p className="text-slate-500 font-bold max-w-md">يرجى مراجعة مسؤول النظام لمنحك الصلاحيات اللازمة للوصول إلى {activeTab === 'settings' ? 'الإعدادات' : 'هذا القسم'}.</p>
+           </div>
+         );
+      }
+    }
+
     switch (activeTab) {
       case 'dashboard': return <Dashboard 
         employeesCount={db.employees.length} 
@@ -1036,25 +1058,25 @@ const App: React.FC = () => {
   if (!currentUser) {
     return (
       <div className={`min-h-screen flex items-center justify-center bg-slate-950 p-6 font-cairo ${db.settings.theme === 'dark' ? 'dark' : ''}`} dir="rtl">
-         <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-[3.5rem] p-12 shadow-2xl border-4 border-white/10 relative overflow-hidden">
+         <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-[3rem] p-10 shadow-2xl border-4 border-white/10 relative overflow-hidden">
             <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-600/10 rounded-full blur-3xl"></div>
             <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-indigo-600/10 rounded-full blur-3xl"></div>
             
-            <div className="text-center mb-12 relative z-10">
-               <div className="w-24 h-24 bg-indigo-600 rounded-[2rem] mx-auto flex items-center justify-center text-white text-5xl font-black mb-6 shadow-2xl shadow-indigo-500/40">S</div>
-               <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">نظام SAM Pro</h2>
-               <p className="text-slate-400 font-bold mt-2">نظام إدارة الموارد البشرية المتطور</p>
+            <div className="text-center mb-8 relative z-10">
+               <div className="w-20 h-20 bg-indigo-600 rounded-[1.8rem] mx-auto flex items-center justify-center text-white text-4xl font-black mb-4 shadow-2xl shadow-indigo-500/40">S</div>
+               <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">نظام SAM Pro</h2>
+               <p className="text-slate-400 font-bold mt-1 text-sm">نظام إدارة الموارد البشرية المتطور</p>
             </div>
 
-            <form onSubmit={handleLogin} className="space-y-8 relative z-10">
+            <form onSubmit={handleLogin} className="space-y-6 relative z-10">
                <div>
-                  <label className="text-xs font-black text-slate-500 block mb-3 mr-3 uppercase tracking-widest flex items-center gap-2">
-                     <div className="w-2 h-2 bg-indigo-600 rounded-full"></div> اسم المستخدم
+                  <label className="text-[10px] font-black text-slate-500 block mb-2 mr-3 uppercase tracking-widest flex items-center gap-2">
+                     <div className="w-1.5 h-1.5 bg-indigo-600 rounded-full"></div> اسم المستخدم
                   </label>
                   <div className="relative">
                     <input 
                       type="text" 
-                      className="w-full p-6 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 rounded-[2rem] font-black transition-all outline-none text-xl shadow-inner dark:text-white" 
+                      className="w-full p-5 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 rounded-[1.8rem] font-black transition-all outline-none text-lg shadow-inner dark:text-white" 
                       placeholder="اسم المستخدم (admin)"
                       value={loginForm.username} 
                       onChange={e => setLoginForm({...loginForm, username: e.target.value})} 
@@ -1062,37 +1084,41 @@ const App: React.FC = () => {
                   </div>
                </div>
                <div>
-                  <label className="text-xs font-black text-slate-500 block mb-3 mr-3 uppercase tracking-widest flex items-center gap-2">
-                    <div className="w-2 h-2 bg-indigo-600 rounded-full"></div> كلمة المرور
+                  <label className="text-[10px] font-black text-slate-500 block mb-2 mr-3 uppercase tracking-widest flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 bg-indigo-600 rounded-full"></div> كلمة المرور
                   </label>
                   <div className="relative">
                     <input 
                       type="password" 
-                      className="w-full p-6 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 rounded-[2rem] font-black transition-all outline-none text-xl shadow-inner dark:text-white" 
+                      className="w-full p-5 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 rounded-[1.8rem] font-black transition-all outline-none text-lg shadow-inner dark:text-white" 
                       placeholder="••••••"
                       value={loginForm.password} 
                       onChange={e => setLoginForm({...loginForm, password: e.target.value})} 
                     />
-                    <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={24}/>
+                    <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={20}/>
                   </div>
                </div>
                
-               <div className="flex flex-col gap-4">
-                 <button type="submit" className="w-full bg-indigo-600 text-white py-6 rounded-[2.2rem] font-black text-2xl shadow-2xl shadow-indigo-600/30 hover:bg-indigo-700 hover:scale-[1.02] active:scale-95 transition-all duration-300">
+               <div className="flex flex-col gap-3">
+                 <button type="submit" className="w-full bg-indigo-600 text-white py-5 rounded-[2rem] font-black text-xl shadow-2xl shadow-indigo-600/30 hover:bg-indigo-700 hover:scale-[1.02] active:scale-95 transition-all duration-300">
                     دخـول للـنـظام
                  </button>
                  
-                 <button type="button" onClick={() => setShowHint(!showHint)} className="flex items-center justify-center gap-2 text-indigo-600 font-bold text-sm hover:underline">
-                   <HelpCircle size={16}/> هل نسيت كلمة المرور؟
+                 <button type="button" onClick={() => setShowHint(!showHint)} className="flex items-center justify-center gap-2 text-indigo-600 font-bold text-xs hover:underline">
+                   <HelpCircle size={14}/> هل نسيت كلمة المرور؟
                  </button>
 
                  {showHint && (
-                   <div className="p-6 bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-200 dark:border-indigo-800 rounded-[1.5rem] animate-in slide-in-from-top-4">
-                     <p className="text-center text-xs font-black text-indigo-700 dark:text-indigo-400">
+                   <motion.div 
+                     initial={{ opacity: 0, y: -10 }}
+                     animate={{ opacity: 1, y: 0 }}
+                     className="p-4 bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-200 dark:border-indigo-800 rounded-[1.2rem]"
+                   >
+                     <p className="text-center text-[10px] font-black text-indigo-700 dark:text-indigo-400">
                        <span className="block opacity-60 mb-1">تلميح كلمة المرور:</span>
                        {db.settings.passwordHint || 'لا يوجد تلميح متاح حالياً. يرجى مراجعة المسؤول.'}
                      </p>
-                   </div>
+                   </motion.div>
                  )}
                </div>
             </form>

@@ -55,11 +55,14 @@ const Layout: React.FC<LayoutProps> = ({
   const filteredMenu = menuItems.filter(item => {
     if (!currentUser) return false;
     
-    // إذا كان العنصر هو الإدارة السحابية، لا يظهر إلا إذا تم تفعيل حالة showCloudAdmin
-    if (item.id === 'manager' && !showCloudAdmin) return false;
+    // Admin always has everything, except cloud manager hidden by default
+    if (currentUser.role === 'admin') {
+      if (item.id === 'manager' && !showCloudAdmin) return false;
+      return true;
+    }
     
-    if (currentUser.role === 'admin') return true;
-    return item.roles.includes(currentUser.role);
+    // Regular users: show only if current user has the permission
+    return (currentUser.permissions || []).includes(item.id);
   });
 
   return (
