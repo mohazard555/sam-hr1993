@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import Layout from './components/Layout';
 import Dashboard from './views/Dashboard';
 import Employees from './views/Employees';
@@ -19,6 +20,8 @@ import { exportToExcel } from './utils/export';
 import { Printer, X, ReceiptText, CalendarDays, Loader2, FileText, CheckCircle, Info, ShieldAlert, Package, Layers, Clock, TrendingUp, Lock, HelpCircle, ToggleLeft, ToggleRight, AlertCircle, Calendar, FileDown, LayoutPanelLeft, LayoutPanelTop, Zap, Timer, Filter, ShieldCheck, Award } from 'lucide-react';
 
 type PrintType = 'production' | 'loan' | 'leave' | 'financial' | 'document' | 'vouchers' | 'report_attendance' | 'report_financial' | 'warning' | 'employee_list' | 'department_list' | 'permission';
+
+const DEFAULT_GIST_ID = "7e6672b4f9ff320173c92e679ff4d7d4";
 
 const App: React.FC = () => {
   const [db, setDb] = useState<DB>(loadDB());
@@ -86,7 +89,7 @@ const App: React.FC = () => {
       return trimmed;
     };
 
-    const finalID = extractId(gistURL) || extractId(gistID);
+    const finalID = extractId(gistURL) || extractId(gistID) || DEFAULT_GIST_ID;
     
     if (!finalID || !token) {
       if (manual) setNotifications(prev => ['يرجى التأكد من إعدادات Gist والـ Token', ...prev.slice(0, 5)]);
@@ -96,6 +99,19 @@ const App: React.FC = () => {
     setIsSyncing(true);
     try {
         const filename = "Hrjordon.json"; 
+        
+        // CRITICAL SECURITY: Clear sensitive gist info before uploading
+        // This prevents GitHub from revoking your token when it scans the Gist file
+        const dataToSync = {
+          ...db,
+          settings: {
+            ...db.settings,
+            gistToken: "", // Never upload the token itself
+            gistID: finalID,
+            gistURL: `https://gist.github.com/${finalID}`
+          }
+        };
+
         const response = await fetch(`https://api.github.com/gists/${finalID}`, {
             method: 'PATCH',
             headers: { 
@@ -105,7 +121,7 @@ const App: React.FC = () => {
             },
             body: JSON.stringify({ 
               files: { 
-                [filename]: { content: JSON.stringify(db) }
+                [filename]: { content: JSON.stringify(dataToSync) }
               } 
             })
         });
@@ -128,6 +144,46 @@ const App: React.FC = () => {
     const timer = setTimeout(() => syncToGist(false), 20000);
     return () => clearTimeout(timer);
   }, [db]);
+
+  // Auto-import from Cloud on startup if Gist settings exist
+  useEffect(() => {
+    const loadFromCloudOnStart = async () => {
+      const gistID = db.settings.gistID || DEFAULT_GIST_ID;
+      const token = db.settings.gistToken?.trim();
+      
+      if (gistID && token) {
+        try {
+          const response = await fetch(`https://api.github.com/gists/${gistID}`, {
+            headers: { 'Authorization': `token ${token}` }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            const fileContent = data.files["Hrjordon.json"]?.content;
+            if (fileContent) {
+              const cloudData = JSON.parse(fileContent);
+              // Only merge if cloud data has employees or users (basic validation)
+              if (cloudData.employees && cloudData.users) {
+                setDb(prev => ({
+                  ...cloudData,
+                  // Keep local gist settings so we don't lose the token we just used
+                  settings: {
+                    ...cloudData.settings,
+                    gistToken: prev.settings.gistToken,
+                    gistID: prev.settings.gistID,
+                    gistURL: prev.settings.gistURL
+                  }
+                }));
+                setNotifications(prev => ['تم تحديث البيانات من السحابة بنجاح', ...prev.slice(0, 5)]);
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Cloud boot error", e);
+        }
+      }
+    };
+    loadFromCloudOnStart();
+  }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1055,14 +1111,14 @@ const App: React.FC = () => {
   if (!currentUser) {
     return (
       <div className={`min-h-screen flex items-center justify-center bg-slate-950 p-6 font-cairo ${db.settings.theme === 'dark' ? 'dark' : ''}`} dir="rtl">
-         <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-[3rem] p-10 shadow-2xl border-4 border-white/10 relative overflow-hidden">
+         <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 shadow-2xl border-4 border-white/10 relative overflow-hidden">
             <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-600/10 rounded-full blur-3xl"></div>
             <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-indigo-600/10 rounded-full blur-3xl"></div>
             
-            <div className="text-center mb-8 relative z-10">
-               <div className="w-20 h-20 bg-indigo-600 rounded-[1.8rem] mx-auto flex items-center justify-center text-white text-4xl font-black mb-4 shadow-2xl shadow-indigo-500/40">S</div>
-               <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">نظام SAM Pro</h2>
-               <p className="text-slate-400 font-bold mt-1 text-sm">نظام إدارة الموارد البشرية المتطور</p>
+            <div className="text-center mb-6 relative z-10">
+               <div className="w-16 h-16 bg-indigo-600 rounded-[1.5rem] mx-auto flex items-center justify-center text-white text-3xl font-black mb-3 shadow-2xl shadow-indigo-500/40">S</div>
+               <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter">نظام SAM Pro</h2>
+               <p className="text-slate-400 font-bold mt-1 text-[10px]">نظام إدارة الموارد البشرية المتطور</p>
             </div>
 
             <form onSubmit={handleLogin} className="space-y-6 relative z-10">
