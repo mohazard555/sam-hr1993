@@ -53,7 +53,10 @@ const DEFAULT_SETTINGS: CompanySettings = {
   passwordHint: 'رقم هاتفك أو اسمك المفضل',
   archiveRetentionDays: 90,
   archiveLogs: [],
-  fridayIsWorkDay: false
+  fridayIsWorkDay: false,
+  gistURL: '',
+  gistID: '',
+  gistToken: ''
 };
 
 const INITIAL_USER: User = {

@@ -108,7 +108,7 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    const timer = setTimeout(() => syncToGist(false), 10000);
+    const timer = setTimeout(() => syncToGist(false), 12000);
     return () => clearTimeout(timer);
   }, [db]);
 
@@ -250,6 +250,11 @@ const App: React.FC = () => {
     const hours = Math.floor(totalMinutes / 60);
     const mins = Math.round(totalMinutes % 60);
     return `${hours}س ${mins}د`;
+  };
+
+  const handleClearNotifications = () => {
+    setNotifications([]);
+    localStorage.removeItem('sam_notifications');
   };
 
   const renderActiveTab = () => {
@@ -1094,6 +1099,7 @@ const App: React.FC = () => {
         currentUser={currentUser} 
         onLogout={() => setCurrentUser(null)}
         notifications={notifications}
+        onClearNotifications={handleClearNotifications}
         isSyncing={isSyncing}
       >
         {renderActiveTab()}

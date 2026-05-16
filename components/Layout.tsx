@@ -20,15 +20,20 @@ interface LayoutProps {
   currentUser: User | null;
   onLogout: () => void;
   notifications?: string[];
+  onClearNotifications?: () => void;
   isSyncing?: boolean;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang, theme, toggleTheme, currentUser, onLogout, notifications = [], isSyncing = false }) => {
+const Layout: React.FC<LayoutProps> = ({ 
+  children, activeTab, setActiveTab, lang, theme, toggleTheme, 
+  currentUser, onLogout, notifications = [], onClearNotifications, isSyncing = false 
+}) => {
   const t = useTranslation(lang);
   const isRtl = lang === 'ar';
   
   // حالة التحكم في ظهور الإدارة السحابية (مخفية افتراضياً)
   const [showCloudAdmin, setShowCloudAdmin] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const menuItems = [
     { id: 'dashboard', label: t('dashboard'), icon: LayoutDashboard, roles: ['admin', 'manager', 'viewer'] },
@@ -117,6 +122,62 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang
             </h2>
           </div>
           <div className="flex items-center gap-4">
+             {/* Notifications Icon and Dropdown */}
+             <div className="relative">
+                <button 
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className={`p-2.5 rounded-xl transition-all relative ${showNotifications ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200'}`}
+                >
+                  <Bell size={20} />
+                  {notifications.length > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white dark:border-slate-900 animate-bounce">
+                      {notifications.length}
+                    </span>
+                  )}
+                </button>
+
+                <AnimatePresence>
+                  {showNotifications && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 15, scale: 0.95 }}
+                      className={`absolute top-full mt-3 w-80 bg-white dark:bg-slate-900 border dark:border-slate-800 shadow-2xl rounded-3xl z-[700] overflow-hidden ${isRtl ? 'left-0 origin-top-left' : 'right-0 origin-top-right'}`}
+                    >
+                      <div className="p-4 border-b dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
+                        <h4 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
+                          <Bell size={14} className="text-indigo-600" />
+                          {isRtl ? 'مركز التنبيهات' : 'Notification Center'}
+                        </h4>
+                        {notifications.length > 0 && onClearNotifications && (
+                          <button 
+                            onClick={() => { onClearNotifications(); setShowNotifications(false); }}
+                            className="text-[10px] font-black text-rose-500 hover:bg-rose-50 px-2 py-1 rounded-lg transition"
+                          >
+                            {isRtl ? 'مسح الكل' : 'Clear All'}
+                          </button>
+                        )}
+                      </div>
+                      <div className="max-h-[350px] overflow-y-auto p-2 space-y-1">
+                        {notifications.length === 0 ? (
+                          <div className="py-12 text-center text-slate-400">
+                             <Bell size={32} className="mx-auto mb-2 opacity-20" />
+                             <p className="text-xs font-bold">{isRtl ? 'لا يوجد تنبيهات حالياً' : 'No notifications'}</p>
+                          </div>
+                        ) : (
+                          notifications.map((msg, i) => (
+                            <div key={i} className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl flex items-start gap-3 border border-transparent hover:border-indigo-100 dark:hover:border-indigo-900/30 transition-colors">
+                              <div className="mt-1 w-1.5 h-1.5 bg-indigo-600 rounded-full shrink-0"></div>
+                              <p className="text-[11px] font-bold text-slate-700 dark:text-slate-300 leading-relaxed">{msg}</p>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+             </div>
+
              <div className="hidden md:block text-right">
                 <p className="text-xs text-slate-700 dark:text-slate-400 font-black">{currentUser?.name}</p>
                 <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-black uppercase tracking-widest">{currentUser?.role}</p>
@@ -131,7 +192,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang
           {children}
         </section>
       </main>
-      {/* Notifications & Sync Indicator */}
+      {/* Sync Indicator stays at bottom */}
       <div className="fixed bottom-6 right-6 z-[600] flex flex-col gap-3 pointer-events-none">
         <AnimatePresence>
           {isSyncing && (
@@ -145,19 +206,6 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang
               <span className="font-black text-sm">جـاري مـزامـنـة الـبـيـانـات...</span>
             </motion.div>
           )}
-
-          {notifications.map((msg, i) => (
-            <motion.div 
-              key={i} 
-              initial={{ opacity: 0, x: isRtl ? 50 : -50 }} 
-              animate={{ opacity: 1, x: 0 }} 
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-slate-900 text-white px-5 py-3 rounded-2xl text-xs font-black shadow-2xl flex items-center gap-3 border-2 border-white/10 pointer-events-auto"
-            >
-              <Bell size={16} className="text-indigo-400" />
-              {msg}
-            </motion.div>
-          ))}
         </AnimatePresence>
       </div>
     </div>
