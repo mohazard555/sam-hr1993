@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Employee, CompanySettings, AttendanceRecord, FinancialEntry, Warning, LeaveRequest, Loan, PrintHistoryRecord, PermissionRecord } from '../types';
 import { 
@@ -26,6 +25,7 @@ const PrintForms: React.FC<Props> = ({ employees, attendance, financials, warnin
   const [dateFrom, setDateFrom] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]);
   const [dateTo, setDateTo] = useState(new Date().toISOString().split('T')[0]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState<string>('all');
 
   const categories = [
     { id: 'admin', title: 'وثائق إدارية', icon: User, color: 'text-blue-600', bg: 'bg-blue-50' },
@@ -39,7 +39,7 @@ const PrintForms: React.FC<Props> = ({ employees, attendance, financials, warnin
     { id: 'permission', title: 'أذونات العمل', cat: 'admin', icon: CheckCircle2, desc: 'سجل تصاريح الخروج والمهمات الخارجية' },
     { id: 'warning', title: 'عقوبات الموظف (الخصومات)', cat: 'admin', icon: ShieldAlert, desc: 'سجل الخصومات المالية والجزاءات المسجلة' },
     { id: 'movements', title: 'تقرير حركات الموظف الشامل', cat: 'reports', icon: ClipboardList, desc: 'تقرير شامل بكافة حركات الموظف خلال فترة زمنية' },
-    { id: 'bonus', title: 'المكافآت والحوافز', cat: 'finance', icon: Award, desc: 'بيان بالمكافآت المالية والتحفيزية المستحق' },
+    { id: 'bonus', title: 'المكافآت والحوافز', cat: 'finance', icon: Award, desc: 'بيان بالمكافآت المالية والتحفيزية المستحقة' },
     { id: 'loan', title: 'سند سلفة موظف', cat: 'finance', icon: Wallet, desc: 'توثيق مبالغ السلف وجدولة الأقساط المعتمدة' },
     { id: 'att_summary', title: 'سجل الحضور والانصراف', cat: 'reports', icon: History, desc: 'تقرير شامل لمواعيد الدوام لفترة محددة' },
     { id: 'evaluation', title: 'تقييم أداء سنوي', cat: 'reports', icon: Star, desc: 'نموذج التقييم الشامل للإنتاجية والسلوك الوظيفي' },
@@ -54,10 +54,12 @@ const PrintForms: React.FC<Props> = ({ employees, attendance, financials, warnin
   }, [employees, searchTerm]);
 
   const handleGenerate = (templateId: string) => {
-    const isGlobalAllowed = ['att_summary', 'movements', 'warning', 'leave', 'permission', 'bonus'].includes(templateId);
+    // Determine if "All Employees" selection is valid for this template
+    // ALL templates should ideally have a global view if possible
+    const isGlobalAllowed = true;
     
     if (!selectedEmp && !isGlobalAllowed) {
-      return alert('يرجى اختيار موظف من القائمة الجانبية أولاً لهذا النوع من التقارير');
+      return alert('يرجى اختيار موظف من القائمة الجانبية أولاً');
     }
     
     const emp = employees.find(e => e.id === selectedEmp);
@@ -79,7 +81,7 @@ const PrintForms: React.FC<Props> = ({ employees, attendance, financials, warnin
         (!selectedEmp || a.employeeId === selectedEmp) && 
         a.date >= dateFrom && 
         a.date <= dateTo
-      );
+      ).sort((a,b) => a.date.localeCompare(b.date));
     } else if (templateId === 'movements') {
        type = 'report_movements';
        const moves: any[] = [];
@@ -89,26 +91,44 @@ const PrintForms: React.FC<Props> = ({ employees, attendance, financials, warnin
          const currentEmp = employees.find(e => e.id === empId);
          const empName = currentEmp?.name || empId;
 
-         attendance.filter(a => a.employeeId === empId && a.date >= dateFrom && a.date <= dateTo).forEach(a => {
-           moves.push({ 
-             date: a.date, 
-             typeLabel: 'حضور وانصراف', 
-             details: `${empName}: ${a.status === 'present' ? `حاضر (${a.checkIn} - ${a.checkOut})` : 'غائب'}` 
+         // Attendance
+         if (filterType === 'all' || filterType === 'attendance') {
+           attendance.filter(a => a.employeeId === empId && a.date >= dateFrom && a.date <= dateTo).forEach(a => {
+             moves.push({ 
+               date: a.date, 
+               typeLabel: 'حضور وانصراف', 
+               details: `${empName}: ${a.status === 'present' ? `حاضر (${a.checkIn || '-'} - ${a.checkOut || '-'})` : 'غائب'}` 
+             });
            });
-         });
-         permissions.filter(p => p.employeeId === empId && p.date >= dateFrom && p.date <= dateTo).forEach(p => {
-            moves.push({ date: p.date, typeLabel: 'إذن ساعي', details: `${empName}: خروج: ${p.exitTime}، عودة: ${p.returnTime} (${p.hours} س) - ${p.reason}` });
-         });
+         }
+         
+         // Permissions
+         if (filterType === 'all' || filterType === 'permissions') {
+           permissions.filter(p => p.employeeId === empId && p.date >= dateFrom && p.date <= dateTo).forEach(p => {
+              moves.push({ date: p.date, typeLabel: 'إذن ساعي', details: `${empName}: خروج: ${p.exitTime}، عودة: ${p.returnTime} (${p.hours} س) - ${p.reason}` });
+           });
+         }
+
+         // Financials
          financials.filter(f => f.employeeId === empId && f.date >= dateFrom && f.date <= dateTo).forEach(f => {
+            if (filterType !== 'all' && filterType !== f.type) return;
             const typeMap: any = { bonus: 'مكافأة', deduction: 'خصم مالي', payment: 'سند صرف', production_incentive: 'حافز إنتاج' };
             moves.push({ date: f.date, typeLabel: typeMap[f.type] || f.type, details: `${empName}: ${f.amount} ${settings.currency} - ${f.reason}` });
          });
-         warnings.filter(w => w.employeeId === empId && w.date >= dateFrom && w.date <= dateTo).forEach(w => {
-            moves.push({ date: w.date, typeLabel: 'إنذار رسمي', details: `${empName}: ${w.reason}` });
-         });
-         leaves.filter(l => l.employeeId === empId && l.startDate >= dateFrom && l.startDate <= dateTo).forEach(l => {
-            moves.push({ date: l.startDate, typeLabel: 'إجازة', details: `${empName}: من ${l.startDate} إلى ${l.endDate} (${l.type})` });
-         });
+
+         // Warnings
+         if (filterType === 'all' || filterType === 'warning') {
+           warnings.filter(w => w.employeeId === empId && w.date >= dateFrom && w.date <= dateTo).forEach(w => {
+              moves.push({ date: w.date, typeLabel: 'إنذار رسمي', details: `${empName}: ${w.reason}` });
+           });
+         }
+
+         // Leaves
+         if (filterType === 'all' || filterType === 'leave') {
+           leaves.filter(l => l.employeeId === empId && l.startDate >= dateFrom && l.startDate <= dateTo).forEach(l => {
+              moves.push({ date: l.startDate, typeLabel: 'إجازة', details: `${empName}: من ${l.startDate} إلى ${l.endDate} (${l.type})` });
+           });
+         }
        });
        data.movements = moves.sort((a, b) => a.date.localeCompare(b.date));
     } else if (templateId === 'warning') {
@@ -119,15 +139,16 @@ const PrintForms: React.FC<Props> = ({ employees, attendance, financials, warnin
         f.date >= dateFrom && 
         f.date <= dateTo
       );
+      if (lastDeductions.length === 0) return alert('لا توجد خصومات (عقوبات مالية) مسجلة في هذه الفترة.');
       data.movements = lastDeductions.map(f => {
         const eName = employees.find(e => e.id === f.employeeId)?.name || f.employeeId;
         return {
           date: f.date,
-          typeLabel: 'خصم مالي / عقوبة',
-          details: `الموظف: ${eName} - المبلغ: ${f.amount} ${settings.currency} - ${f.reason}`
+          typeLabel: 'خصم مالي (عقوبة)',
+          details: `الموظف: ${eName} - المبلغ: ${f.amount} ${settings.currency} - السبب: ${f.reason || 'إجراء تأديبي'}`
         }
       });
-      data.title = `سجل عقوبات وخصومات: ${emp?.name || 'للجميع'}`;
+      data.title = `سجل العقوبات والخصومات التفصيلي: ${emp?.name || 'كافة الموظفين'}`;
     } else if (templateId === 'leave') {
        const filteredLeaves = leaves.filter(l => (!selectedEmp || l.employeeId === selectedEmp) && l.startDate >= dateFrom && l.startDate <= dateTo);
        if (filteredLeaves.length === 0) return alert('لا توجد إجازات في هذه الفترة.');
@@ -138,6 +159,7 @@ const PrintForms: React.FC<Props> = ({ employees, attendance, financials, warnin
            typeLabel: 'طلب إجازة',
            details: `الموظف: ${employees.find(e => e.id === l.employeeId)?.name} (${l.type}) من ${l.startDate} إلى ${l.endDate}`
          }));
+         data.title = 'حركات الإجازات لجميع الموظفين';
        } else {
          type = 'leave';
          data = { ...data, ...filteredLeaves[0] };
@@ -152,17 +174,39 @@ const PrintForms: React.FC<Props> = ({ employees, attendance, financials, warnin
             typeLabel: 'إذن انصراف',
             details: `الموظف: ${employees.find(e => e.id === p.employeeId)?.name} - خروج ${p.exitTime} (المدة ${p.hours}س)`
           }));
+          data.title = 'حركات التصاريح لجميع الموظفين';
        } else {
           type = 'permission';
           data = { ...data, ...filteredPerms[0] };
        }
     } else if (templateId === 'loan') {
-       type = 'loan';
-       const activeLoan = loans.filter(l => l.employeeId === selectedEmp && l.remainingAmount > 0).sort((a,b) => b.date.localeCompare(a.date))[0];
-       if (!activeLoan) return alert('لا توجد سلف نشطة مسجلة لهذا الموظف حالياً.');
-       data = { ...data, ...activeLoan };
+       const filteredLoans = loans.filter(l => (!selectedEmp || l.employeeId === selectedEmp) && l.date >= dateFrom && l.date <= dateTo);
+       if (filteredLoans.length === 0) return alert('لا توجد سلف في هذه الفترة.');
+       if (!selectedEmp) {
+          type = 'report_movements';
+          data.movements = filteredLoans.map(l => ({
+            date: l.date,
+            typeLabel: 'سلفة مالية',
+            details: `الموظف: ${employees.find(e => e.id === l.employeeId)?.name} - المبلغ ${l.amount} ${settings.currency} (المتبقي: ${l.remainingAmount})`
+          }));
+          data.title = 'سجل السلف لجميع الموظفين';
+       } else {
+          type = 'loan';
+          const activeLoan = filteredLoans.sort((a,b) => b.date.localeCompare(a.date))[0];
+          data = { ...data, ...activeLoan };
+       }
     } else if (templateId === 'evaluation') {
-       data.notes = "إقرار أداء: بناءً على مراجعة الكفاءة للفترة المنقضية، نؤكد أن الموظف المذكور قد استوفى معايير الأداء المؤسسي بمستوى (جيد جداً).";
+       if (!selectedEmp) {
+          type = 'report_movements';
+          data.movements = employees.map(e => ({
+            date: new Date().toISOString().split('T')[0],
+            typeLabel: 'تقييم سنوي',
+            details: `الموظف: ${e.name} - حالة التقييم: مستوفي للمعايير (افتراضي)`
+          }));
+          data.title = 'نظرة عامة على تقييمات الموظفين';
+       } else {
+          data.notes = "إقرار أداء: بناءً على مراجعة الكفاءة للفترة المنقضية، نؤكد أن الموظف المذكور قد استوفى معايير الأداء المؤسسي بمستوى (جيد جداً).";
+       }
     } else if (templateId === 'bonus') {
        const bEntries = financials.filter(f => (!selectedEmp || f.employeeId === selectedEmp) && f.type === 'bonus' && f.date >= dateFrom && f.date <= dateTo);
        if (bEntries.length === 0) return alert('لا توجد مكافآت مسجلة في هذه الفترة.');
@@ -173,6 +217,7 @@ const PrintForms: React.FC<Props> = ({ employees, attendance, financials, warnin
             typeLabel: 'مكافأة مالية',
             details: `الموظف: ${employees.find(e => e.id === f.employeeId)?.name} - المبلغ: ${f.amount} ${settings.currency}`
           }));
+          data.title = 'سجل المكافآت لجميع الموظفين';
        } else {
           type = 'financial';
           data = { ...data, ...bEntries[0] };
@@ -257,20 +302,41 @@ const PrintForms: React.FC<Props> = ({ employees, attendance, financials, warnin
            </div>
 
            {(activeCategory === 'reports' || activeCategory === 'admin' || activeCategory === 'finance') && (
-             <div className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] shadow-2xl border dark:border-slate-800 animate-in slide-in-from-bottom-4">
-                <h3 className="text-xl font-black mb-6 text-emerald-600 flex items-center gap-2">
-                   <Filter size={24}/> تخصيص النطاق الزمني
-                </h3>
-                <div className="space-y-4">
-                   <div className="text-right">
-                      <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">تاريخ البداية</label>
-                      <input type="date" className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-xl font-bold text-center" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
-                   </div>
-                   <div className="text-right">
-                      <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">تاريخ النهاية</label>
-                      <input type="date" className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-xl font-bold text-center" value={dateTo} onChange={e => setDateTo(e.target.value)} />
-                   </div>
+             <div className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] shadow-2xl border dark:border-slate-800 animate-in slide-in-from-bottom-4 space-y-6">
+                <div>
+                  <h3 className="text-xl font-black mb-4 text-emerald-600 flex items-center gap-2">
+                    <Filter size={24}/> تخصيص النطاق الزمني
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-right">
+                        <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">تاريخ البداية</label>
+                        <input type="date" className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-xl font-bold text-center" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+                    </div>
+                    <div className="text-right">
+                        <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">تاريخ النهاية</label>
+                        <input type="date" className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-xl font-bold text-center" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+                    </div>
+                  </div>
                 </div>
+
+                {activeCategory === 'reports' && (
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">نوع الحركات المطلوبة</label>
+                    <select 
+                      className="w-full p-4 bg-slate-100 dark:bg-slate-800 rounded-xl font-black border-2 border-transparent focus:border-indigo-600 outline-none"
+                      value={filterType}
+                      onChange={e => setFilterType(e.target.value)}
+                    >
+                      <option value="all">كل الحركات</option>
+                      <option value="attendance">الحضور والانصراف فقط</option>
+                      <option value="deduction">الخصومات والجزاءات</option>
+                      <option value="bonus">المكافآت والحوافز</option>
+                      <option value="leave">الإجازات</option>
+                      <option value="permissions">الأذونات الساعية</option>
+                      <option value="loan">السلف والقروض</option>
+                    </select>
+                  </div>
+                )}
              </div>
            )}
         </div>

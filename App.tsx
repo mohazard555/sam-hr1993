@@ -67,12 +67,14 @@ const App: React.FC = () => {
       if (!str) return "";
       const trimmed = str.trim();
       
+      // If it looks like a 32-char hex ID already
+      if (/^[a-f0-9]{32}$/i.test(trimmed)) return trimmed;
+
       // If it contains a known Gist URL pattern
       if (trimmed.includes('github.com')) {
         const parts = trimmed.split('/');
         // The ID is usually the part after the username in gist.github.com/user/id
         // or after the username in gist.githubusercontent.com/user/id/raw/...
-        // Or sometimes it's the last part
         const idCandidate = parts.find(p => /^[a-f0-9]{32}$/i.test(p));
         if (idCandidate) return idCandidate;
         
@@ -82,7 +84,7 @@ const App: React.FC = () => {
         }
       }
 
-      // Fallback: look for 32-character hex Gist ID
+      // Fallback: look for any 32-character hex Gist ID substring
       const idMatch = trimmed.match(/[a-f0-9]{32}/i);
       if (idMatch) return idMatch[0];
       
@@ -100,13 +102,11 @@ const App: React.FC = () => {
     try {
         const filename = "Hrjordon.json"; 
         
-        // CRITICAL SECURITY: Clear sensitive gist info before uploading
-        // This prevents GitHub from revoking your token when it scans the Gist file
         const dataToSync = {
           ...db,
           settings: {
             ...db.settings,
-            gistToken: "", // Never upload the token itself
+            gistToken: "", 
             gistID: finalID,
             gistURL: `https://gist.github.com/${finalID}`
           }
@@ -115,7 +115,7 @@ const App: React.FC = () => {
         const response = await fetch(`https://api.github.com/gists/${finalID}`, {
             method: 'PATCH',
             headers: { 
-                'Authorization': `token ${token}`,
+                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
                 'Accept': 'application/vnd.github.v3+json'
             },
@@ -129,8 +129,8 @@ const App: React.FC = () => {
         if (response.ok) {
             setNotifications(prev => ['تمت المزامنة بنجاح ✓', ...prev.slice(0, 5)]);
         } else {
-            const error = await response.json().catch(() => ({ message: 'خطأ غير معروف' }));
-            const errorMsg = error.message || response.statusText || response.status;
+            const error = await response.json().catch(() => ({}));
+            const errorMsg = error.message || response.statusText || `رمز الخطأ: ${response.status}`;
             setNotifications(prev => [`فشل المزامنة: ${errorMsg}`, ...prev.slice(0, 5)]);
         }
     } catch(e: any) { 
@@ -154,18 +154,19 @@ const App: React.FC = () => {
       if (gistID && token) {
         try {
           const response = await fetch(`https://api.github.com/gists/${gistID}`, {
-            headers: { 'Authorization': `token ${token}` }
+            headers: { 
+              'Authorization': `Bearer ${token}`,
+              'Accept': 'application/vnd.github.v3+json'
+            }
           });
           if (response.ok) {
             const data = await response.json();
             const fileContent = data.files["Hrjordon.json"]?.content;
             if (fileContent) {
               const cloudData = JSON.parse(fileContent);
-              // Only merge if cloud data has employees or users (basic validation)
               if (cloudData.employees && cloudData.users) {
                 setDb(prev => ({
                   ...cloudData,
-                  // Keep local gist settings so we don't lose the token we just used
                   settings: {
                     ...cloudData.settings,
                     gistToken: prev.settings.gistToken,
@@ -824,17 +825,17 @@ const App: React.FC = () => {
   const DocumentPrintCard = ({ title, type, data }: { title: string, type: PrintType, data: any }) => {
     const emp = db.employees.find(e => e.id === data.employeeId);
     
-    const PrintHeader = () => (
+    const PrintHeader = ({ title: titleOverride }: { title?: string }) => (
       <div className="flex justify-between items-start border-b-4 border-indigo-900 pb-6 mb-8 text-right">
         <div>
           <h1 className="text-3xl font-black text-indigo-950 mb-1">{db.settings.name}</h1>
-          <p className="text-indigo-600 font-black text-sm uppercase tracking-widest">{title}</p>
+          <p className="text-indigo-600 font-black text-sm uppercase tracking-widest">{titleOverride || title}</p>
           <div className="mt-2 text-[10px] font-bold text-slate-500">
              <p>{db.settings.address}</p>
              <p>تاريخ الصدور: {new Date().toLocaleDateString('ar-EG')}</p>
           </div>
         </div>
-        {db.settings.logo && <img src={db.settings.logo} className="h-16 w-auto object-contain" />}
+        {db.settings.logo && <img src={db.settings.logo} className="h-16 w-auto object-contain" alt="Logo" referrerPolicy="no-referrer" />}
       </div>
     );
 
@@ -872,19 +873,19 @@ const App: React.FC = () => {
       );
     }
 
-    const isA5 = ['permission', 'leave', 'financial', 'loan', 'production', 'warning'].includes(type);
+    const isHalfSheet = ['permission', 'leave', 'financial', 'loan', 'production', 'warning'].includes(type);
 
     return (
-      <div className={`p-6 md:p-8 w-full bg-white flex flex-col border-4 border-indigo-950 rounded-[2rem] text-right ${isA5 ? 'max-h-[85vh] overflow-y-auto print:max-h-none print:min-h-[148mm] print:overflow-hidden print:m-0' : 'min-h-[95vh]'}`}>
-          <PrintHeader />
-          <div className={`flex-1 ${isA5 ? 'space-y-6' : 'space-y-10'}`}>
-             <div className={`bg-slate-50 ${isA5 ? 'p-6 gap-y-4' : 'p-8 gap-y-6'} rounded-[2rem] border-2 border-slate-100 grid grid-cols-2`}>
-                <div><p className="text-[10px] font-black text-slate-400 uppercase mb-1">اسم الموظف</p><p className={`${isA5 ? 'text-lg' : 'text-xl'} font-black text-indigo-950`}>{emp?.name || data.employeeName}</p></div>
-                <div><p className="text-[10px] font-black text-slate-400 uppercase mb-1">المنصب</p><p className={`${isA5 ? 'text-sm' : 'text-lg'} font-bold text-slate-700`}>{emp?.position} - {emp?.department}</p></div>
-                <div className="col-span-2 border-t pt-4 text-left font-mono text-[10px] text-slate-400 uppercase tracking-tighter">REF: {data.id?.toUpperCase() || Math.random().toString(36).substr(2, 9).toUpperCase()}</div>
+      <div className={`p-6 md:p-8 w-full bg-white flex flex-col border-4 border-indigo-950 rounded-[2rem] text-right ${isHalfSheet ? 'min-h-[148mm] max-h-none print:h-[140mm] print:overflow-hidden print:m-0' : 'min-h-[95vh]'}`}>
+          <PrintHeader title={isHalfSheet ? (data.title || 'إشعار إداري') : undefined} />
+          <div className={`flex-1 ${isHalfSheet ? 'space-y-4' : 'space-y-10'}`}>
+             <div className={`bg-slate-50 ${isHalfSheet ? 'p-4 gap-y-2' : 'p-8 gap-y-6'} rounded-[2rem] border-2 border-slate-100 grid grid-cols-2`}>
+                <div><p className="text-[10px] font-black text-slate-400 uppercase mb-1">اسم الموظف</p><p className={`${isHalfSheet ? 'text-base' : 'text-xl'} font-black text-indigo-950`}>{emp?.name || data.employeeName}</p></div>
+                <div><p className="text-[10px] font-black text-slate-400 uppercase mb-1">المنصب</p><p className={`${isHalfSheet ? 'text-xs' : 'text-lg'} font-bold text-slate-700`}>{emp?.position || 'موظف مؤسسة'} - {emp?.department || 'كافة الأقسام'}</p></div>
+                <div className="col-span-2 border-t pt-2 text-left font-mono text-[9px] text-slate-400 uppercase tracking-tighter">REF: {data.id?.toUpperCase() || Math.random().toString(36).substr(2, 9).toUpperCase()}</div>
              </div>
 
-             <div className={`${isA5 ? 'p-6' : 'p-8'} bg-white border-2 border-dashed border-slate-200 rounded-[2rem]`}>
+             <div className={`${isHalfSheet ? 'p-4' : 'p-8'} bg-white border-2 border-dashed border-slate-200 rounded-[2rem]`}>
                 {type === 'production' && (
                   <div className="space-y-6">
                      <h4 className="text-2xl font-black text-indigo-700 mb-8 text-center border-b pb-4">إشعار إنتاجية معتمد</h4>
@@ -1321,7 +1322,7 @@ const App: React.FC = () => {
                       <button onClick={() => setPrintOrientation('portrait')} className={`px-4 py-2 rounded-xl text-sm font-black ${printOrientation === 'portrait' ? 'bg-white dark:bg-slate-900 shadow-md text-indigo-700 dark:text-indigo-400' : 'text-slate-400'}`}><LayoutPanelTop size={18}/> طولي</button>
                     </div>
                     <div className="bg-amber-50 text-amber-600 px-4 py-2 rounded-xl text-xs font-black border border-amber-200">
-                      سيتم الطباعة بنظام {(individualPrintItem.type && ['permission', 'leave', 'financial', 'loan', 'production', 'warning'].includes(individualPrintItem.type)) ? 'A5 (نصف ورقة)' : 'A4 (كاملة)'}
+                      سيتم الطباعة بنظام {(individualPrintItem.type && ['permission', 'leave', 'financial', 'loan', 'production', 'warning'].includes(individualPrintItem.type)) ? 'نصف ورقة A4 (A5)' : 'ورقة كاملة A4'}
                     </div>
                   </div>
                   <button onClick={() => setIndividualPrintItem(null)} className="text-rose-500 p-2 hover:bg-rose-50 rounded-full transition transform hover:rotate-90" disabled={isPrinting}><X size={44}/></button>

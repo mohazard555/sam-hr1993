@@ -414,10 +414,15 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
                   const extractId = (str: string) => {
                     if (!str) return "";
                     const trimmed = str.trim();
+                    if (/^[a-f0-9]{32}$/i.test(trimmed)) return trimmed;
                     if (trimmed.includes('github.com')) {
                       const parts = trimmed.split('/');
                       const idMatch = parts.find(p => /^[a-f0-9]{32}$/i.test(p));
                       if (idMatch) return idMatch;
+                      const gistIndex = parts.findIndex(p => p.includes('github.com'));
+                      if (gistIndex !== -1 && parts[gistIndex + 2]) {
+                         return parts[gistIndex + 2].split('#')[0].split('?')[0];
+                      }
                     }
                     const idMatch = trimmed.match(/[a-f0-9]{32}/i);
                     return idMatch ? idMatch[0] : trimmed;
@@ -431,7 +436,10 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
 
                   try {
                     const response = await fetch(`https://api.github.com/gists/${finalID}`, {
-                      headers: { 'Authorization': `token ${token}` }
+                      headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                      }
                     });
                     if (response.ok) {
                       const data = await response.json();
@@ -443,10 +451,12 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
                         alert('لم يتم العثور على ملف Hrjordon.json في الـ Gist المحدد.');
                       }
                     } else {
-                      alert('فشل الاتصال بـ GitHub: ' + response.statusText);
+                      const errorData = await response.json().catch(() => ({}));
+                      const errorMsg = errorData.message || response.statusText || `رمز الخطأ: ${response.status}`;
+                      alert('فشل الاتصال بـ GitHub: ' + errorMsg);
                     }
-                  } catch (e) {
-                    alert('خطأ في الاتصال بالسحابة.');
+                  } catch (e: any) {
+                    alert('خطأ في الاتصال بالسحابة: ' + (e.message || 'مشكلة في الشبكة'));
                   }
                 }}
                 className="w-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 py-3 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-slate-200 transition"
