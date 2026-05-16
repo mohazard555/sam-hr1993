@@ -876,16 +876,16 @@ const App: React.FC = () => {
     const isHalfSheet = ['permission', 'leave', 'financial', 'loan', 'production', 'warning'].includes(type);
 
     return (
-      <div className={`p-6 md:p-8 w-full bg-white flex flex-col border-4 border-indigo-950 rounded-[2rem] text-right ${isHalfSheet ? 'min-h-[148mm] max-h-none print:h-[140mm] print:overflow-hidden print:m-0' : 'min-h-[95vh]'}`}>
+      <div className={`p-8 md:p-12 w-full bg-white flex flex-col border-4 border-indigo-950 rounded-[2.5rem] text-right ${isHalfSheet ? 'min-h-[200mm] print:min-h-0 print:h-auto print:m-0' : 'min-h-[280mm]'}`}>
           <PrintHeader title={isHalfSheet ? (data.title || 'إشعار إداري') : undefined} />
-          <div className={`flex-1 ${isHalfSheet ? 'space-y-4' : 'space-y-10'}`}>
-             <div className={`bg-slate-50 ${isHalfSheet ? 'p-4 gap-y-2' : 'p-8 gap-y-6'} rounded-[2rem] border-2 border-slate-100 grid grid-cols-2`}>
-                <div><p className="text-[10px] font-black text-slate-400 uppercase mb-1">اسم الموظف</p><p className={`${isHalfSheet ? 'text-base' : 'text-xl'} font-black text-indigo-950`}>{emp?.name || data.employeeName}</p></div>
-                <div><p className="text-[10px] font-black text-slate-400 uppercase mb-1">المنصب</p><p className={`${isHalfSheet ? 'text-xs' : 'text-lg'} font-bold text-slate-700`}>{emp?.position || 'موظف مؤسسة'} - {emp?.department || 'كافة الأقسام'}</p></div>
-                <div className="col-span-2 border-t pt-2 text-left font-mono text-[9px] text-slate-400 uppercase tracking-tighter">REF: {data.id?.toUpperCase() || Math.random().toString(36).substr(2, 9).toUpperCase()}</div>
+          <div className={`flex-1 ${isHalfSheet ? 'space-y-6 pb-6' : 'space-y-12'}`}>
+             <div className={`bg-slate-50 ${isHalfSheet ? 'p-6 gap-y-4' : 'p-10 gap-y-10'} rounded-[2.5rem] border-2 border-slate-100 grid grid-cols-2`}>
+                <div><p className="text-xs font-black text-slate-400 uppercase mb-2">اسم الموظف</p><p className={`${isHalfSheet ? 'text-2xl' : 'text-3xl'} font-black text-indigo-950`}>{emp?.name || data.employeeName}</p></div>
+                <div><p className="text-xs font-black text-slate-400 uppercase mb-2">المنصب</p><p className={`${isHalfSheet ? 'text-lg' : 'text-xl'} font-bold text-slate-700`}>{emp?.position || 'موظف مؤسسة'} - {emp?.department || 'كافة الأقسام'}</p></div>
+                <div className="col-span-2 border-t pt-4 text-left font-mono text-xs text-slate-400 uppercase tracking-tighter">REF: {data.id?.toUpperCase() || Math.random().toString(36).substr(2, 9).toUpperCase()}</div>
              </div>
 
-             <div className={`${isHalfSheet ? 'p-4' : 'p-8'} bg-white border-2 border-dashed border-slate-200 rounded-[2rem]`}>
+             <div className={`${isHalfSheet ? 'p-8' : 'p-12'} bg-white border-2 border-dashed border-slate-200 rounded-[2.5rem]`}>
                 {type === 'production' && (
                   <div className="space-y-6">
                      <h4 className="text-2xl font-black text-indigo-700 mb-8 text-center border-b pb-4">إشعار إنتاجية معتمد</h4>
@@ -1177,7 +1177,11 @@ const App: React.FC = () => {
     return createPortal(
       <div className="print-isolated-wrapper text-right w-full bg-white" dir="rtl">
         <style dangerouslySetInnerHTML={{ __html: `
-          @page { size: ${printOrientation}; margin: 5mm; }
+          @page { size: A4 ${printOrientation}; margin: 10mm; }
+          @media print {
+            body { margin: 0; padding: 0; }
+            .print-isolated-wrapper { width: 100%; }
+          }
           .vouchers-grid-print { 
             grid-template-columns: ${printOrientation === 'landscape' ? 'repeat(2, minmax(0, 1fr))' : 'repeat(1, minmax(0, 1fr))'}; 
           }
@@ -1321,8 +1325,8 @@ const App: React.FC = () => {
                       <button onClick={() => setPrintOrientation('landscape')} className={`px-4 py-2 rounded-xl text-sm font-black ${printOrientation === 'landscape' ? 'bg-white dark:bg-slate-900 shadow-md text-indigo-700 dark:text-indigo-400' : 'text-slate-400'}`}><LayoutPanelLeft size={18}/> عرضي</button>
                       <button onClick={() => setPrintOrientation('portrait')} className={`px-4 py-2 rounded-xl text-sm font-black ${printOrientation === 'portrait' ? 'bg-white dark:bg-slate-900 shadow-md text-indigo-700 dark:text-indigo-400' : 'text-slate-400'}`}><LayoutPanelTop size={18}/> طولي</button>
                     </div>
-                    <div className="bg-amber-50 text-amber-600 px-4 py-2 rounded-xl text-xs font-black border border-amber-200">
-                      سيتم الطباعة بنظام {(individualPrintItem.type && ['permission', 'leave', 'financial', 'loan', 'production', 'warning'].includes(individualPrintItem.type)) ? 'نصف ورقة A4 (A5)' : 'ورقة كاملة A4'}
+                    <div className="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-xl text-xs font-black border border-emerald-200">
+                      سيتم الطباعة بنظام ورقة كاملة A4 لضمان أفضل وضوح وتناسق
                     </div>
                   </div>
                   <button onClick={() => setIndividualPrintItem(null)} className="text-rose-500 p-2 hover:bg-rose-50 rounded-full transition transform hover:rotate-90" disabled={isPrinting}><X size={44}/></button>
