@@ -876,7 +876,7 @@ const App: React.FC = () => {
     const isHalfSheet = ['permission', 'leave', 'financial', 'loan', 'production', 'warning'].includes(type);
 
     return (
-      <div className={`p-8 md:p-12 w-full bg-white flex flex-col border-4 border-indigo-950 rounded-[2.5rem] text-right ${isHalfSheet ? 'min-h-[200mm] print:min-h-0 print:h-auto print:m-0' : 'min-h-[280mm]'}`}>
+      <div className={`print-container-fixed p-8 md:p-12 w-full bg-white flex flex-col border-4 border-indigo-950 rounded-[2.5rem] text-right ${isHalfSheet ? 'min-h-[200mm] print:min-h-0 print:h-auto print:m-0' : 'min-h-[280mm]'}`}>
           <PrintHeader title={isHalfSheet ? (data.title || 'إشعار إداري') : undefined} />
           <div className={`flex-1 ${isHalfSheet ? 'space-y-6 pb-6' : 'space-y-12'}`}>
              <div className={`bg-slate-50 ${isHalfSheet ? 'p-6 gap-y-4' : 'p-10 gap-y-10'} rounded-[2.5rem] border-2 border-slate-100 grid grid-cols-2`}>
@@ -1179,16 +1179,29 @@ const App: React.FC = () => {
         <style dangerouslySetInnerHTML={{ __html: `
           @page { size: A4 ${printOrientation}; margin: 10mm; }
           @media print {
-            body { margin: 0; padding: 0; }
-            .print-isolated-wrapper { width: 100%; }
+            html, body { margin: 0 !important; padding: 0 !important; height: auto !important; overflow: visible !important; }
+            .print-isolated-wrapper { width: 100% !important; overflow: visible !important; }
+            .print-container-fixed { 
+              width: ${printOrientation === 'portrait' ? '190mm' : '270mm'} !important; 
+              margin: 0 auto !important; 
+              border-width: 2px !important;
+              box-shadow: none !important;
+              overflow: visible !important;
+            }
+            .print-card {
+              break-inside: avoid !important;
+              page-break-inside: avoid !important;
+            }
           }
           .vouchers-grid-print { 
             grid-template-columns: ${printOrientation === 'landscape' ? 'repeat(2, minmax(0, 1fr))' : 'repeat(1, minmax(0, 1fr))'}; 
           }
         ` }} />
-        {individualPrintItem.type === 'vouchers' 
-          ? <VouchersPrintGrid payrolls={individualPrintItem.data} />
-          : <DocumentPrintCard title={individualPrintItem.title} type={individualPrintItem.type} data={individualPrintItem.data} />}
+        <div className="flex flex-col items-center">
+            {individualPrintItem.type === 'vouchers' 
+              ? <div className="print-container-fixed w-full"><VouchersPrintGrid payrolls={individualPrintItem.data} /></div>
+              : <DocumentPrintCard title={individualPrintItem.title} type={individualPrintItem.type} data={individualPrintItem.data} />}
+        </div>
       </div>,
       portalNode
     );
