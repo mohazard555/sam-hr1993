@@ -29,7 +29,10 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
     workingHoursPerDay: 8,
     customOvertimeRate: 1.5,
     customDeductionRate: 1,
+    exceptionalHours: undefined,
     joinDate: new Date().toISOString().split('T')[0],
+    birthDate: '',
+    age: undefined,
     cycleType: settings.salaryCycle // القيمة الافتراضية من إعدادات النظام
   });
 
@@ -37,8 +40,8 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
   const workingHours = formData.workingHoursPerDay || 8;
   const dailyRate = (formData.baseSalary || 0) / cycleDays;
   const hourlyRate = dailyRate / workingHours;
-  const finalOvertimeHourPrice = hourlyRate * (formData.customOvertimeRate || 1.5);
-  const finalDeductionHourPrice = hourlyRate * (formData.customDeductionRate || 1);
+  const finalOvertimeHourPrice = hourlyRate * (formData.customOvertimeRate ?? 1.5);
+  const finalDeductionHourPrice = hourlyRate * (formData.customDeductionRate ?? 1);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,12 +56,15 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
       nationalId: formData.nationalId || '',
       phone: formData.phone || '',
       address: formData.address || '',
+      birthDate: formData.birthDate || '',
+      age: formData.age || undefined,
       joinDate: formData.joinDate || new Date().toISOString().split('T')[0],
       vacationBalance: Number(formData.vacationBalance),
       workDaysPerCycle: Number(formData.workDaysPerCycle || defaultWorkDays),
       workingHoursPerDay: Number(formData.workingHoursPerDay || 8),
-      customOvertimeRate: formData.customOvertimeRate ? Number(formData.customOvertimeRate) : 1.5,
-      customDeductionRate: formData.customDeductionRate ? Number(formData.customDeductionRate) : 1,
+      customOvertimeRate: (formData.customOvertimeRate !== undefined && formData.customOvertimeRate !== null) ? Number(formData.customOvertimeRate) : 1.5,
+      customDeductionRate: (formData.customDeductionRate !== undefined && formData.customDeductionRate !== null) ? Number(formData.customDeductionRate) : 1,
+      exceptionalHours: formData.exceptionalHours ? Number(formData.exceptionalHours) : undefined,
       customCheckIn: formData.customCheckIn || undefined,
       customCheckOut: formData.customCheckOut || undefined,
       cycleType: formData.cycleType || settings.salaryCycle,
@@ -78,7 +84,10 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
       workingHoursPerDay: 8, 
       customOvertimeRate: 1.5, 
       customDeductionRate: 1, 
+      exceptionalHours: undefined,
       joinDate: new Date().toISOString().split('T')[0],
+      birthDate: '',
+      age: undefined,
       cycleType: settings.salaryCycle
     });
   };
@@ -86,6 +95,26 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
   const handleEdit = (emp: Employee) => {
     setFormData(emp);
     setShowModal(true);
+  };
+
+  const handleFieldChange = (name: string, value: any) => {
+    if (name === 'birthDate') {
+      const birthDate = value;
+      if (birthDate) {
+        const today = new Date();
+        const birth = new Date(birthDate);
+        let age = today.getFullYear() - birth.getFullYear();
+        const m = today.getMonth() - birth.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+          age--;
+        }
+        setFormData({ ...formData, birthDate, age });
+      } else {
+        setFormData({ ...formData, birthDate: '', age: undefined });
+      }
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   };
 
   const filtered = employees.filter(e => 
@@ -103,6 +132,8 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
       'الراتب الأساسي': e.baseSalary,
       'بدل المواصلات': e.transportAllowance,
       'رقم الهاتف': e.phone,
+      'تاريخ الميلاد': e.birthDate || '-',
+      'العمر': e.age || '-',
       'الهوية الوطنية': e.nationalId,
       'تاريخ التعيين': e.joinDate
     }));
@@ -216,22 +247,22 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="md:col-span-1">
                   <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block mr-2">الاسم الكامل</label>
-                  <input required className="w-full p-4 border-2 dark:bg-slate-800 rounded-xl font-bold focus:border-indigo-600 outline-none transition" value={formData.name || ''} onChange={e => setFormData({...formData, name: e.target.value})} />
+                  <input required className="w-full p-4 border-2 dark:bg-slate-800 rounded-xl font-bold focus:border-indigo-600 outline-none transition" value={formData.name || ''} onChange={e => handleFieldChange('name', e.target.value)} />
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block mr-2">المنصب الوظيفي</label>
-                  <input required className="w-full p-4 border-2 dark:bg-slate-800 rounded-xl font-bold focus:border-indigo-600 outline-none transition" value={formData.position || ''} onChange={e => setFormData({...formData, position: e.target.value})} />
+                  <input required className="w-full p-4 border-2 dark:bg-slate-800 rounded-xl font-bold focus:border-indigo-600 outline-none transition" value={formData.position || ''} onChange={e => handleFieldChange('position', e.target.value)} />
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block mr-2">القسم</label>
-                  <select required className="w-full p-4 border-2 dark:bg-slate-800 rounded-xl font-bold focus:border-indigo-600 outline-none transition" value={formData.department || ''} onChange={e => setFormData({...formData, department: e.target.value})}>
+                  <select required className="w-full p-4 border-2 dark:bg-slate-800 rounded-xl font-bold focus:border-indigo-600 outline-none transition" value={formData.department || ''} onChange={e => handleFieldChange('department', e.target.value)}>
                     <option value="">اختر قسم...</option>
                     {departments.map(d => <option key={d} value={d}>{d}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-indigo-600 uppercase mb-2 block mr-2">نوع دوام الموظف</label>
-                  <select required className="w-full p-4 border-2 border-indigo-100 dark:bg-slate-800 rounded-xl font-black focus:border-indigo-600 outline-none transition" value={formData.cycleType || 'monthly'} onChange={e => setFormData({...formData, cycleType: e.target.value as any})}>
+                  <select required className="w-full p-4 border-2 border-indigo-100 dark:bg-slate-800 rounded-xl font-black focus:border-indigo-600 outline-none transition" value={formData.cycleType || 'monthly'} onChange={e => handleFieldChange('cycleType', e.target.value as any)}>
                     <option value="monthly">دوام شهري</option>
                     <option value="weekly">دوام أسبوعي</option>
                   </select>
@@ -242,19 +273,27 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-slate-50/50 dark:bg-slate-800/20 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800">
                 <div>
                   <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block mr-2 flex items-center gap-1"><UserIcon size={12}/> الرقم الوطني (الهوية)</label>
-                  <input className="w-full p-4 border-2 dark:bg-slate-800 rounded-xl font-bold focus:border-indigo-600 outline-none transition" placeholder="مثال: 00000000000" value={formData.nationalId || ''} onChange={e => setFormData({...formData, nationalId: e.target.value})} />
+                  <input className="w-full p-4 border-2 dark:bg-slate-800 rounded-xl font-bold focus:border-indigo-600 outline-none transition" placeholder="مثال: 00000000000" value={formData.nationalId || ''} onChange={e => handleFieldChange('nationalId', e.target.value)} />
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block mr-2 flex items-center gap-1"><Phone size={12}/> رقم الهاتف</label>
-                  <input className="w-full p-4 border-2 dark:bg-slate-800 rounded-xl font-bold focus:border-indigo-600 outline-none transition" placeholder="مثال: 0988000000" value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                  <input className="w-full p-4 border-2 dark:bg-slate-800 rounded-xl font-bold focus:border-indigo-600 outline-none transition" placeholder="مثال: 0988000000" value={formData.phone || ''} onChange={e => handleFieldChange('phone', e.target.value)} />
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block mr-2 flex items-center gap-1"><Calendar size={12}/> تاريخ التعيين</label>
-                  <input type="date" className="w-full p-4 border-2 dark:bg-slate-800 rounded-xl font-bold focus:border-indigo-600 outline-none transition" value={formData.joinDate || ''} onChange={e => setFormData({...formData, joinDate: e.target.value})} />
+                  <input type="date" className="w-full p-4 border-2 dark:bg-slate-800 rounded-xl font-bold focus:border-indigo-600 outline-none transition" value={formData.joinDate || ''} onChange={e => handleFieldChange('joinDate', e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block mr-2 flex items-center gap-1"><Calendar size={12}/> تاريخ الميلاد</label>
+                  <input type="date" className="w-full p-4 border-2 dark:bg-slate-800 rounded-xl font-bold focus:border-indigo-600 outline-none transition" value={formData.birthDate || ''} onChange={e => handleFieldChange('birthDate', e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block mr-2 flex items-center gap-1"><Calculator size={12}/> العمر</label>
+                  <input type="number" className="w-full p-4 border-2 dark:bg-slate-800 rounded-xl font-bold focus:border-indigo-600 outline-none transition" placeholder="تلقائي" value={formData.age || ''} onChange={e => handleFieldChange('age', Number(e.target.value))} />
                 </div>
                 <div className="md:col-span-3">
                   <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block mr-2 flex items-center gap-1"><MapPin size={12}/> عنوان السكن الحالي</label>
-                  <input className="w-full p-4 border-2 dark:bg-slate-800 rounded-xl font-bold focus:border-indigo-600 outline-none transition" placeholder="مثال: دمشق - الميدان - بناء رقم 10" value={formData.address || ''} onChange={e => setFormData({...formData, address: e.target.value})} />
+                  <input className="w-full p-4 border-2 dark:bg-slate-800 rounded-xl font-bold focus:border-indigo-600 outline-none transition" placeholder="مثال: دمشق - الميدان - بناء رقم 10" value={formData.address || ''} onChange={e => handleFieldChange('address', e.target.value)} />
                 </div>
               </div>
 
@@ -262,27 +301,27 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="p-4 bg-indigo-50/50 dark:bg-slate-800/50 rounded-2xl border-2 border-indigo-100 dark:border-indigo-900">
                   <label className="text-[10px] font-black text-indigo-600 uppercase mb-2 block">الراتب الأساسي</label>
-                  <input type="number" className="w-full p-3 border-2 dark:bg-slate-800 rounded-xl font-black text-xl text-indigo-700" value={formData.baseSalary || 0} onChange={e => setFormData({...formData, baseSalary: Number(e.target.value)})} />
+                  <input type="number" className="w-full p-3 border-2 dark:bg-slate-800 rounded-xl font-black text-xl text-indigo-700" value={formData.baseSalary || 0} onChange={e => handleFieldChange('baseSalary', Number(e.target.value))} />
                 </div>
                 <div className="p-4 bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl border-2 border-slate-200 dark:border-slate-700">
                   <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block">أيام العمل في الدورة</label>
-                  <input type="number" className="w-full p-3 border-2 dark:bg-slate-800 rounded-xl font-black text-xl text-slate-700" placeholder={`مثلاً: ${formData.cycleType === 'weekly' ? '7' : '30'}`} value={formData.workDaysPerCycle || ''} onChange={e => setFormData({...formData, workDaysPerCycle: Number(e.target.value)})} />
+                  <input type="number" className="w-full p-3 border-2 dark:bg-slate-800 rounded-xl font-black text-xl text-slate-700" placeholder={`مثلاً: ${formData.cycleType === 'weekly' ? '7' : '30'}`} value={formData.workDaysPerCycle || ''} onChange={e => handleFieldChange('workDaysPerCycle', Number(e.target.value))} />
                 </div>
                 <div className="p-4 bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl border-2 border-slate-200 dark:border-slate-700">
                   <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block">ساعات العمل يومياً</label>
-                  <input type="number" className="w-full p-3 border-2 dark:bg-slate-800 rounded-xl font-black text-xl text-slate-700" placeholder="مثلاً: 8" value={formData.workingHoursPerDay || ''} onChange={e => setFormData({...formData, workingHoursPerDay: Number(e.target.value)})} />
+                  <input type="number" className="w-full p-3 border-2 dark:bg-slate-800 rounded-xl font-black text-xl text-slate-700" placeholder="مثلاً: 8" value={formData.workingHoursPerDay || ''} onChange={e => handleFieldChange('workingHoursPerDay', Number(e.target.value))} />
                 </div>
                 <div className="space-y-4">
                   <div>
                     <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block mr-2">بدل المواصلات</label>
-                    <input type="number" className="w-full p-4 border-2 dark:bg-slate-800 rounded-xl font-bold" value={formData.transportAllowance || 0} onChange={e => setFormData({...formData, transportAllowance: Number(e.target.value)})} />
+                    <input type="number" className="w-full p-4 border-2 dark:bg-slate-800 rounded-xl font-bold" value={formData.transportAllowance || 0} onChange={e => handleFieldChange('transportAllowance', Number(e.target.value))} />
                   </div>
                   <div className="flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/10 p-4 rounded-2xl border-2 border-emerald-100 dark:border-emerald-900/30">
                      <div className="flex flex-col">
                         <span className="text-[10px] font-black text-emerald-700 uppercase leading-none mb-1">استثناء الخصم</span>
                         <span className="text-[8px] font-bold text-slate-400 leading-none">صرف كامل البدل عند الغياب</span>
                      </div>
-                     <button type="button" onClick={() => setFormData({...formData, isTransportExempt: !formData.isTransportExempt})} className="transition-transform active:scale-90">
+                     <button type="button" onClick={() => handleFieldChange('isTransportExempt', !formData.isTransportExempt)} className="transition-transform active:scale-90">
                         {formData.isTransportExempt ? <ToggleRight size={36} className="text-emerald-600" /> : <ToggleLeft size={36} className="text-slate-300" />}
                      </button>
                   </div>
@@ -308,18 +347,19 @@ const Employees: React.FC<Props> = ({ employees, departments, settings, onAdd, o
               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <div className="space-y-4">
                    <h4 className="font-black text-indigo-600 uppercase text-xs mr-2 flex items-center gap-2"><Clock size={14}/> تخصيص ساعات الدوام</h4>
-                   <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/50 p-6 rounded-3xl">
-                      <div><label className="text-[10px] font-black block mb-1">وقت الحضور</label><input type="time" className="w-full p-3 border rounded-xl font-bold" value={formData.customCheckIn || ''} onChange={e => setFormData({...formData, customCheckIn: e.target.value})} /></div>
-                      <div><label className="text-[10px] font-black block mb-1">وقت الانصراف</label><input type="time" className="w-full p-3 border rounded-xl font-bold" value={formData.customCheckOut || ''} onChange={e => setFormData({...formData, customCheckOut: e.target.value})} /></div>
-                   </div>
-                </div>
-                <div className="space-y-4">
-                   <h4 className="font-black text-emerald-600 uppercase text-xs mr-2 flex items-center gap-2"><Settings2 size={14}/> تخصيص المعاملات</h4>
-                   <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/50 p-6 rounded-3xl">
-                      <div><label className="text-[10px] font-black block mb-1">مضاعف الإضافي</label><input type="number" step="0.1" className="w-full p-3 border rounded-xl font-bold" value={formData.customOvertimeRate || 1.5} onChange={e => setFormData({...formData, customOvertimeRate: Number(e.target.value)})} /></div>
-                      <div><label className="text-[10px] font-black block mb-1">مضاعف الخصم</label><input type="number" step="0.1" className="w-full p-3 border rounded-xl font-bold" value={formData.customDeductionRate || 1} onChange={e => setFormData({...formData, customDeductionRate: Number(e.target.value)})} /></div>
-                   </div>
-                </div>
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 dark:bg-slate-800/50 p-6 rounded-3xl">
+                    <div><label className="text-[10px] font-black block mb-1">وقت الحضور</label><input type="time" className="w-full p-3 border rounded-xl font-bold" value={formData.customCheckIn || ''} onChange={e => handleFieldChange('customCheckIn', e.target.value)} /></div>
+                    <div><label className="text-[10px] font-black block mb-1">وقت الانصراف</label><input type="time" className="w-full p-3 border rounded-xl font-bold" value={formData.customCheckOut || ''} onChange={e => handleFieldChange('customCheckOut', e.target.value)} /></div>
+                    <div><label className="text-[10px] font-black block mb-1 text-amber-600">ساعات الاستثنائي</label><input type="number" placeholder="مثلاً: 9" className="w-full p-3 border-2 border-amber-100 rounded-xl font-bold" value={formData.exceptionalHours || ''} onChange={e => handleFieldChange('exceptionalHours', e.target.value)} /></div>
+                 </div>
+              </div>
+              <div className="space-y-4">
+                 <h4 className="font-black text-emerald-600 uppercase text-xs mr-2 flex items-center gap-2"><Settings2 size={14}/> تخصيص المعاملات</h4>
+                 <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/50 p-6 rounded-3xl">
+                    <div><label className="text-[10px] font-black block mb-1">مضاعف الإضافي</label><input type="number" step="0.1" className="w-full p-3 border rounded-xl font-bold" value={formData.customOvertimeRate ?? ''} onChange={e => handleFieldChange('customOvertimeRate', e.target.value === '' ? undefined : Number(e.target.value))} /></div>
+                    <div><label className="text-[10px] font-black block mb-1">مضاعف الخصم</label><input type="number" step="0.1" className="w-full p-3 border rounded-xl font-bold" value={formData.customDeductionRate ?? ''} onChange={e => handleFieldChange('customDeductionRate', e.target.value === '' ? undefined : Number(e.target.value))} /></div>
+                 </div>
+              </div>
               </div>
 
               <div className="flex gap-4 pt-6">

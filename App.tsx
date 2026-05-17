@@ -827,21 +827,21 @@ const App: React.FC = () => {
     const emp = db.employees.find(e => e.id === data.employeeId);
     
     const PrintHeader = ({ title: titleOverride }: { title?: string }) => (
-      <div className="flex justify-between items-start border-b-4 border-indigo-900 pb-2 mb-2 text-right">
+      <div className="flex justify-between items-start border-b-2 border-indigo-900 pb-1 mb-1 text-right">
         <div>
-          <h1 className="text-xl font-black text-indigo-950 mb-0.5">{db.settings.name}</h1>
-          <p className="text-indigo-600 font-black text-xs uppercase tracking-widest">{titleOverride || title}</p>
-          <div className="mt-0.5 text-[8px] font-bold text-slate-500">
+          <h1 className="text-lg font-black text-indigo-950 mb-0">{db.settings.name}</h1>
+          <p className="text-indigo-600 font-black text-[10px] uppercase tracking-widest">{titleOverride || title}</p>
+          <div className="mt-0 text-[7px] font-bold text-slate-500">
              <p>{db.settings.address}</p>
              <p>تاريخ الصدور: {new Date().toLocaleDateString('ar-EG')}</p>
           </div>
         </div>
-        {db.settings.logo && <img src={db.settings.logo} className="h-10 w-auto object-contain" alt="Logo" referrerPolicy="no-referrer" />}
+        {db.settings.logo && <img src={db.settings.logo} className="h-8 w-auto object-contain" alt="Logo" referrerPolicy="no-referrer" />}
       </div>
     );
 
     const Signatures = () => (
-      <div className="mt-4 pt-2 border-t-2 border-dashed flex justify-between items-center text-center font-black text-[10px] text-slate-700">
+      <div className="mt-2 pt-1 border-t border-dashed flex justify-between items-center text-center font-black text-[9px] text-slate-700">
          <div className="flex-1">توقيع الموظف</div>
          <div className="flex-1">توقيع المدير المباشر</div>
          <div className="flex-1">ختم المؤسسة</div>
@@ -856,13 +856,13 @@ const App: React.FC = () => {
           <table className="w-full border-collapse text-[7px] text-right font-bold">
              <thead className="bg-indigo-950 text-white font-black">
                 <tr>
-                  <th className="p-1 border">#</th><th className="p-1 border">الاسم</th><th className="p-1 border">المنصب</th><th className="p-1 border">القسم</th><th className="p-1 border">العنوان</th><th className="p-1 border">الأساسي</th><th className="p-1 border">المواصلات</th><th className="p-1 border">الدوام</th><th className="p-1 border">الهوية</th><th className="p-1 border">تاريخ التعيين</th>
+                  <th className="p-1 border">#</th><th className="p-1 border">الاسم</th><th className="p-1 border">المنصب</th><th className="p-1 border">القسم</th><th className="p-1 border">تاريخ الميلاد</th><th className="p-1 border">العمر</th><th className="p-1 border">العنوان</th><th className="p-1 border">الأساسي</th><th className="p-1 border">المواصلات</th><th className="p-1 border">الدوام</th><th className="p-1 border">الهوية</th><th className="p-1 border">تاريخ التعيين</th>
                 </tr>
              </thead>
              <tbody className="divide-y">
                 {employeesList.map((emp, idx) => (
                   <tr key={emp.id} className="hover:bg-slate-50 border-x">
-                    <td className="p-1 border">{idx + 1}</td><td className="p-1 border font-black whitespace-nowrap">{emp.name}</td><td className="p-1 border">{emp.position}</td><td className="p-1 border">{emp.department}</td><td className="p-1 border text-[6px]">{emp.address || '-'}</td><td className="p-1 border">{emp.baseSalary.toLocaleString()} {db.settings.currency}</td><td className="p-1 border">{emp.transportAllowance.toLocaleString()} {db.settings.currency}</td><td className="p-1 border">{emp.cycleType === 'weekly' ? 'أسبوعي' : 'شهري'}</td><td className="p-1 border">{emp.nationalId}</td><td className="p-1 border">{emp.joinDate}</td>
+                    <td className="p-1 border">{idx + 1}</td><td className="p-1 border font-black whitespace-nowrap">{emp.name}</td><td className="p-1 border">{emp.position}</td><td className="p-1 border">{emp.department}</td><td className="p-1 border">{emp.birthDate || '-'}</td><td className="p-1 border">{emp.age || '-'}</td><td className="p-1 border text-[6px]">{emp.address || '-'}</td><td className="p-1 border">{emp.baseSalary.toLocaleString()} {db.settings.currency}</td><td className="p-1 border">{emp.transportAllowance.toLocaleString()} {db.settings.currency}</td><td className="p-1 border">{emp.cycleType === 'weekly' ? 'أسبوعي' : 'شهري'}</td><td className="p-1 border">{emp.nationalId}</td><td className="p-1 border">{emp.joinDate}</td>
                   </tr>
                 ))}
              </tbody>
@@ -877,16 +877,16 @@ const App: React.FC = () => {
     const isHalfSheet = ['permission', 'leave', 'financial', 'loan', 'production', 'warning'].includes(type);
 
     return (
-      <div className={`print-container-fixed p-3 w-full bg-white flex flex-col border-4 border-indigo-950 rounded-[2rem] text-right ${isHalfSheet ? 'min-h-[140mm] print:min-h-0 print:h-auto print:m-0' : 'min-h-[240mm]'}`}>
+      <div className={`print-container-fixed p-2 w-full bg-white flex flex-col border-2 border-indigo-950 rounded-[1.5rem] text-right ${isHalfSheet ? 'min-h-[120mm] print:min-h-0 print:h-auto print:m-0' : 'min-h-[220mm]'}`}>
           <PrintHeader title={isHalfSheet ? (data.title || 'إشعار إداري') : undefined} />
-          <div className={`flex-1 ${isHalfSheet ? 'space-y-3 pb-3' : 'space-y-6'}`}>
-             <div className={`bg-slate-50 ${isHalfSheet ? 'p-3 gap-y-2' : 'p-6 gap-y-6'} rounded-[1.5rem] border-2 border-slate-100 grid grid-cols-2`}>
-                <div><p className="text-[10px] font-black text-slate-400 uppercase mb-1">اسم الموظف</p><p className={`${isHalfSheet ? 'text-lg' : 'text-2xl'} font-black text-indigo-950`}>{emp?.name || data.employeeName}</p></div>
-                <div><p className="text-[10px] font-black text-slate-400 uppercase mb-1">المنصب</p><p className={`${isHalfSheet ? 'text-sm' : 'text-lg'} font-bold text-slate-700`}>{emp?.position || 'موظف مؤسسة'} - {emp?.department || 'كافة الأقسام'}</p></div>
-                <div className="col-span-2 border-t pt-2 text-left font-mono text-[9px] text-slate-400 uppercase tracking-tighter">REF: {data.id?.toUpperCase() || Math.random().toString(36).substr(2, 9).toUpperCase()}</div>
+          <div className={`flex-1 ${isHalfSheet ? 'space-y-2 pb-2' : 'space-y-4'}`}>
+             <div className={`bg-slate-50 ${isHalfSheet ? 'p-2 gap-y-1' : 'p-4 gap-y-4'} rounded-[1rem] border border-slate-100 grid grid-cols-2`}>
+                <div><p className="text-[9px] font-black text-slate-400 uppercase mb-0.5">اسم الموظف</p><p className={`${isHalfSheet ? 'text-md' : 'text-xl'} font-black text-indigo-950 leading-tight`}>{emp?.name || data.employeeName}</p></div>
+                <div><p className="text-[9px] font-black text-slate-400 uppercase mb-0.5">المنصب</p><p className={`${isHalfSheet ? 'text-xs' : 'text-md'} font-bold text-slate-700 leading-tight`}>{emp?.position || 'موظف مؤسسة'} - {emp?.department || 'كافة الأقسام'}</p></div>
+                <div className="col-span-2 border-t pt-1 text-left font-mono text-[8px] text-slate-400 uppercase tracking-tighter">REF: {data.id?.toUpperCase() || Math.random().toString(36).substr(2, 9).toUpperCase()}</div>
              </div>
 
-             <div className={`${isHalfSheet ? 'p-4' : 'p-8'} bg-white border-2 border-dashed border-slate-200 rounded-[1.5rem]`}>
+             <div className={`${isHalfSheet ? 'p-3' : 'p-6'} bg-white border border-dashed border-slate-200 rounded-[1rem]`}>
                 {type === 'production' && (
                   <div className="space-y-6">
                      <h4 className="text-2xl font-black text-indigo-700 mb-8 text-center border-b pb-4">إشعار إنتاجية معتمد</h4>

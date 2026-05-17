@@ -20,6 +20,7 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
   const [selectedEmp, setSelectedEmp] = useState('');
   const [checkIn, setCheckIn] = useState(settings.officialCheckIn);
   const [checkOut, setCheckOut] = useState(settings.officialCheckOut);
+  const [isExceptional, setIsExceptional] = useState(false);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   
   const [showArchive, setShowArchive] = useState(false);
@@ -34,24 +35,38 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
     const emp = employees.find(e => e.id === selectedEmp);
     const shiftIn = emp?.customCheckIn || settings.officialCheckIn;
     const shiftOut = emp?.customCheckOut || settings.officialCheckOut;
-    const lateMinutes = Math.max(0, calculateTimeDiffMinutes(checkIn, shiftIn));
-    const overtimeMinutes = Math.max(0, calculateTimeDiffMinutes(checkOut, shiftOut));
+    
+    let lateMinutes = Math.max(0, calculateTimeDiffMinutes(checkIn, shiftIn));
+    let overtimeMinutes = Math.max(0, calculateTimeDiffMinutes(checkOut, shiftOut));
+
+    if (isExceptional) {
+      lateMinutes = 0;
+      overtimeMinutes = 0;
+    }
 
     onSaveRecord({
       id: editingId || Math.random().toString(36).substr(2, 9),
       employeeId: selectedEmp,
-      date, checkIn, checkOut, lateMinutes, overtimeMinutes, status: 'present'
+      date, 
+      checkIn: isExceptional ? 'EXC' : checkIn, 
+      checkOut: isExceptional ? 'EXC' : checkOut, 
+      lateMinutes, 
+      overtimeMinutes, 
+      status: 'present',
+      isExceptional
     });
     
     setEditingId(null); 
     setSelectedEmp('');
+    setIsExceptional(false);
   };
 
   const handleEdit = (r: AttendanceRecord) => {
     setEditingId(r.id);
     setSelectedEmp(r.employeeId);
-    setCheckIn(r.checkIn);
-    setCheckOut(r.checkOut);
+    setCheckIn(r.checkIn === 'EXC' ? settings.officialCheckIn : r.checkIn);
+    setCheckOut(r.checkOut === 'EXC' ? settings.officialCheckOut : r.checkOut);
+    setIsExceptional(!!r.isExceptional);
     setDate(r.date);
     if (showArchive) setShowArchive(false);
   };
@@ -143,13 +158,21 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
               
               <div className="space-y-3">
                  <div>
-                    <label className="text-[10px] font-black block mb-1">وقت الدخول</label>
-                    <input type="time" className="w-full p-2 bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 rounded-lg font-bold text-xs" value={checkIn} onChange={e => setCheckIn(e.target.value)} />
+                    <label className="text-[10px] font-black block mb-1">وقت الحضور</label>
+                    <input type="time" disabled={isExceptional} className="w-full p-2 bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 rounded-lg font-bold text-xs" value={checkIn} onChange={e => setCheckIn(e.target.value)} />
                  </div>
                  <div>
                     <label className="text-[10px] font-black block mb-1">وقت الانصراف</label>
-                    <input type="time" className="w-full p-2 bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 rounded-lg font-bold text-xs" value={checkOut} onChange={e => setCheckOut(e.target.value)} />
+                    <input type="time" disabled={isExceptional} className="w-full p-2 bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 rounded-lg font-bold text-xs" value={checkOut} onChange={e => setCheckOut(e.target.value)} />
                  </div>
+              </div>
+
+              <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl border border-amber-200 dark:border-amber-900/40">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" className="w-4 h-4 accent-amber-600" checked={isExceptional} onChange={e => setIsExceptional(e.target.checked)} />
+                  <span className="text-[10px] font-black text-amber-800 dark:text-amber-400">اعتبار الساعات كـ "دوام استثنائي"</span>
+                </label>
+                <p className="text-[8px] text-amber-600/70 mt-1 mr-6 font-bold leading-tight">سيتم احتساب يوم كامل للموظف بناءً على الساعات الاستثنائية المعرفة في ملفه.</p>
               </div>
 
               <div className="flex gap-2 pt-2">
@@ -184,9 +207,19 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
                             <p className="text-[9px] text-slate-400 print:hidden">{r.date}</p>
                           </td>
                           <td className="text-center">
-                            <span className="bg-indigo-50 dark:bg-indigo-900/20 px-2 py-1 rounded text-indigo-700 dark:text-indigo-400 print:bg-transparent print:text-black">{r.checkIn} - {r.checkOut}</span>
+                            {r.isExceptional ? (
+                              <span className="bg-amber-100 text-amber-700 px-2 py-1 rounded text-[9px] font-black">دوام استثنائي</span>
+                            ) : (
+                              <span className="bg-indigo-50 dark:bg-indigo-900/20 px-2 py-1 rounded text-indigo-700 dark:text-indigo-400 print:bg-transparent print:text-black">{r.checkIn} - {r.checkOut}</span>
+                            )}
                           </td>
-                          <td className="text-center text-indigo-600 print:text-black">{formatHours(calculateTimeDiffMinutes(r.checkOut, r.checkIn))}</td>
+                          <td className="text-center text-indigo-600 print:text-black">
+                            {r.isExceptional ? (
+                              <span>{(employees.find(e => e.id === r.employeeId)?.exceptionalHours || employees.find(e => e.id === r.employeeId)?.workingHoursPerDay || 8)} س</span>
+                            ) : (
+                              formatHours(calculateTimeDiffMinutes(r.checkOut, r.checkIn))
+                            )}
+                          </td>
                           <td className="text-center">
                               {r.lateMinutes > 0 ? (
                                 <span className="text-rose-600 text-[9px]">متأخر {r.lateMinutes}د</span>
@@ -244,11 +277,19 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
                     {archivedRecords.map(r => (
                       <tr key={r.id} className="hover:bg-slate-50 transition print:border-b">
                         <td className="px-5 py-2 text-slate-500 print:text-black">{r.date}</td>
-                        <td className="px-5 py-2">{employees.find(e => e.id === r.employeeId)?.name}</td>
-                        <td className="text-center">{r.checkIn}</td>
-                        <td className="text-center">{r.checkOut}</td>
-                        <td className="text-center text-indigo-700 print:text-black">{formatHours(calculateTimeDiffMinutes(r.checkOut, r.checkIn))}</td>
-                        <td className={`text-center ${r.lateMinutes > 0 ? 'text-rose-600' : ''} print:text-black`}>{r.lateMinutes}د</td>
+                        <td className="px-5 py-2">
+                          {employees.find(e => e.id === r.employeeId)?.name}
+                          {r.isExceptional && <span className="mr-2 text-[8px] bg-amber-100 text-amber-700 px-1 rounded font-black">استثنائي</span>}
+                        </td>
+                        <td className="text-center">{r.isExceptional ? 'EXC' : r.checkIn}</td>
+                        <td className="text-center">{r.isExceptional ? 'EXC' : r.checkOut}</td>
+                        <td className="text-center text-indigo-700 print:text-black">
+                          {r.isExceptional 
+                            ? `${(employees.find(e => e.id === r.employeeId)?.exceptionalHours || 8)}س`
+                            : formatHours(calculateTimeDiffMinutes(r.checkOut, r.checkIn))
+                          }
+                        </td>
+                        <td className={`text-center ${r.lateMinutes > 0 ? 'text-rose-600' : ''} print:text-black`}>{r.isExceptional ? '-' : `${r.lateMinutes}د`}</td>
                         <td className="text-center no-print px-5">
                            <div className="flex justify-center gap-1">
                              <button onClick={() => handleEdit(r)} className="p-1.5 text-indigo-600"><Edit2 size={14}/></button>

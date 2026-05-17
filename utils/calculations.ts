@@ -109,6 +109,7 @@ export const generatePayrollForRange = (
 
     const gracePeriod = Number(settings.gracePeriodMinutes || 0);
     const totalLateMinutes = empAttendance.reduce((acc, record) => {
+      if (record.isExceptional) return acc;
       const lateMins = Math.max(0, calculateTimeDiffMinutes(record.checkIn, shiftIn));
       return acc + (lateMins > gracePeriod ? lateMins : 0);
     }, 0);
@@ -116,6 +117,7 @@ export const generatePayrollForRange = (
     const lateDeductionValue = (totalLateMinutes / 60) * (emp.customDeductionRate || 1) * hourlyRate;
 
     const totalEarlyMins = empAttendance.reduce((acc, record) => {
+      if (record.isExceptional) return acc;
       const earlyMins = Math.max(0, calculateTimeDiffMinutes(shiftOut, record.checkOut));
       return acc + earlyMins;
     }, 0);
@@ -123,10 +125,17 @@ export const generatePayrollForRange = (
 
     const otRate = emp.customOvertimeRate ?? settings.overtimeHourRate;
     const totalOTMins = empAttendance.reduce((acc, r) => {
+      if (r.isExceptional) return acc;
       const otMins = Math.max(0, calculateTimeDiffMinutes(r.checkOut, shiftOut));
       return acc + otMins;
     }, 0);
     const overtimePay = (totalOTMins / 60) * hourlyRate * otRate;
+
+    const totalWorkingHours = empAttendance.reduce((acc, record) => {
+      if (record.status !== 'present') return acc;
+      if (record.isExceptional) return acc + (emp.exceptionalHours || workingHoursPerDay);
+      return acc + workingHoursPerDay;
+    }, 0);
 
     const totalEarnings = emp.baseSalary + Math.round(transportEarned) + bonuses + productionIncentives + totalProductionValue + overtimePay;
     const totalDeductions = absenceDeduction + manualDeductions + Math.round(lateDeductionValue) + Math.round(earlyDeductionValue) + totalLoanInstallments + permissionDeductionValue;
@@ -156,7 +165,7 @@ export const generatePayrollForRange = (
       manualDeductions: Math.round(manualDeductions),
       deductions: Math.round(totalDeductions),
       lateMinutes: totalLateMinutes,
-      workingHours: Number(((workingDays * workingHoursPerDay)).toFixed(1)),
+      workingHours: Number(totalWorkingHours.toFixed(1)),
       workingDays,
       netSalary: Math.round(Math.max(0, netSalary)),
       isPaid: false

@@ -59,6 +59,9 @@ export interface Employee {
   phone: string;
   nationalId: string;
   address?: string;
+  birthDate?: string;
+  age?: number;
+  exceptionalHours?: number;
   vacationBalance: number;
   workDaysPerCycle: number;
   workingHoursPerDay: number; 
@@ -78,6 +81,7 @@ export interface AttendanceRecord {
   lateMinutes: number;
   overtimeMinutes: number;
   status: 'present' | 'absent' | 'leave' | 'excused';
+  isExceptional?: boolean;
   isArchived?: boolean;
 }
 
