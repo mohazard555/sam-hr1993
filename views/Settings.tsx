@@ -146,6 +146,16 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
               </div>
 
               <div>
+                <label className="text-xs font-black text-slate-400 mb-1 block uppercase">عنوان الشركة</label>
+                <input 
+                  className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 rounded-2xl font-black outline-none transition" 
+                  placeholder="مثال: سوريا - دمشق"
+                  value={settings.address || ''} 
+                  onChange={e => onUpdateSettings({address: e.target.value})} 
+                />
+              </div>
+
+              <div>
                 <label className="text-xs font-black text-slate-400 mb-1 block uppercase flex items-center gap-2">
                   <HelpCircle size={14} className="text-indigo-500"/> تلميح كلمة المرور
                 </label>

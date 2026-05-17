@@ -118,6 +118,7 @@ const ReportsView: React.FC<Props> = ({ db, payrolls, lang, onPrint }) => {
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-black text-slate-900">{db.settings.name}</h1>
+            <p className="text-xs font-black text-slate-500 mt-1">{db.settings.address}</p>
             <h2 className="text-xl font-bold text-indigo-700 mt-2">
               {reportType === 'standard' ? `تقرير تحليلات الرواتب (من ${startDate} إلى ${endDate})` : `تقرير مقارنة الفترات المالية (${compMonth1}/${compYear1} vs ${compMonth2}/${compYear2})`}
             </h2>

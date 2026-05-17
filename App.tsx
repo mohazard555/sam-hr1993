@@ -639,6 +639,7 @@ const App: React.FC = () => {
             <div className="flex justify-between items-start">
               <div>
                 <h1 className="text-3xl font-black text-slate-900">{db.settings.name}</h1>
+                <p className="text-xs font-black text-slate-500 mt-1">{db.settings.address}</p>
                 <h2 className="text-xl font-bold text-indigo-700 mt-2">
                   {payrollCycleFilter === 'weekly' ? 'مسير الرواتب الأسبوعي' : 
                    payrollCycleFilter === 'monthly' ? 'مسير الرواتب الشهري' : 
@@ -1093,6 +1094,7 @@ const App: React.FC = () => {
                   <div className="text-right">
                      <p className="text-[10px] font-black text-indigo-600 uppercase">قسيمة راتب معتمدة</p>
                      <h3 className="text-lg font-black text-slate-900">{emp?.name}</h3>
+                     <p className="text-[7px] font-bold text-slate-400 leading-tight">{db.settings.address}</p>
                      <p className="text-[9px] font-bold text-slate-500 mt-1">{emp?.position} - {emp?.department} ({ (emp?.cycleType || db.settings.salaryCycle) === 'weekly' ? 'أسبوعي' : 'شهري' })</p>
                   </div>
                </div>

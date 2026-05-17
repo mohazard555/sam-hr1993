@@ -117,6 +117,7 @@ const Attendance: React.FC<Props> = ({ employees, records, settings, onSaveRecor
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-black text-slate-900">{settings.name}</h1>
+            <p className="text-xs font-black text-slate-500">{settings.address}</p>
             <h2 className="text-lg font-bold text-indigo-700 mt-1">
               {showArchive 
                 ? `تقرير الحضور التاريخي (من ${dateFrom} إلى ${dateTo})` 
