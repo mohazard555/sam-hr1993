@@ -32,7 +32,7 @@ const SettingsView: React.FC<Props> = ({ settings, admin, db, onUpdateSettings, 
   });
 
   const handleUnlockGist = () => {
-    if (gistPasswordInput === 'sam1993') {
+    if (gistPasswordInput === 'moha19932026') {
       setIsGistLocked(false);
       setGistPasswordInput('');
     } else {

@@ -11,7 +11,7 @@ const TrialLock: React.FC<TrialLockProps> = ({ children }) => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const unlocked = localStorage.getItem('sam_trial_unlocked');
+    const unlocked = localStorage.getItem('sam_trial_unlocked_new');
     if (unlocked === 'true') {
       setIsUnlocked(true);
     }
@@ -19,11 +19,11 @@ const TrialLock: React.FC<TrialLockProps> = ({ children }) => {
 
   const handleUnlock = (e: React.FormEvent) => {
     e.preventDefault();
-    if (code === 'sam1993') {
-      localStorage.setItem('sam_trial_unlocked', 'true');
+    if (code === 'moha19932026') {
+      localStorage.setItem('sam_trial_unlocked_new', 'true');
       setIsUnlocked(true);
     } else {
-      setError('الرمز غير صحيح. يرجى التأكد من الرمز والمحاولة مرة أخرى.');
+      setError('الرمز غير صحيح! يرجى التواصل مع المطور لطلب مفتاح التفعيل الجديد.');
     }
   };
 
@@ -37,9 +37,9 @@ const TrialLock: React.FC<TrialLockProps> = ({ children }) => {
         <div className="w-20 h-20 bg-rose-100 rounded-3xl mx-auto flex items-center justify-center text-rose-600 mb-6 shadow-inner">
           <ShieldAlert size={40} />
         </div>
-        <h2 className="text-3xl font-black text-slate-900 mb-3 tracking-tighter">انتهت الفترة التجريبية</h2>
+        <h2 className="text-3xl font-black text-slate-900 mb-3 tracking-tighter">مطلوب رمز تفعيل جديد</h2>
         <p className="text-slate-500 font-bold text-sm mb-8 leading-relaxed">
-          لقد انتهت الفترة التجريبية المخصصة لك لاستخدام النظام. يرجى إدخال رمز الدخول للمتابعة أو التواصل مع المطور لشراء النسخة الكاملة.
+          تم تحديث نظام الحماية أو انتهت الفترة التجريبية المخصصة لك. يرجى إدخال رمز الدخول الجديد للمتابعة، أو التواصل مباشرة مع المطور للحصول على المفتاح الجديد.
         </p>
 
         <form onSubmit={handleUnlock} className="space-y-6">
